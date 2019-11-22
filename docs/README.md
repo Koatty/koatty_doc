@@ -87,12 +87,6 @@ export class IndexController extends BaseController {
         const info = await this.testService.sayHello();
         return this.ok(test, info);
     }
-
-    @PostMaping("/test")
-    test(@RequestBody() body: any) {
-        // return this.default('aaa');
-        return this.ok("test", body);
-    }
 }
 ```
 
