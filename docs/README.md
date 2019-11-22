@@ -1,3 +1,4 @@
-# Headline
+# koatty
+Koa2 + Typescript = koatty. 
 
-> An awesome project.
+Use Typescript's decorator implement auto injection just like SpringBoot.
