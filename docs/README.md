@@ -13,12 +13,6 @@ npm i -g koatty_cli
 
 ## Quick Start
 
-Check out the [quick start example][quick-example].
-
-[quick-example]: https://github.com/thinkkoa/koatty_demo/
-
-## Usage
-
 ### 1.Create Project
 
 ```shell
