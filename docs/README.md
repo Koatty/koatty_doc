@@ -3,7 +3,15 @@ Koa2 + Typescript = koatty.
 
 Use Typescript's decorator implement auto injection just like SpringBoot.
 
+Koatty是基于Koa2实现的一个具备IOC自动依赖注入、AOP切面编程功能的敏捷开发框架，用法类似SpringBoot。
+
 [![Version npm](https://img.shields.io/npm/v/koatty.svg?style=flat-square)](https://www.npmjs.com/package/koatty)[![npm Downloads](https://img.shields.io/npm/dm/koatty.svg?style=flat-square)](https://npmcharts.com/compare/koatty?minimal=true)
+
+
+## Documentation
+
+[koatty_doc](https://thinkkoa.github.io/koatty_doc/) （In progress💪）
+
 
 ## Installation
 
@@ -60,7 +68,7 @@ koatty middleware -o typeorm test
 ### 5.Define TestController
 
 ```javascript
-import { Controller, BaseController, Autowired, GetMaping, RequestBody, PathVariable, PostMaping, BaseApp, RequestMapping, RequestMethod } from "koatty";
+import { Controller, BaseController, Autowired, GetMaping, RequestBody, PathVariable, PostMaping, RequestMapping, RequestMethod, Valid } from "koatty";
 import { TestService } from "../service/TestService";
 import { App } from "../App";
 
@@ -72,19 +80,21 @@ export class IndexController extends BaseController {
     private testService: TestService;
 
     init() {
-        this.app.cache = {};
-        console.log('IndexController.init()', this.app.cache);
+        this.cache = {};
     }
 
     @RequestMapping("/", RequestMethod.ALL)
-    async default(@PathVariable("test") test: string) {
+    async default(@PathVariable("test") @Valid("notEmpty") test: string) {
         const info = await this.testService.sayHello();
         return this.ok(test, info);
     }
+
+    @PostMaping("/test")
+    test(@RequestBody() body: any) {
+        return this.ok("test", body);
+    }
 }
 ```
-
-
 
 ## How to debug
 
@@ -114,3 +124,13 @@ if you use vscode , edit the `.vscode/launch.json` , like this:
 }
 ```
 Select `TS Program` to debug run. Try to call `http://localhost:3000/` .
+
+## Example
+
+Check out the [quick start example][quick-example].
+
+[quick-example]: https://github.com/thinkkoa/koatty_demo/
+
+
+
+
