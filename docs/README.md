@@ -72,7 +72,6 @@ koatty controller index
 
 ## 项目结构
 
-
 ## 配置
 
 ## 路由
