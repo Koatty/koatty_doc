@@ -7,21 +7,17 @@ Koatty是基于Koa2实现的一个具备IOC自动依赖注入、AOP切面编程�
 
 [![Version npm](https://img.shields.io/npm/v/koatty.svg?style=flat-square)](https://www.npmjs.com/package/koatty)[![npm Downloads](https://img.shields.io/npm/dm/koatty.svg?style=flat-square)](https://npmcharts.com/compare/koatty?minimal=true)
 
+# 快速开始
 
-## Documentation
+## 第一个应用
 
-[koatty_doc](https://thinkkoa.github.io/koatty_doc/) （In progress💪）
-
-
-## Installation
+### 1.安装命令行工具
 
 ```shell
 npm i -g koatty_cli
 ```
 
-## Quick Start
-
-### 1.Create Project
+### 2.新建项目
 
 ```shell
 koatty new projectName
@@ -33,72 +29,18 @@ yarn install
 npm start
 ```
 
-### 2.Create a Controller
+### 3.创建控制器
 ```shell
-koatty controller test
+koatty controller index
 
 ```
 
-### 3.Create a Service
+ 使用 `npm start` 重新启动项目, 浏览器中访问  `http://localhost:3000/`. 
 
-```shell
-koatty service test
+## 调试模式
 
-```
+墙裂推荐使用Visual Studio Code(简称 VScode)进行开发, 编辑项目目录下的 .vscode/launch.json文件（点击调试-配置也可以打开）:
 
-### 3.Create a Middleware
-
-```shell
-koatty middleware test
-
-```
-### 4.Create a Model
-
-Supports [thinkorm](https://github.com/thinkkoa/thinkorm) and [typeorm](https://github.com/typeorm/typeorm). Please expand other ORM by yourself.
-
-```shell
-//thinkorm
-koatty middleware test
-
-//typeorm
-koatty middleware -o typeorm test
-
-```
-
-### 5.Define TestController
-
-```javascript
-import { Controller, BaseController, Autowired, GetMaping, RequestBody, PathVariable, PostMaping, RequestMapping, RequestMethod, Valid } from "koatty";
-import { TestService } from "../service/TestService";
-import { App } from "../App";
-
-@Controller()
-export class IndexController extends BaseController {
-    app: App;
-
-    @Autowired()
-    private testService: TestService;
-
-    init() {
-        this.cache = {};
-    }
-
-    @RequestMapping("/", RequestMethod.ALL)
-    async default(@PathVariable("test") @Valid("notEmpty") test: string) {
-        const info = await this.testService.sayHello();
-        return this.ok(test, info);
-    }
-
-    @PostMaping("/test")
-    test(@RequestBody() body: any) {
-        return this.ok("test", body);
-    }
-}
-```
-
-## How to debug
-
-if you use vscode , edit the `.vscode/launch.json` , like this: 
 ```
 {
     "version": "0.2.0",
@@ -123,14 +65,18 @@ if you use vscode , edit the `.vscode/launch.json` , like this:
     ]
 }
 ```
-Select `TS Program` to debug run. Try to call `http://localhost:3000/` .
 
-## Example
+选择 `TS Program` 以debug模式启动.
 
-Check out the [quick start example][quick-example].
+# 进阶
 
-[quick-example]: https://github.com/thinkkoa/koatty_demo/
-
+## 项目结构
 
 
+## 配置
 
+## 路由
+
+## 中间件
+
+## 控制器
