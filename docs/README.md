@@ -192,7 +192,7 @@ const dbHost: string = this.app.config("database.db_host", "db");
 
 ```
 
-需要特别注意的是，层级配置仅支持读取`二级`，更深的层级请赋值后再次获取:
+需要特别注意的是，层级配置仅支持直接访问到`二级`，更深的层级请赋值后再次获取:
 
 ```
 //config
@@ -214,7 +214,9 @@ const cc: number = conf.bb.cc;
 
 ## 控制器
 
+## 服务层
 
+## 持久层
 
 # 进阶应用
 
@@ -231,6 +233,8 @@ Koatty参考 SpringBoot设计实现IOC容器，具备自动加载、自动依赖
 ## 默认规则和限制
 
 ## 启动自定义
+
+## 装载自定义
 
 # Decorators
 
