@@ -68,11 +68,7 @@ koatty controller index
 
 选择 `TS Program` 以debug模式启动.
 
-# 进阶
-
-## 架构
-
-![test image size](./assets/Koatty.png)
+# 基础功能
 
 ## 配置
 
@@ -84,9 +80,9 @@ koatty controller index
 * middleware.js middlware 配置
 
 
-#### 自定义配置路径
+### 自定义配置扫描路径
 
-配置文件默认放在 src/config/ 目录下，我们还可以通过在入口文件App.ts类进行自定义配置扫描路径：
+配置文件默认放在 src/config/ 目录下，我们还可以通过在入口文件App.ts类自定义配置扫描路径：
 
 ```
 //App.ts
@@ -102,8 +98,48 @@ export class App extends Koatty {
 
 Koatty启动时会自动扫描项目 src/myconfig目录下所有文件(.ts),按照文件名分类加载为配置
 
+### 读取配置
+
+在项目中有两种方式可以很方便的读取配置：
+
+* 方式一(控制器、service等含有app属性的类中使用):
+
+```
+//
+...
+const conf = this.app.config("test");
+
+```
+* 方式二(利用注解进行注入，推荐用法)
+
+```
+@Controller()
+export class AdminController {
+    @Value("test")
+    conf: any;
+}
+
+```
+
+
 ## 路由
 
 ## 中间件
 
 ## 控制器
+
+
+
+# 进阶应用
+
+## 架构
+
+![test image size](./assets/Koatty.png)
+
+Koatty在Koa2的基础上进行了封装和扩展，方便进行快速开发；并且保持向下兼容Koa的原生用法，Koa的中间件仅需进行简单包装即可在Koatty中使用。
+
+Koatty参考 SpringBoot设计实现IOC容器，具备自动加载、自动依赖管理等特性，并且利用延迟加载机制避免循环依赖；在使用方法上贴近SpringBoot的开发习惯，有效的降低了入门门槛。
+
+## IOC容器
+
+# API
