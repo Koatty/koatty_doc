@@ -230,6 +230,10 @@ Koatty参考 SpringBoot设计实现IOC容器，具备自动加载、自动依赖
 
 ## 默认规则和限制
 
+## 启动自定义
+
+# Decorators
+
 # API
 
 ## App
