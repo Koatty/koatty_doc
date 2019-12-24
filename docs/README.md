@@ -102,7 +102,7 @@ Koatty启动时会自动扫描项目 src/myconfig目录下所有文件(.ts),按�
 
 ### 配置文件格式
 
-Koatty的配置文件必须是标准的格式进行导出(ES Module),否则会无法加载。格式如下：
+Koatty的配置文件必须是标准的ES6 Module格式进行导出,否则会无法加载。格式如下：
 
 ```
 export default {
@@ -182,6 +182,26 @@ export default {
 @Value("database.db_host", "db")
 dbHost: string;
 
+或者
+
+const dbHost: string = this.app.config("database.db_host", "db");
+
+```
+
+需要特别注意的是，层级配置仅支持读取`二级`，更深的层级请赋值后再次获取:
+
+```
+//config
+export default {
+    test: {
+        bb: {
+            cc: 1
+        }
+    }
+}
+
+const conf: any = this.app.config("test");
+const cc: number = conf.bb.cc;
 ```
 
 ## 路由
