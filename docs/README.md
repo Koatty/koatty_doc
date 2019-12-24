@@ -26,16 +26,20 @@ cd ./projectName
 
 yarn install
 
-npm start
+
 ```
 
-### 3.创建控制器
+### 3.启动服务
 ```shell
-koatty controller index
+// dev模式
+npm run dev
+
+// pro模式
+npm start
 
 ```
 
- 使用 `npm start` 重新启动项目, 浏览器中访问  `http://localhost:3000/`. 
+ 浏览器中访问  `http://localhost:3000/`. 
 
 ## 调试模式
 
