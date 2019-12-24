@@ -228,4 +228,14 @@ Koatty参考 SpringBoot设计实现IOC容器，具备自动加载、自动依赖
 
 ## IOC容器
 
+## 默认规则和限制
+
 # API
+
+## App
+
+## Ctx
+
+## BaseController
+
+## RestController
