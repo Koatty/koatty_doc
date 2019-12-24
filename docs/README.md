@@ -3,7 +3,7 @@ Koa2 + Typescript = koatty.
 
 Use Typescript's decorator implement auto injection just like SpringBoot.
 
-Koatty是基于Koa2实现的一个具备IOC自动依赖注入、AOP切面编程功能的敏捷开发框架，用法类似SpringBoot。
+Koatty是基于Koa2实现的一个具备IOC自动依赖注入的敏捷开发框架，用法类似SpringBoot。
 
 [![Version npm](https://img.shields.io/npm/v/koatty.svg?style=flat-square)](https://www.npmjs.com/package/koatty)[![npm Downloads](https://img.shields.io/npm/dm/koatty.svg?style=flat-square)](https://npmcharts.com/compare/koatty?minimal=true)
 
@@ -70,9 +70,37 @@ koatty controller index
 
 # 进阶
 
-## 项目结构
+## 架构
+
+![test image size](./assets/Koatty.png)
 
 ## 配置
+
+实际项目中，肯定需要各种配置，包括：框架需要的配置以及项目自定义的配置。Koatty 将所有的配置都统一管理，并根据不同的功能划分为不同的配置文件。
+
+* config.js 通用的一些配置
+* db.js 数据库配置
+* router.js 自定义路由配置
+* middleware.js middlware 配置
+
+
+#### 自定义配置路径
+
+配置文件默认放在 src/config/ 目录下，我们还可以通过在入口文件App.ts类进行自定义配置扫描路径：
+
+```
+//App.ts
+
+@ConfiguationScan('./myconfig')
+export class App extends Koatty {
+
+    public init() {
+        ...
+    }
+}
+```
+
+Koatty启动时会自动扫描项目 src/myconfig目录下所有文件(.ts),按照文件名分类加载为配置
 
 ## 路由
 
