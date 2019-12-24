@@ -74,10 +74,12 @@ koatty controller index
 
 实际项目中，肯定需要各种配置，包括：框架需要的配置以及项目自定义的配置。Koatty 将所有的配置都统一管理，并根据不同的功能划分为不同的配置文件。
 
-* config.js 通用的一些配置
-* db.js 数据库配置
-* router.js 自定义路由配置
-* middleware.js middlware 配置
+* config.ts 通用的一些配置
+* db.ts 数据库配置
+* router.ts 自定义路由配置
+* middleware.ts middlware 配置
+
+除上述常见的配置文件之外，Koatty也支持用户自行定义的配置文件命名。
 
 
 ### 自定义配置扫描路径
@@ -98,6 +100,27 @@ export class App extends Koatty {
 
 Koatty启动时会自动扫描项目 src/myconfig目录下所有文件(.ts),按照文件名分类加载为配置
 
+### 配置文件格式
+
+Koatty的配置文件必须是标准的格式进行导出(ES Module),否则会无法加载。格式如下：
+
+```
+export default {
+    /*database config*/
+    database: {
+        db_type: 'mysql', //support  postgresql,mysql...
+        db_host: '127.0.0.1',
+        db_port: 3306,
+        db_name: 'test',
+        db_user: 'test',
+        db_pwd: '',
+        db_prefix: '',
+        db_charset: 'utf8'
+    }
+}
+
+```
+
 ### 读取配置
 
 在项目中有两种方式可以很方便的读取配置：
@@ -107,7 +130,7 @@ Koatty启动时会自动扫描项目 src/myconfig目录下所有文件(.ts),按�
 ```
 //
 ...
-const conf = this.app.config("test");
+const conf: any = this.app.config("test");
 
 ```
 * 方式二(利用注解进行注入，推荐用法)
@@ -120,7 +143,46 @@ export class AdminController {
 }
 
 ```
+### 配置分类及层级
 
+Koatty在启动扫描配置文件目录时，会按照文件名对配置进行分类。例如：db.ts加载完成后，读取该文件内的配置项需要增加类型
+
+```
+// config函数的第二个参数为类型
+const conf: any = this.app.config("test", "db");
+
+或者
+
+@Value("test", "db")
+conf: any;
+
+```
+
+Koatty在读取配置时支持配置层级，例如配置文件db.ts：
+
+```
+export default {
+    /*database config*/
+    database: {
+        db_type: 'mysql', //support  postgresql,mysql...
+        db_host: '127.0.0.1',
+        db_port: 3306,
+        db_name: 'test',
+        db_user: 'test',
+        db_pwd: '',
+        db_prefix: '',
+        db_charset: 'utf8'
+    }
+}
+```
+
+读取 `db_host`的值：
+
+```
+@Value("database.db_host", "db")
+dbHost: string;
+
+```
 
 ## 路由
 
