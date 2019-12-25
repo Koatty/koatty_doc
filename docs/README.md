@@ -287,6 +287,71 @@ const cc: number = conf.bb.cc;
 
 ## 路由
 
+Koatty 通过RequestMapping类型装饰器进行路由注册，使用[@koa/router](https://github.com/koajs/router)进行路由解析。
+
+RequestMapping类型装饰器仅可使用在控制器上。首先注册`@Controller("/test")`装饰器的参数作为控制器访问入口，然后再遍历该控制器的方法上的装饰器GetMaping、
+DeleteMaping、PutMaping、PostMaping等进行方法路由注册。
+
+例如：
+```
+@Controller("/admin")
+export class AdminController extends BaseController {
+    ...
+    @GetMaping("/test")
+    test(){
+        ...
+    }
+    ...
+}
+```
+上述代码注册了路由 `/admin/test` ==> AdminController.test();
+
+
+### @RequestMapping([path, requestMethod, routerOptions])
+
+* path  path路径
+* requestMethod  路由请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式
+* routerOptions 路由配置
+
+### GetMaping([path, routerOptions])
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### PostMaping([path, routerOptions])
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### DeleteMaping([path, routerOptions])
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### PutMaping([path, routerOptions])
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### PatchMaping([path, routerOptions])
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### OptionsMaping([path, routerOptions])
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### HeadMaping([path, routerOptions])
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### 路由配置
+
+在项目 src/config/router.ts存放着路由自定义配置，该配置用于初始化`@koa/router`实例，作为构造方法入参使用，具体配置项请参考 [@koa/router](https://github.com/koajs/router)。
+
 ## 中间件
 
 ## 控制器
