@@ -309,44 +309,21 @@ export class AdminController extends BaseController {
 
 ### @RequestMapping([path, requestMethod, routerOptions])
 
+用于控制器方法绑定路由
+
 * path  path路径
 * requestMethod  路由请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式
 * routerOptions 路由配置
 
-### GetMaping([path, routerOptions])
+### @GetMaping([path, routerOptions])
+
+用于控制器方法绑定Get路由
 
 * path  path路径,默认值 `/`
 * routerOptions 路由配置
 
-### PostMaping([path, routerOptions])
+类似功能的装饰器还有 `PostMaping`、`DeleteMaping`、`PutMaping`、`PatchMaping`、`OptionsMaping`、`HeadMaping`。详细用法参考API章节
 
-* path  path路径,默认值 `/`
-* routerOptions 路由配置
-
-### DeleteMaping([path, routerOptions])
-
-* path  path路径,默认值 `/`
-* routerOptions 路由配置
-
-### PutMaping([path, routerOptions])
-
-* path  path路径,默认值 `/`
-* routerOptions 路由配置
-
-### PatchMaping([path, routerOptions])
-
-* path  path路径,默认值 `/`
-* routerOptions 路由配置
-
-### OptionsMaping([path, routerOptions])
-
-* path  path路径,默认值 `/`
-* routerOptions 路由配置
-
-### HeadMaping([path, routerOptions])
-
-* path  path路径,默认值 `/`
-* routerOptions 路由配置
 
 ### 路由配置
 
@@ -403,6 +380,63 @@ Koatty将IOC容器内的bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 ## PropertyDecorator
 
 ## MethodDecorator
+
+### @RequestMapping([path, requestMethod, routerOptions])
+
+用于控制器方法绑定路由
+
+* path  path路径
+* requestMethod  路由请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式
+* routerOptions 路由配置
+
+### @GetMaping([path, routerOptions])
+
+用于控制器方法绑定Get路由
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### @PostMaping([path, routerOptions])
+
+用于控制器方法绑定Post路由
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### @DeleteMaping([path, routerOptions])
+
+用于控制器方法绑定Delete路由
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### @PutMaping([path, routerOptions])
+
+用于控制器方法绑定Put路由
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### @PatchMaping([path, routerOptions])
+
+用于控制器方法绑定Patch路由
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### @OptionsMaping([path, routerOptions])
+
+用于控制器方法绑定Options路由
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
+
+### @HeadMaping([path, routerOptions])
+
+用于控制器方法绑定Head路由
+
+* path  path路径,默认值 `/`
+* routerOptions 路由配置
 
 ## 
 
