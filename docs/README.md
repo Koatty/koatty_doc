@@ -76,7 +76,80 @@ npm start
 
 ## 项目结构
 
-## 入口文件(App.ts)
+Koatty的命令行工具`koatty_cli`在创建项目的时候，默认会形成以下目录结构:
+
+
+```js
+├── dist                    //应用文件目录(编译后文件)
+
+├── logs                   //日志文件目录
+
+├── node_modules           //node模块目录
+
+├── src                    //应用文件目录(源文件)
+
+    └──config              //应用配置目录
+
+        └──config.js       //应用配置文件
+
+        └──db.js           //应用数据库配置文件
+        
+        └──middleware.js   //应用中间件配置文件
+        
+        └──router.js       //应用路由配置文件
+
+    └──controller　　　　   //应用控制器目录
+
+    └──model　　　　　　　   //应用持久层目录
+
+    └──service　　　　　　　 //应用服务层目录
+
+├── static　　　　　　       //静态资源目录,如果使用nginx请将root指向此目录
+
+├── App.ts                 //应用入口文件
+
+├── package.json           //应用依赖配置
+```
+
+但是Koatty支持灵活的自定义项目结构，除配置目录(通过@ConfiguationScan()定制)以及静态资源目录(需要修改Static中间件默认配置)以外，其他目录名称、结构等都可以自行定制。
+
+## 入口文件
+
+Koatty默认的入口文件是 `App.ts`，内容如下：
+
+```
+import { Koatty, Bootstrap } from "koatty";
+// import * as path from "path";
+
+@Bootstrap(
+    //bootstrap function
+    // (app: any) => {
+    //调整libuv线程池大小
+    // process.env.UV_THREADPOOL_SIZE = "128";
+    //忽略https自签名验证
+    // process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    //运行环境
+    // process.env.RUN_TIME = 'development';
+    // }
+)
+// @ComponentScan('./')
+// @ConfiguationScan('./config')
+export class App extends Koatty {
+    public init() {
+        // this.app_debug = true; //线上环境请将debug模式关闭，即：app_debug:false
+    }
+}
+```
+
+App类继承于Koatty类，而Koatty是对于Koa的继承和扩展。因此可以认为App类的实例就是koa类的实例(进行了扩展) app对象。
+
+Koatty通过`@Bootstrap()`装饰器来定义项目入口，`@Bootstrap()`可以接受函数作为参数，该函数在项目加载启动过程中，通过`appReady`事件触发执行。
+
+如果修改了项目目录或者想排除某些目录bean不自动进行加载，可以通过`@ComponentScan()`装饰器进行定制。
+
+`@ConfiguationScan()`装饰器用于定制项目配置文件目录。
+
+`app_debug` 值为`true`时，nodeEnv环境在 `development` 模式。并且控制器打印详细的日志信息。
 
 ## 配置
 
@@ -84,8 +157,8 @@ npm start
 
 * config.ts 通用的一些配置
 * db.ts 数据库配置
-* router.ts 自定义路由配置
-* middleware.ts middlware 配置
+* router.ts 路由配置
+* middleware.ts 中间件配置
 
 除上述常见的配置文件之外，Koatty也支持用户自行定义的配置文件命名。
 
@@ -141,7 +214,7 @@ export default {
 const conf: any = this.app.config("test");
 
 ```
-* 方式二(利用注解进行注入，推荐用法)
+* 方式二(利用装饰器进行注入，推荐用法)
 
 ```
 @Controller()
@@ -240,11 +313,11 @@ Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮�
 
 ### 以Class范式编程
 
-包括Controller、Service、Model等类型的类，使用`Class` 而非 `function`来组织代码。工具、函数库、第三方库除外。
+包括Controller、Service、Model等类型的类，使用`Class` 而非 `function`来组织代码。配置、工具、函数库、第三方库除外。
 
 ### 单文件仅export一个类
 
-在项目中，单个`.ts`文件仅`export`一次且导出的是`Class`。
+在项目中，单个`.ts`文件仅`export`一次且导出的是`Class`。配置、工具、函数库、第三方库除外。
 
 ### 类名必须与文件名相同
 
@@ -252,7 +325,7 @@ Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮�
 
 ### 同类型不允许存在同名类
 
-Koatty将IOC容器内的bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`注解的话那么它的类型就是`SERVICE`。
+Koatty将IOC容器内的bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
 
 ## 启动自定义
 
