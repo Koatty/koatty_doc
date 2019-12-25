@@ -333,6 +333,14 @@ Koatty将IOC容器内的bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 
 # Decorators
 
+## ClassDecorator
+
+## PropertyDecorator
+
+## MethodDecorator
+
+## 
+
 # API
 
 ## App
