@@ -1,9 +1,9 @@
 # koatty
 Koa2 + Typescript = koatty. 
 
-Use Typescript's decorator implement auto injection just like SpringBoot.
+Use Typescript's decorator implement auto injection and AOP, just like SpringBoot.
 
-Koatty是基于Koa2实现的一个具备IOC自动依赖注入的敏捷开发框架，用法类似SpringBoot。
+Koatty是基于Koa2实现的一个具备IOC自动依赖注入以及AOP切面编程的敏捷开发框架，用法类似SpringBoot。
 
 [![Version npm](https://img.shields.io/npm/v/koatty.svg?style=flat-square)](https://www.npmjs.com/package/koatty)[![npm Downloads](https://img.shields.io/npm/dm/koatty.svg?style=flat-square)](https://npmcharts.com/compare/koatty?minimal=true)
 
@@ -347,8 +347,6 @@ Koatty在Koa2的基础上进行了封装和扩展，方便进行快速开发；�
 
 Koatty参考 SpringBoot设计实现IOC容器，具备自动加载、自动依赖管理等特性，并且利用延迟加载机制避免循环依赖；在使用方法上贴近SpringBoot的开发习惯，有效的降低了入门门槛。
 
-## IOC容器
-
 ## 默认规则约定
 
 Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮性，做了一些默认的规范和约定。
@@ -357,7 +355,7 @@ Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮�
 
 包括Controller、Service、Model等类型的类，使用`Class` 而非 `function`来组织代码。配置、工具、函数库、第三方库除外。
 
-### 单文件仅export一个类
+### 单个文件仅export一个类
 
 在项目中，单个`.ts`文件仅`export`一次且导出的是`Class`。配置、工具、函数库、第三方库除外。
 
@@ -368,6 +366,14 @@ Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮�
 ### 同类型不允许存在同名类
 
 Koatty将IOC容器内的bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
+
+## IOC容器
+
+IOC容器
+
+## AOP切面
+
+AOP切面
 
 ## 启动自定义
 
