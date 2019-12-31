@@ -290,7 +290,7 @@ const cc: number = conf.bb.cc;
 
 Koatty 通过RequestMapping类型装饰器进行路由注册，使用[@koa/router](https://github.com/koajs/router)进行路由解析。
 
-RequestMapping类型装饰器仅可使用在控制器上。首先注册`@Controller("/test")`装饰器的参数作为控制器访问入口，然后再遍历该控制器的方法上的装饰器GetMaping、
+首先注册`@Controller("/test")`装饰器的参数作为控制器访问入口，然后再遍历该控制器的方法上的装饰器GetMaping、
 DeleteMaping、PutMaping、PostMaping等进行方法路由注册。
 
 例如：
@@ -306,6 +306,16 @@ export class AdminController extends BaseController {
 }
 ```
 上述代码注册了路由 `/admin/test` ==> AdminController.test();
+
+* @Controller()装饰器有两个作用，一是声明bean的类型是控制器；二是绑定控制器路由。如果使用@Controller()装饰器的时候没有指定path(没有参数)，默认参数值为"/"
+
+* 路由装饰器（包括`RequestMapping`、`GetMaping`、`PostMaping`、`DeleteMaping`、`PutMaping`、`PatchMaping`、`OptionsMaping`、`HeadMaping`）仅可用于装饰控制器类的方法。
+
+* 路由装饰器（包括`RequestMapping`、`GetMaping`、`PostMaping`、`DeleteMaping`、`PutMaping`、`PatchMaping`、`OptionsMaping`、`HeadMaping`）可以给同一个方法添加多次。但是@Controller()装饰器同一个类仅能使用一次。
+
+* 如果绑定的路由存在重复，按照IOC容器中控制器类的加载顺序（不可控），第一个加载的路由规则生效。需要注意此类问题。在后续版本中可能会增加优先级的特性来控制。
+
+* 路由支持正则，支持参数绑定。详细路由相关教程请参考 [@koa/router](https://github.com/koajs/router) 
 
 
 ### @RequestMapping([path, requestMethod, routerOptions])
@@ -331,6 +341,8 @@ export class AdminController extends BaseController {
 在项目 src/config/router.ts存放着路由自定义配置，该配置用于初始化`@koa/router`实例，作为构造方法入参使用，具体配置项请参考 [@koa/router](https://github.com/koajs/router)。
 
 ## 中间件
+
+Koatty框架默认加载了static、payload、trace三个中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
 
 ## 控制器
 
@@ -374,7 +386,9 @@ Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮�
 
 ### 同类型不允许存在同名类
 
-Koatty将IOC容器内的bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
+Koatty将IOC容器内的bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。
+
+相同类型的bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
 
 ## IOC容器
 
@@ -388,13 +402,53 @@ AOP切面
 
 ## 装载自定义
 
-# Decorators
+# Decorators装饰器
 
-## ClassDecorator
+## ClassDecorator类装饰器
 
-## PropertyDecorator
+### @Aspect(identifier?: string)
 
-## MethodDecorator
+* identifier 切面类注册到IOC容器别名。默认值为类名。
+
+声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用。
+
+### @BeforeEach(aopName = "__before")
+
+* identifier 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此修饰器不生效，因为控制器会默认在每个方法前执行`__before`
+
+为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。
+
+### @AfterEach(aopName = "__after")
+
+* identifier 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__after`，此修饰器不生效，因为控制器会默认在每个方法之后执行`__after`
+
+为当前类声明一个切面，在每个方法执行之后执行切面类的run方法。
+
+### @Bootstrap([bootFunc])
+
+* bootFunc 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。
+
+声明当前类是一个启动类，为项目的入口文件。
+
+### @ComponentScan(scanPath?: string | string[])
+
+### @ConfiguationScan(scanPath?: string | string[])
+
+## PropertyDecorator属性装饰器
+
+## MethodDecorator方法装饰器
+
+### @Before(aopName: string)
+
+* aopName 切点执行的切面类名称。
+
+为当前方法声明一个切面，在当前方法执行之前执行切面类的run方法。
+
+### @After(aopName: string)
+
+* aopName 切点执行的切面类名称。
+
+为当前方法声明一个切面，在当前方法执行之后执行切面类的run方法。
 
 ### @RequestMapping([path, requestMethod, routerOptions])
 
