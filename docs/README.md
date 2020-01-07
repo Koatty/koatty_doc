@@ -1,5 +1,5 @@
-# koatty
-Koa2 + Typescript = koatty. 
+# Koatty
+Koa2 + Typescript = Koatty. 
 
 Use Typescript's decorator implement auto injection and AOP, just like SpringBoot.
 
@@ -364,7 +364,237 @@ export class AdminController extends BaseController {
 
 Koatty框架默认加载了static、payload、trace三个中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
 
+### 创建中间件
+
+使用命令行工具koatty_cli，在命令行执行命令:
+
+```bash
+//custom 为自定义中间件名
+koatty middleware custom
+```
+会自动在项目目录生成文件 src/middleware/Custom.ts
+
+生成的中间件代码模板: 
+
+```js
+
+/**
+ * Middleware
+ * @return
+ */
+
+import { Middleware, Helper } from "koatty";
+import { App } from '../App';
+
+
+const defaultOpt = {
+    //默认配置项
+};
+
+
+@Middleware()
+export class Custom {
+
+    run(options: any, app: App) {
+        options = Helper.extend(defaultOpt, this.options);
+        //应用启动执行一次
+        // app.once('appReady', () => {
+        // });
+
+        return function (ctx: any, next: any) {
+            return next();
+        };
+    }
+}
+```
+* options 中间件配置，src/config/middleware.ts内config项中间件名同名属性值
+* app koatty实例
+* ctx koa ctx上下文对象
+* next 下一中间件操作句柄
+
+
+### 配置中间件
+写好自定义的中间件以后，开始定义配置并挂载运行：
+
+修改项目中间件配置 src/config/middleware.ts
+
+```js
+list: ['Custom'], //加载的中间件列表
+config: { //中间件配置 
+	Custom: {
+		//中间件配置项
+	}
+}
+
+```
+
+
+### 禁用中间件
+
+对于项目中自行开发中间件，如果要禁用，只需要修改中间件配置文件即可:
+
+src/config/middleware.ts
+
+```
+list: [], //列表中没有Passport，因此Passport不会执行
+config: { //中间件配置 
+	'Passport': {
+		//中间件配置项
+	}
+}
+```
+对于Koatty默认执行的三个中间件，我们也可以禁止它们执行（一般不建议）:
+
+```
+list: [], 
+config: { //中间件配置 
+	'Static': false //Static中间件被配置为不执行
+}
+```
+
+
+### 单次执行
+中间件的执行机制为只要挂载运行，每次request/response都会执行该中间件。
+
+在项目开发中，往往某个功能仅需要运行一次即可，并不需要每次都执行。例如功能拓展，初始化赋值等等。
+
+那么我们可以按照下面方式注入到启动事件队列内运行：
+
+src/middleware/Custom.ts
+
+```js
+/**
+ * Middleware
+ * @return
+ */
+
+@Middleware()
+export class Custom {
+
+    run(options: any, app: App) {
+        options = Helper.extend(defaultOpt, this.options);
+        //应用启动执行一次
+        app.once('appReady', () => {
+            //仅需要单次执行的代码
+        });
+
+        return function (ctx: any, next: any) {
+            return next();
+        };
+    }
+}
+
+```
+
+
+### 使用koa中间件
+
+Koatty支持使用koa的中间件（包括koa1.x及2.x的中间件）：
+
+src/middleware/Passport.ts
+
+```js
+const passport = require('koa-passport');
+
+
+@Middleware()
+export class Custom {
+
+    run(options: any, app: App) {
+        return passport.initialize();
+    }
+}
+
+```
+挂载并配置使用： 
+
+src/config/middleware.ts
+
+```js
+list: ['Passport'], //加载的中间件列表
+config: { //中间件配置 
+	'Passport': {
+		//中间件配置项
+	}
+}
+```
+
 ## 控制器
+
+Koatty 基于 模块/控制器/操作 的设计原则：
+
+* 模块： 一个应用下有多个模块，每一个模块都是很独立的功能集合。比如：前台模块、用户模块、管理员模块
+* 控制器： 一个分组下有多个控制器，一个控制器是多个操作的集合。如：商品的增删改查
+* 方法： 一个控制器有多个方法，每个方法都是最小的执行单元。如：添加一个商品
+
+*注意： 根据具体的项目情况，一般复杂的项目才需要划分模块。简单的项目中，控制器同级即可满足要求，Koatty不做强制要求*
+
+### 创建控制器
+
+使用koatty_cli命令行工具：
+
+单模块模式：
+
+```bash
+koatty controller index
+```
+
+会自动创建 src/controller/Index.ts文件。
+
+多模块模式：
+
+
+```bash
+think controller admin/index
+```
+
+会自动创建 src/controller/Admin/Index.ts文件。
+
+
+控制器模板代码如下：
+
+```js
+import { Controller, BaseController, GetMaping } from "koatty";
+import { App } from '<Path>/App';
+
+@Controller("/<New>")
+export class <NewController> extends BaseController {
+    app: App;
+
+    /**
+     * Custom constructor
+     *
+     */
+    init() {
+        //...
+    }
+
+    @GetMaping("/")
+    index() {
+        return this.ok('Hello, Koatty!');
+    }
+}
+```
+### 控制器特点
+
+控制器类必须继承于 BaseController 或 BaseController 的子类。
+
+Koatty 使用`init()` 方法来替代`construct()` 构造方法(construct在使用super时有限制)。
+
+控制器里可以重写 `init` 方法如：
+
+```js
+
+init(){
+    this.data = {};
+}
+```
+### 访问控制
+
+类之间的引用遵循Typescript的作用域 private | protected | public， 如果未显式声明，类方法的作用域为public。
+
+只要给控制器类方法绑定了路由(通过路由装饰器)，那么方法即可被url映射访问，而不管该方法是否是public。这是因为目前通过反射无法获取到方法的作用域关键字(有知道的请告诉我😁)。
+
 
 ## 服务层
 
@@ -406,13 +636,7 @@ Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮�
 
 ### 同类型不允许存在同名类
 
-<<<<<<< HEAD
 Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的Bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，Bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
-=======
-Koatty将IOC容器内的bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。
-
-相同类型的bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
->>>>>>> ef44b6227cc2dee51ce70dd2868c6b214b498502
 
 ## IOC容器
 
