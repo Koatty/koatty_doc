@@ -145,7 +145,7 @@ App类继承于Koatty类，而Koatty是对于Koa的继承和扩展。因此可�
 
 Koatty通过`@Bootstrap()`装饰器来定义项目入口，`@Bootstrap()`可以接受函数作为参数，该函数在项目加载启动过程中，通过`appReady`事件触发执行。
 
-如果修改了项目目录或者想排除某些目录bean不自动进行加载，可以通过`@ComponentScan()`装饰器进行定制。
+如果修改了项目目录或者想排除某些目录Bean不自动进行加载，可以通过`@ComponentScan()`装饰器进行定制。
 
 `@ConfiguationScan()`装饰器用于定制项目配置文件目录。
 
@@ -327,7 +327,27 @@ export class AdminController extends BaseController {
 
 ### 路由配置
 
-在项目 src/config/router.ts存放着路由自定义配置，该配置用于初始化`@koa/router`实例，作为构造方法入参使用，具体配置项请参考 [@koa/router](https://github.com/koajs/router)。
+在项目 src/config/router.ts存放着路由自定义配置，该配置用于初始化`@koa/router`实例，作为**构造方法入参**使用，具体配置项请参考 [@koa/router](https://github.com/koajs/router)。
+
+```
+    prefix: string;
+    /**
+     * Methods which should be supported by the router.
+     */
+    methods ?: string[];
+    routerPath ?: string;
+    /**
+     * Whether or not routing should be case-sensitive.
+     */
+    sensitive ?: boolean;
+    /**
+     * Whether or not routes should matched strictly.
+     *
+     * If strict matching is enabled, the trailing slash is taken into
+     * account when matching routes.
+     */
+    strict ?: boolean;
+```
 
 ## 中间件
 
@@ -365,7 +385,7 @@ Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮�
 
 ### 同类型不允许存在同名类
 
-Koatty将IOC容器内的bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
+Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的Bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，Bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
 
 ## IOC容器
 
