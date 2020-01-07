@@ -660,15 +660,15 @@ AOP切面
 
 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用。
 
+### @AfterEach(aopName = "__after")
+
+* identifier 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__after`，此修饰器不生效，因为控制器会默认在每个方法之后执行`__after`
+
 ### @BeforeEach(aopName = "__before")
 
 * identifier 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此修饰器不生效，因为控制器会默认在每个方法前执行`__before`
 
 为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。
-
-### @AfterEach(aopName = "__after")
-
-* identifier 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__after`，此修饰器不生效，因为控制器会默认在每个方法之后执行`__after`
 
 为当前类声明一个切面，在每个方法执行之后执行切面类的run方法。
 
@@ -680,9 +680,21 @@ AOP切面
 
 ### @ComponentScan(scanPath?: string | string[])
 
+### @Component(identifier?: string)
+
 ### @ConfiguationScan(scanPath?: string | string[])
 
+### @Controller(path = "")
+
+### Service(identifier?: string)
+
+### @Middleware(identifier?: string)
+
 ## PropertyDecorator属性装饰器
+
+### @Autowired(identifier?: string, type?: CompomentType, constructArgs?: any[], isDelay = false)
+
+### @Value(identifier: string, type?: string)
 
 ## MethodDecorator方法装饰器
 
@@ -755,7 +767,26 @@ AOP切面
 * path  path路径,默认值 `/`
 * routerOptions 路由配置
 
-## 
+### @Scheduled(cron: string)
+
+
+## ParameterDecorator参数装饰器
+
+### @Body()
+
+### @File(name?: string)
+
+### @Get(name?: string)
+
+### @Header(name?: string)
+
+### @PathVariable(name?: string)
+
+### @Post(name?: string)
+
+### @RequestBody()
+
+
 
 # API
 
