@@ -452,41 +452,6 @@ config: { //中间件配置
 }
 ```
 
-
-### 单次执行
-中间件的执行机制为只要挂载运行，每次request/response都会执行该中间件。
-
-在项目开发中，往往某个功能仅需要运行一次即可，并不需要每次都执行。例如功能拓展，初始化赋值等等。
-
-那么我们可以按照下面方式注入到启动事件队列内运行：
-
-src/middleware/Custom.ts
-
-```js
-/**
- * Middleware
- * @return
- */
-
-@Middleware()
-export class Custom {
-
-    run(options: any, app: App) {
-        options = Helper.extend(defaultOpt, this.options);
-        //应用启动执行一次
-        app.once('appReady', () => {
-            //仅需要单次执行的代码
-        });
-
-        return function (ctx: any, next: any) {
-            return next();
-        };
-    }
-}
-
-```
-
-
 ### 使用koa中间件
 
 Koatty支持使用koa的中间件（包括koa1.x及2.x的中间件）：
