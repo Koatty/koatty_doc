@@ -298,7 +298,7 @@ DeleteMaping、PutMaping、PostMaping等进行方法路由注册。
 @Controller("/admin")
 export class AdminController extends BaseController {
     ...
-    @GetMaping("/test")
+    @GetMapping("/test")
     test(){
         ...
     }
@@ -309,9 +309,9 @@ export class AdminController extends BaseController {
 
 * @Controller()装饰器有两个作用，一是声明bean的类型是控制器；二是绑定控制器路由。如果使用@Controller()装饰器的时候没有指定path(没有参数)，默认参数值为"/"
 
-* 路由装饰器（包括`RequestMapping`、`GetMaping`、`PostMaping`、`DeleteMaping`、`PutMaping`、`PatchMaping`、`OptionsMaping`、`HeadMaping`）仅可用于装饰控制器类的方法。
+* 路由装饰器（包括`RequestMapping`、`GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`）仅可用于装饰控制器类的方法。
 
-* 路由装饰器（包括`RequestMapping`、`GetMaping`、`PostMaping`、`DeleteMaping`、`PutMaping`、`PatchMaping`、`OptionsMaping`、`HeadMaping`）可以给同一个方法添加多次。但是@Controller()装饰器同一个类仅能使用一次。
+* 路由装饰器（包括`RequestMapping`、`GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`）可以给同一个方法添加多次。但是@Controller()装饰器同一个类仅能使用一次。
 
 * 如果绑定的路由存在重复，按照IOC容器中控制器类的加载顺序（不可控），第一个加载的路由规则生效。需要注意此类问题。在后续版本中可能会增加优先级的特性来控制。
 
@@ -326,14 +326,14 @@ export class AdminController extends BaseController {
 * requestMethod  路由请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式
 * routerOptions 路由配置
 
-### @GetMaping([path, routerOptions])
+### @GetMapping([path, routerOptions])
 
 用于控制器方法绑定Get路由
 
 * path  path路径,默认值 `/`
 * routerOptions 路由配置
 
-类似功能的装饰器还有 `PostMaping`、`DeleteMaping`、`PutMaping`、`PatchMaping`、`OptionsMaping`、`HeadMaping`。详细用法参考API章节
+类似功能的装饰器还有 `PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`。详细用法参考API章节
 
 
 ### 路由配置
@@ -554,7 +554,7 @@ think controller admin/index
 控制器模板代码如下：
 
 ```js
-import { Controller, BaseController, GetMaping } from "koatty";
+import { Controller, BaseController, GetMapping } from "koatty";
 import { App } from '<Path>/App';
 
 @Controller("/<New>")
@@ -569,7 +569,7 @@ export class <NewController> extends BaseController {
         //...
     }
 
-    @GetMaping("/")
+    @GetMapping("/")
     index() {
         return this.ok('Hello, Koatty!');
     }
@@ -595,10 +595,83 @@ init(){
 
 只要给控制器类方法绑定了路由(通过路由装饰器)，那么方法即可被url映射访问，而不管该方法是否是public。这是因为目前通过反射无法获取到方法的作用域关键字(有知道的请告诉我😁)。
 
+## 控制器属性及方法
+
+控制器属性及方法请参考[API](##BaseController)
+
 
 ## 服务层
 
+服务层Service是对控制器中复杂业务逻辑、第三方接口调用等场景进行抽象和封装。
+
+### 创建服务类
+
+使用koatty_cli命令行工具：
+
+```bash
+koatty service test
+```
+
+会自动创建src/service/test.js,生成的模板代码：
+
+```js
+import { Service, Base, Autowired, Scheduled, Cacheable } from "koatty";
+import { App } from '../App';
+
+@Service()
+export class TestService  {
+    app: App;
+
+    init() {
+        //property
+    }
+
+    //实现test方法
+    test(name: string) {
+        return name;
+    }
+}
+```
+
+### 使用服务类
+
+通过装饰器注入:
+
+```
+@Autowired()
+testService: TestService;
+```
+
+通过IOC容器获取:
+
+```
+this.testService = this.app.Container.get("TestService", "SERVICE");
+```
+
+调用服务类方法：
+
+```
+this.testService.test();
+```
+
 ## 持久层
+
+koatty目前能够很好的支持两种ORM框架，分别是ThinkORM以及TypeORM。
+
+### 创建数据实体
+
+通过koatty_cli命令行工具创建数据实体:
+
+```
+// default is thinkorm
+koatty model test
+
+//typeorm
+koatty model --orm test
+```
+
+该工具会自动创建实体类。如果使用TypeORM，工具除实体类以外，还会自动创建一个中间件，需要修改src/config/middleware.ts中的中间件配置项进行配置。
+
 
 # 进阶应用
 
@@ -718,49 +791,49 @@ AOP切面
 * requestMethod  路由请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式
 * routerOptions 路由配置
 
-### @GetMaping([path, routerOptions])
+### @GetMapping([path, routerOptions])
 
 用于控制器方法绑定Get路由
 
 * path  path路径,默认值 `/`
 * routerOptions 路由配置
 
-### @PostMaping([path, routerOptions])
+### @PostMapping([path, routerOptions])
 
 用于控制器方法绑定Post路由
 
 * path  path路径,默认值 `/`
 * routerOptions 路由配置
 
-### @DeleteMaping([path, routerOptions])
+### @DeleteMapping([path, routerOptions])
 
 用于控制器方法绑定Delete路由
 
 * path  path路径,默认值 `/`
 * routerOptions 路由配置
 
-### @PutMaping([path, routerOptions])
+### @PutMapping([path, routerOptions])
 
 用于控制器方法绑定Put路由
 
 * path  path路径,默认值 `/`
 * routerOptions 路由配置
 
-### @PatchMaping([path, routerOptions])
+### @PatchMapping([path, routerOptions])
 
 用于控制器方法绑定Patch路由
 
 * path  path路径,默认值 `/`
 * routerOptions 路由配置
 
-### @OptionsMaping([path, routerOptions])
+### @OptionsMapping([path, routerOptions])
 
 用于控制器方法绑定Options路由
 
 * path  path路径,默认值 `/`
 * routerOptions 路由配置
 
-### @HeadMaping([path, routerOptions])
+### @HeadMapping([path, routerOptions])
 
 用于控制器方法绑定Head路由
 
