@@ -692,41 +692,19 @@ AOP切面
 
 ## ClassDecorator类装饰器
 
-### @Aspect(identifier?: string)
-
-* identifier 切面类注册到IOC容器别名。默认值为类名。
-
-声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用。
-
-### @AfterEach(aopName = "__after")
-
-* identifier 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__after`，此修饰器不生效，因为控制器会默认在每个方法之后执行`__after`
-
-为当前类声明一个切面，在每个方法执行之后执行切面类的run方法。
-
-### @BeforeEach(aopName = "__before")
-
-* identifier 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此修饰器不生效，因为控制器会默认在每个方法前执行`__before`
-
-为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。
-
-### @Bootstrap([bootFunc])
-
-* bootFunc 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。
-
-声明当前类是一个启动类，为项目的入口文件。
-
-### @ComponentScan(scanPath?: string | string[])
-
-### @Component(identifier?: string)
-
-### @ConfiguationScan(scanPath?: string | string[])
-
-### @Controller(path = "")
-
-### Service(identifier?: string)
-
-### @Middleware(identifier?: string)
+装饰器名称  | 参数  | 用途 | 说明 
+------------- | ------------- | ------------- | ------------- 
+@Aspect(identifier?: string) | identifier 注册到IOC容器的标识，默认值为类名。  | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 
+@Aspect(identifier?: string) | identifier 注册到IOC容器的标识，默认值为类名。  | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 
+@AfterEach(aopName = "__after") | aopName 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__after`，此修饰器不生效，因为控制器会默认在每个方法之后执行`__after` | 为当前类声明一个切面，在每个方法执行之后执行切面类的run方法。 | 仅用于控制器类
+@BeforeEach(aopName = "__before") | aopName 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此修饰器不生效，因为控制器会默认在每个方法前执行`__before`| 为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。 | 仅用于控制器类
+@Bootstrap([bootFunc]) | bootFunc 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。| 声明当前类是一个启动类，为项目的入口文件。 | 仅用于应用启动类
+@ComponentScan(scanPath?: string | string[]) | scanPath 字符串或字符串数组，定义项目需要装载进容器的目录 | 仅用于应用启动类
+@Component(identifier?: string) | 注册到IOC容器的标识，默认值为类名。 | 定义该类为一个组件类 | 第三方模块或引入类使用
+@ConfiguationScan(scanPath?: string | string[]) | scanPath 字符串或字符串数组，定义项目需要加载配置文件的目录 | 仅用于应用启动类
+@Controller(path = "") | path 绑定控制器访问路由 | 定义该类是一个控制器类，并绑定路由。默认路由为"/" | 仅用于控制器类
+Service(identifier?: string) | identifier 注册到IOC容器的标识，默认值为类名。 | 定义该类是一个服务类 | 仅用于服务类
+@Middleware(identifier?: string) | identifier 注册到IOC容器的标识，默认值为类名。 | 定义该类是一个中间件类 | 仅用于中间件类
 
 ## PropertyDecorator属性装饰器
 
