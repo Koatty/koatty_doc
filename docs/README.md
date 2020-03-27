@@ -644,6 +644,43 @@ AOP切面
 
 ## 装载自定义
 
+## 架构
+
+![test image size](./assets/Koatty.png)
+
+Koatty在Koa2的基础上进行了封装和扩展，方便进行快速开发；并且保持向下兼容Koa的原生用法，Koa的中间件仅需进行简单包装即可在Koatty中使用。
+
+Koatty参考 SpringBoot设计实现IOC容器，具备自动加载、自动依赖管理等特性，并且利用延迟加载机制避免循环依赖；在使用方法上贴近SpringBoot的开发习惯，有效的降低了入门门槛。
+
+## 默认规则约定
+
+Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮性，做了一些默认的规范和约定。
+
+### Koatty框架及周边组件版本定义
+
+* 小版本，如：1.1.1 => 1.1.2（小功能增加，bug 修复等，向下兼容1.1.x）
+
+* 中版本，如：1.1.0 => 1.2.0（较大功能增加，部分模块重构等。主体向下兼容，可能存在少量特性不兼容）
+
+* 大版本，如：1.0.0 => 2.0.0（框架整体设计、重构等，不向下兼容）
+
+### 以Class范式编程
+
+包括Controller、Service、Model等类型的类，使用`Class` 而非 `function`来组织代码。配置、工具、函数库、第三方库除外。
+
+### 单个文件仅export一个类
+
+在项目中，单个`.ts`文件仅`export`一次且导出的是`Class`。配置、工具、函数库、第三方库除外。
+
+### 类名必须与文件名相同
+
+熟悉JAVA的人对此一定不会陌生。类名同文件名必须相同，使得在IOC容器内保持唯一性，防止类被覆盖。
+
+### 同类型不允许存在同名类
+
+Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的Bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，Bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
+
+
 # Decorators装饰器
 
 ## ClassDecorator类装饰器
@@ -656,7 +693,7 @@ AOP切面
 `@BeforeEach(aopName = "__before")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此修饰器不生效，因为控制器会默认在每个方法前执行`__before`| 为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。 | 仅用于控制器类
 `@Bootstrap([bootFunc])` | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。| 声明当前类是一个启动类，为项目的入口文件。 | 仅用于应用启动类
 `@ComponentScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组 | 定义项目需要自动装载进容器的目录 | 仅用于应用启动类
-@Component(identifier?: string) | 注册到IOC容器的标识，默认值为类名。 | 定义该类为一个组件类 | 第三方模块或引入类使用
+`@Component(identifier?: string)` | 注册到IOC容器的标识，默认值为类名。 | 定义该类为一个组件类 | 第三方模块或引入类使用
 `@ConfiguationScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组，定义项目需要加载配置文件的目录 | 仅用于应用启动类
 `@Controller(path = "")` | `path` 绑定控制器访问路由 | 定义该类是一个控制器类，并绑定路由。默认路由为"/" | 仅用于控制器类
 `Service(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。 | 定义该类是一个服务类 | 仅用于服务类
@@ -704,41 +741,6 @@ AOP切面
 `@RequestParam(name?: string)` | `name` 参数名 | 获取Get或Post参数，Post优先 | 仅用于控制器方法参数
 `@Valid(rule: ValidRules \| ValidRules[] \| Function, message?: string)` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证
 
-## 架构
-
-![test image size](./assets/Koatty.png)
-
-Koatty在Koa2的基础上进行了封装和扩展，方便进行快速开发；并且保持向下兼容Koa的原生用法，Koa的中间件仅需进行简单包装即可在Koatty中使用。
-
-Koatty参考 SpringBoot设计实现IOC容器，具备自动加载、自动依赖管理等特性，并且利用延迟加载机制避免循环依赖；在使用方法上贴近SpringBoot的开发习惯，有效的降低了入门门槛。
-
-## 默认规则约定
-
-Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮性，做了一些默认的规范和约定。
-
-### Koatty框架及周边组件版本定义
-
-* 小版本，如：1.1.1 => 1.1.2（小功能增加，bug 修复等，向下兼容1.1.x）
-
-* 中版本，如：1.1.0 => 1.2.0（较大功能增加，部分模块重构等。主体向下兼容，可能存在少量特性不兼容）
-
-* 大版本，如：1.0.0 => 2.0.0（框架整体设计、重构等，不向下兼容）
-
-### 以Class范式编程
-
-包括Controller、Service、Model等类型的类，使用`Class` 而非 `function`来组织代码。配置、工具、函数库、第三方库除外。
-
-### 单个文件仅export一个类
-
-在项目中，单个`.ts`文件仅`export`一次且导出的是`Class`。配置、工具、函数库、第三方库除外。
-
-### 类名必须与文件名相同
-
-熟悉JAVA的人对此一定不会陌生。类名同文件名必须相同，使得在IOC容器内保持唯一性，防止类被覆盖。
-
-### 同类型不允许存在同名类
-
-Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的Bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，Bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
 
 
 # API
