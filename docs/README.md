@@ -290,6 +290,8 @@ const cc: number = conf.bb.cc;
 
 Koatty 通过RequestMapping类型装饰器进行路由注册，使用[@koa/router](https://github.com/koajs/router)进行路由解析。
 
+### 控制器路由
+
 首先注册`@Controller("/test")`装饰器的参数作为控制器访问入口，然后再遍历该控制器的方法上的装饰器GetMaping、
 DeleteMaping、PutMaping、PostMaping等进行方法路由注册。
 
@@ -307,34 +309,11 @@ export class AdminController extends BaseController {
 ```
 上述代码注册了路由 `/admin/test` ==> AdminController.test();
 
-* @Controller()装饰器有两个作用，一是声明bean的类型是控制器；二是绑定控制器路由。如果使用@Controller()装饰器的时候没有指定path(没有参数)，默认参数值为"/"
+### 方法路由
 
-* 路由装饰器（包括`RequestMapping`、`GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`）仅可用于装饰控制器类的方法。
+用于控制器方法绑定路由 [参考装饰器章节](##MethodDecorator方法装饰器)
 
-* 路由装饰器（包括`RequestMapping`、`GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`）可以给同一个方法添加多次。但是@Controller()装饰器同一个类仅能使用一次。
-
-* 如果绑定的路由存在重复，按照IOC容器中控制器类的加载顺序（不可控），第一个加载的路由规则生效。需要注意此类问题。在后续版本中可能会增加优先级的特性来控制。
-
-* 路由支持正则，支持参数绑定。详细路由相关教程请参考 [@koa/router](https://github.com/koajs/router) 
-
-
-### @RequestMapping([path, requestMethod, routerOptions])
-
-用于控制器方法绑定路由
-
-* path  path路径
-* requestMethod  路由请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式
-* routerOptions 路由配置
-
-### @GetMapping([path, routerOptions])
-
-用于控制器方法绑定Get路由
-
-* path  path路径,默认值 `/`
-* routerOptions 路由配置
-
-类似功能的装饰器还有 `PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`。详细用法参考API章节
-
+方法路由的装饰器有 `GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`
 
 ### 路由配置
 
@@ -359,6 +338,19 @@ export class AdminController extends BaseController {
      */
     strict ?: boolean;
 ```
+
+### 路由特点
+
+* @Controller()装饰器有两个作用，一是声明bean的类型是控制器；二是绑定控制器路由。如果使用@Controller()装饰器的时候没有指定path(没有参数)，默认参数值为"/"
+
+* 路由装饰器（包括`RequestMapping`、`GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`）仅可用于装饰控制器类的方法。
+
+* 路由装饰器（包括`RequestMapping`、`GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`）可以给同一个方法添加多次。但是@Controller()装饰器同一个类仅能使用一次。
+
+* 如果绑定的路由存在重复，按照IOC容器中控制器类的加载顺序，第一个加载的路由规则生效。需要注意此类问题。在后续版本中可能会增加优先级的特性来控制。
+
+* 路由支持正则，支持参数绑定。详细路由相关教程请参考 [@koa/router](https://github.com/koajs/router) 
+
 
 ## 中间件
 
@@ -640,42 +632,6 @@ koatty model --orm test
 
 # 进阶应用
 
-## 架构
-
-![test image size](./assets/Koatty.png)
-
-Koatty在Koa2的基础上进行了封装和扩展，方便进行快速开发；并且保持向下兼容Koa的原生用法，Koa的中间件仅需进行简单包装即可在Koatty中使用。
-
-Koatty参考 SpringBoot设计实现IOC容器，具备自动加载、自动依赖管理等特性，并且利用延迟加载机制避免循环依赖；在使用方法上贴近SpringBoot的开发习惯，有效的降低了入门门槛。
-
-## 默认规则约定
-
-Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮性，做了一些默认的规范和约定。
-
-### Koatty框架及周边组件版本定义
-
-* 小版本，如：1.1.1 => 1.1.2（小功能增加，bug 修复等，向下兼容1.1.x）
-
-* 中版本，如：1.1.0 => 1.2.0（较大功能增加，部分模块重构等。主体向下兼容，可能存在少量特性不兼容）
-
-* 大版本，如：1.0.0 => 2.0.0（框架整体设计、重构等，不向下兼容）
-
-### 以Class范式编程
-
-包括Controller、Service、Model等类型的类，使用`Class` 而非 `function`来组织代码。配置、工具、函数库、第三方库除外。
-
-### 单个文件仅export一个类
-
-在项目中，单个`.ts`文件仅`export`一次且导出的是`Class`。配置、工具、函数库、第三方库除外。
-
-### 类名必须与文件名相同
-
-熟悉JAVA的人对此一定不会陌生。类名同文件名必须相同，使得在IOC容器内保持唯一性，防止类被覆盖。
-
-### 同类型不允许存在同名类
-
-Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的Bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，Bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
-
 ## IOC容器
 
 IOC容器
@@ -699,7 +655,7 @@ AOP切面
 `@AfterEach(aopName = "__after")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__after`，此修饰器不生效，因为控制器会默认在每个方法之后执行`__after` | 为当前类声明一个切面，在每个方法执行之后执行切面类的run方法。 | 仅用于控制器类
 `@BeforeEach(aopName = "__before")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此修饰器不生效，因为控制器会默认在每个方法前执行`__before`| 为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。 | 仅用于控制器类
 `@Bootstrap([bootFunc])` | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。| 声明当前类是一个启动类，为项目的入口文件。 | 仅用于应用启动类
-`@ComponentScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组，定义项目需要装载进容器的目录 | 仅用于应用启动类
+`@ComponentScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组 | 定义项目需要自动装载进容器的目录 | 仅用于应用启动类
 @Component(identifier?: string) | 注册到IOC容器的标识，默认值为类名。 | 定义该类为一个组件类 | 第三方模块或引入类使用
 `@ConfiguationScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组，定义项目需要加载配置文件的目录 | 仅用于应用启动类
 `@Controller(path = "")` | `path` 绑定控制器访问路由 | 定义该类是一个控制器类，并绑定路由。默认路由为"/" | 仅用于控制器类
@@ -747,6 +703,42 @@ AOP切面
 `@RequestBody()` |  | 获取ctx.body，功能同`@Body` | 仅用于控制器方法参数
 `@RequestParam(name?: string)` | `name` 参数名 | 获取Get或Post参数，Post优先 | 仅用于控制器方法参数
 `@Valid(rule: ValidRules \| ValidRules[] \| Function, message?: string)` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证
+
+## 架构
+
+![test image size](./assets/Koatty.png)
+
+Koatty在Koa2的基础上进行了封装和扩展，方便进行快速开发；并且保持向下兼容Koa的原生用法，Koa的中间件仅需进行简单包装即可在Koatty中使用。
+
+Koatty参考 SpringBoot设计实现IOC容器，具备自动加载、自动依赖管理等特性，并且利用延迟加载机制避免循环依赖；在使用方法上贴近SpringBoot的开发习惯，有效的降低了入门门槛。
+
+## 默认规则约定
+
+Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮性，做了一些默认的规范和约定。
+
+### Koatty框架及周边组件版本定义
+
+* 小版本，如：1.1.1 => 1.1.2（小功能增加，bug 修复等，向下兼容1.1.x）
+
+* 中版本，如：1.1.0 => 1.2.0（较大功能增加，部分模块重构等。主体向下兼容，可能存在少量特性不兼容）
+
+* 大版本，如：1.0.0 => 2.0.0（框架整体设计、重构等，不向下兼容）
+
+### 以Class范式编程
+
+包括Controller、Service、Model等类型的类，使用`Class` 而非 `function`来组织代码。配置、工具、函数库、第三方库除外。
+
+### 单个文件仅export一个类
+
+在项目中，单个`.ts`文件仅`export`一次且导出的是`Class`。配置、工具、函数库、第三方库除外。
+
+### 类名必须与文件名相同
+
+熟悉JAVA的人对此一定不会陌生。类名同文件名必须相同，使得在IOC容器内保持唯一性，防止类被覆盖。
+
+### 同类型不允许存在同名类
+
+Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的Bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，Bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
 
 
 # API
