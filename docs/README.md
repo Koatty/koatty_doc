@@ -731,8 +731,8 @@ AOP切面
 `@Scheduled(cron: string)` | `cron` 任务计划配置<br> * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 0-11 (Jan-Dec)<br>Day of Week: 0-6 (Sun-Sat) | 定义类的方法执行计划任务 | 不能用于控制器方法
 `@Validated()` | | 配合DTO类型进行参数验证 | 方法入参没有DTO类型的不生效
 `@SchedulerLock(name?: string, lockTimeOut?: number, waitLockInterval?: number, waitLockTimeOut?: number, redisOptions?: RedisOptions)` | `name` 锁的名称<br> `lockTimeOut` 锁自动超时时间<br> `waitLockInterval` 尝试循环获取锁时间间隔 <br>`waitLockTimeOut` 尝试循环获取锁最长等待时间<br> `redisOptions` redis服务器连接配置 | 定义方法执行时必须先获取分布式锁(基于Redis) | 
-`@Cacheable(cacheName: string, paramKey?: number \| number[], redisOptions?: RedisOptions)` | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `redisOptions` Redis服务器连接配置 | 基于Redis的缓存 | 不能用于控制器方法
-`@CacheEvict(cacheName: string, paramKey?: number \| number[], eventTime: eventTimes = "Before", redisOptions?: RedisOptions)` |  `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `eventTime` 清除缓存的时点 <br>`redisOptions` Redis服务器连接配置 | 同@Cacheable配合使用，用于方法执行时清理缓存 | 不能用于控制器方法
+`@Cacheable(cacheName: string, paramKey?: number / number[], redisOptions?: RedisOptions)` | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `redisOptions` Redis服务器连接配置 | 基于Redis的缓存 | 不能用于控制器方法
+`@CacheEvict(cacheName: string, paramKey?: number / number[], eventTime: eventTimes = "Before", redisOptions?: RedisOptions)` |  `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `eventTime` 清除缓存的时点 <br>`redisOptions` Redis服务器连接配置 | 同@Cacheable配合使用，用于方法执行时清理缓存 | 不能用于控制器方法
 
 ## ParameterDecorator参数装饰器
 
@@ -746,7 +746,7 @@ AOP切面
 `@Post(name?: string)` | `name` 参数名 | 获取Post参数 | 仅用于控制器方法参数
 `@RequestBody()` |  | 获取ctx.body，功能同`@Body` | 仅用于控制器方法参数
 `@RequestParam(name?: string)` | `name` 参数名 | 获取Get或Post参数，Post优先 | 仅用于控制器方法参数
-`@Valid(rule: ValidRules \| ValidRules[] \| Function, message?: string)` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证
+`@Valid(rule: ValidRules / ValidRules[] / Function, message?: string)` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证
 
 
 # API
