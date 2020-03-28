@@ -292,7 +292,7 @@ Koatty 通过RequestMapping类型装饰器进行路由注册，使用[@koa/route
 
 ### 控制器路由
 
-首先注册`@Controller("/test")`装饰器的参数作为控制器访问入口，然后再遍历该控制器的方法上的装饰器GetMaping、
+`@Controller()`装饰器的参数作为控制器访问入口，参数默认值为`\/`。然后再遍历该控制器的方法上的装饰器GetMaping、
 DeleteMaping、PutMaping、PostMaping等进行方法路由注册。
 
 例如：
@@ -355,6 +355,8 @@ export class AdminController extends BaseController {
 ## 中间件
 
 Koatty框架默认加载了static、payload、trace三个中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
+
+Koatty中间件类必须使用`@Middleware`来声明，该类必须要包含名为`run(options: any, app: App)`的方法。该方法在应用启动的时候会被调用执行，并且返回值是一个`function (ctx: any, next: any){}`，这个function是Koa中间件的格式。
 
 ### 创建中间件
 
@@ -478,13 +480,7 @@ config: { //中间件配置
 
 ## 控制器
 
-Koatty 基于 模块/控制器/操作 的设计原则：
-
-* 模块： 一个应用下有多个模块，每一个模块都是很独立的功能集合。比如：前台模块、用户模块、管理员模块
-* 控制器： 一个分组下有多个控制器，一个控制器是多个操作的集合。如：商品的增删改查
-* 方法： 一个控制器有多个方法，每个方法都是最小的执行单元。如：添加一个商品
-
-*注意： 根据具体的项目情况，一般复杂的项目才需要划分模块。简单的项目中，控制器同级即可满足要求，Koatty不做强制要求*
+Koatty控制器类使用`@Controller()`装饰器声明，该装饰器的入参用于绑定控制器访问路由，参数默认值为`\/`。控制器类默认放在项目的`src/controller`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`BaseController`或`BaseController`的子类(`RestController`或其他自定义子类)。
 
 ### 创建控制器
 
@@ -512,10 +508,10 @@ think controller admin/index
 
 ```js
 import { Controller, BaseController, GetMapping } from "koatty";
-import { App } from '<Path>/App';
+import { App } from '../App';
 
-@Controller("/<New>")
-export class <NewController> extends BaseController {
+@Controller("/")
+export class IndexController extends BaseController {
     app: App;
 
     /**
@@ -555,6 +551,27 @@ init(){
 ## 控制器属性及方法
 
 控制器属性及方法请参考[API](##BaseController)
+
+## RESTful控制器
+
+通过继承`RestController`即可快速实现一个RESTful风格的控制器:
+
+```
+import { Controller, BaseController, GetMapping } from "koatty";
+import { App } from '../App';
+
+@Controller("/")
+export class IndexController extends RestController {
+    app: App;
+
+    __before() {
+        //使用__before切面实现访问权限控制
+
+    }
+}
+```
+
+当GET方式访问path路由`/user/1`，控制器会自动查询UserModel对应实体内的ID为1的资源。
 
 
 ## 服务层
@@ -687,16 +704,15 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 
 装饰器名称  | 参数  | 说明 | 备注 
 ------------- | ------------- | ------------- | ------------- 
-`@Aspect(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。  | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 
-`@Aspect(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。  | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 
-`@AfterEach(aopName = "__after")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__after`，此修饰器不生效，因为控制器会默认在每个方法之后执行`__after` | 为当前类声明一个切面，在每个方法执行之后执行切面类的run方法。 | 仅用于控制器类
-`@BeforeEach(aopName = "__before")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此修饰器不生效，因为控制器会默认在每个方法前执行`__before`| 为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。 | 仅用于控制器类
+`@Aspect(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。  | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 仅用于切面类
+`@AfterEach(aopName = "__after")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__after`，此装饰器不生效，因为控制器会默认在每个方法之后执行`__after` | 为当前类声明一个切面，在每个方法执行之后执行切面类的run方法。
+`@BeforeEach(aopName = "__before")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此装饰器不生效，因为控制器会默认在每个方法前执行`__before`| 为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。
 `@Bootstrap([bootFunc])` | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。| 声明当前类是一个启动类，为项目的入口文件。 | 仅用于应用启动类
 `@ComponentScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组 | 定义项目需要自动装载进容器的目录 | 仅用于应用启动类
 `@Component(identifier?: string)` | 注册到IOC容器的标识，默认值为类名。 | 定义该类为一个组件类 | 第三方模块或引入类使用
-`@ConfiguationScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组，定义项目需要加载配置文件的目录 | 仅用于应用启动类
+`@ConfiguationScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组，配置文件的目录 | 定义项目需要加载的配置文件的目录 | 仅用于应用启动类
 `@Controller(path = "")` | `path` 绑定控制器访问路由 | 定义该类是一个控制器类，并绑定路由。默认路由为"/" | 仅用于控制器类
-`Service(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。 | 定义该类是一个服务类 | 仅用于服务类
+`@Service(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。 | 定义该类是一个服务类 | 仅用于服务类
 `@Middleware(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。 | 定义该类是一个中间件类 | 仅用于中间件类
 
 ## PropertyDecorator属性装饰器
