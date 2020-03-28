@@ -1,7 +1,7 @@
 # Koatty
 Koa2 + Typescript = Koatty. 
 
-Use Typescript's decorator implement auto injection and AOP, just like SpringBoot.
+Use Typescript's decorator implement IOC and AOP, just like SpringBoot.
 
 Koatty是基于Koa2实现的一个具备IOC自动依赖注入以及AOP切面编程的敏捷开发框架，用法类似SpringBoot。
 
