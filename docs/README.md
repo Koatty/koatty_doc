@@ -742,7 +742,6 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 `@Valid(rule: ValidRules \| ValidRules[] \| Function, message?: string)` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证
 
 
-
 # API
 
 ## App
