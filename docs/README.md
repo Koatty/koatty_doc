@@ -576,7 +576,7 @@ export class IndexController extends RestController {
 
 ## 服务层
 
-服务层Service是对控制器中复杂业务逻辑、第三方接口调用等场景进行抽象和封装。
+服务层Service是对控制器中复杂业务逻辑、第三方接口调用等场景进行抽象和封装。Koatty中服务类使用`@Service()`装饰器声明。服务类默认放在项目的`src/service`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`Base`基类或`Base`的子类。
 
 ### 创建服务类
 
@@ -593,7 +593,7 @@ import { Service, Base, Autowired, Scheduled, Cacheable } from "koatty";
 import { App } from '../App';
 
 @Service()
-export class TestService  {
+export class TestService extends Base  {
     app: App;
 
     init() {
