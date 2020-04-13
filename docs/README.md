@@ -709,7 +709,7 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 `@BeforeEach(aopName = "__before")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此装饰器不生效，因为控制器会默认在每个方法前执行`__before`| 为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。
 `@Bootstrap([bootFunc])` | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。| 声明当前类是一个启动类，为项目的入口文件。 | 仅用于应用启动类
 `@ComponentScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组 | 定义项目需要自动装载进容器的目录 | 仅用于应用启动类
-`@Component(identifier?: string)` | 注册到IOC容器的标识，默认值为类名。 | 定义该类为一个组件类 | 第三方模块或引入类使用
+`@Component(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。 | 定义该类为一个组件类 | 第三方模块或引入类使用
 `@ConfiguationScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组，配置文件的目录 | 定义项目需要加载的配置文件的目录 | 仅用于应用启动类
 `@Controller(path = "")` | `path` 绑定控制器访问路由 | 定义该类是一个控制器类，并绑定路由。默认路由为"/" | 仅用于控制器类
 `@Service(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。 | 定义该类是一个服务类 | 仅用于服务类
