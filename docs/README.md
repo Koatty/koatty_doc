@@ -270,6 +270,7 @@ const dbHost: string = this.app.config("database.db_host", "db");
 
 ```
 
+
 需要特别注意的是，层级配置仅支持直接访问到`二级`，更深的层级请赋值后再次获取:
 
 ```
