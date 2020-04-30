@@ -443,7 +443,7 @@ config: { //中间件配置
 ```
 list: [], 
 config: { //中间件配置 
-	'Static': false //Static中间件被配置为不执行
+	'Static': false //Static中间件被配置为不执行(koatty@1.21.0以上版本默认不再加载该中间件)
 }
 ```
 
