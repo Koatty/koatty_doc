@@ -225,22 +225,6 @@ export class TestMiddleware implements IMiddleware {
 
 在`SERVICE`,`COMPONENT`类型bean中，Ctx对象需要自行传递。
 
-### process.env.ROOT_PATH
-
-Koatty定义的项目根目录，在项目中任何地方均可使用。
-
-### process.env.APP_PATH
-
-Koatty定义的项目应用目录(调试模式下启动，值为/`projectDIR`/src；在生产模式下启动，值为/`projectDIR`/dist)，在项目中任何地方均可使用。
-
-### process.env.THINK_PATH
-
-Koatty定义的框架根目录(/`projectDIR`/node_modules/koatty/)，在项目中任何地方均可使用。
-
-### process.env.LOGS_PATH
-
-Koatty定义的日志保存目录(默认为/`projectDIR`/logs，可在配置中修改)，在项目中任何地方均可使用。
-
 ## 配置
 
 实际项目中，肯定需要各种配置，包括：框架需要的配置以及项目自定义的配置。Koatty 将所有的配置都统一管理，并根据不同的功能划分为不同的配置文件。
@@ -417,6 +401,24 @@ process.env.KOATTY_ENV | 任意字符 | 框架运行时环境变量 | 高
 如果`process.env.KOATTY_ENV`以及`process.env.NODE_ENV`都没有配置，则看`app_debug`的值，为true时，`process.env.NODE_ENV`自动赋值为development，为false时赋值为production，相应加载的配置文件也遵循`_development.ts`或`_production.ts`后缀
 
 通过对这三个变量的灵活配置，可以支持多样化的运行环境及配置
+
+### 常用的环境变量配置
+
+* process.env.ROOT_PATH
+
+Koatty定义的项目根目录，在项目中任何地方均可使用。
+
+* process.env.APP_PATH
+
+Koatty定义的项目应用目录(调试模式下启动，值为/`projectDIR`/src；在生产模式下启动，值为/`projectDIR`/dist)，在项目中任何地方均可使用。
+
+* process.env.THINK_PATH
+
+Koatty定义的框架根目录(/`projectDIR`/node_modules/koatty/)，在项目中任何地方均可使用。
+
+* process.env.LOGS_PATH
+
+Koatty定义的日志保存目录(默认为/`projectDIR`/logs，可在配置中修改)，在项目中任何地方均可使用。
 
 
 ## 路由
