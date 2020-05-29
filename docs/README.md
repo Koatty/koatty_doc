@@ -223,7 +223,7 @@ export class TestMiddleware implements IMiddleware {
 
 ```
 
-在`MIDDLEWARE`,`COMPONENT`类型bean中，Ctx对象需要自行传递。
+在`SERVICE`,`COMPONENT`类型bean中，Ctx对象需要自行传递。
 
 ### process.env.ROOT_PATH
 
