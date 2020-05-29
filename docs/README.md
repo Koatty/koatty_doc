@@ -489,7 +489,7 @@ export class AdminController extends BaseController {
 
 Koatty是基于 Koa 实现的，所以 Koatty 的中间件形式和 Koa 的中间件形式是一样的，都是基于洋葱圈模型。每次我们编写一个中间件，就相当于在洋葱外面包了一层。
 
-Koatty框架默认加载了static、payload、trace三个中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
+Koatty框架默认加载了static(2.x版本默认不加载)、payload、trace三个中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
 
 Koatty中间件类必须使用`@Middleware`来声明，该类必须要包含名为`run(options: any, app: App)`的方法。该方法在应用启动的时候会被调用执行，并且返回值是一个`function (ctx: any, next: any){}`，这个function是Koa中间件的格式。
 
