@@ -91,13 +91,13 @@ Koatty的命令行工具`koatty_cli`在创建项目的时候，默认会形成�
 
     └──config              //应用配置目录
 
-        └──config.js       //应用配置文件
+        └──config.ts       //应用配置文件
 
-        └──db.js           //应用数据库配置文件
+        └──db.ts           //应用数据库配置文件
         
-        └──middleware.js   //应用中间件配置文件
+        └──middleware.ts   //应用中间件配置文件
         
-        └──router.js       //应用路由配置文件
+        └──router.ts       //应用路由配置文件
 
     └──controller　　　　   //应用控制器目录
 
@@ -151,6 +151,95 @@ Koatty通过`@Bootstrap()`装饰器来定义项目入口，`@Bootstrap()`可以�
 `@ConfiguationScan()`装饰器用于定制项目配置文件目录。
 
 `app_debug` 值为`true`时，nodeEnv环境在 `development` 模式。并且控制器打印详细的日志信息。
+
+## 基础对象
+
+### App
+
+App 是全局应用对象，在一个应用中，只会实例化一个，它继承自 Koa.Application，在它上面我们可以挂载一些全局的方法和对象。我们可以轻松的在插件或者应用中扩展 App 对象。
+
+在`CONTROLLER`,`SERVICE`,`COMPONENT`类型bean中默认已经注入了App对象，可以直接进行使用:
+
+```
+@Controller()
+export class TestController extends BaseController {
+    ...
+
+    test() {
+        //打印app对象
+        console.log(this.app);
+    }
+}
+```
+
+在`MIDDLEWARE`类型bean中，App对象作为函数入参传递：
+
+```
+@Middleware()
+export class TestMiddleware implements IMiddleware {
+    run(options: any, app: Koatty) {
+        ...
+        //打印app对象
+        console.log(app);
+    }
+}
+```
+
+### Ctx
+
+Ctx 是一个请求级别的对象，继承自 Koa.Context。在每一次收到用户请求时，框架会实例化一个 Ctx 对象，这个对象封装了这次用户请求的信息，并提供了许多便捷的方法来获取请求参数或者设置响应信息。
+
+在 `CONTROLLER`类型bean中，Ctx对象作为成员属性。可以直接使用：
+
+```
+@Controller()
+export class TestController extends BaseController {
+    ...
+
+    test() {
+        //打印ctx对象
+        console.log(this.ctx);
+    }
+}
+```
+
+在`MIDDLEWARE`类型bean中，Ctx对象作为中间件执行函数入参传递：
+
+```
+@Middleware()
+export class TestMiddleware implements IMiddleware {
+    run(options: any, app: Koatty) {
+        ...
+        
+        return async function (ctx: any, next: any) {
+            
+            //打印ctx对象
+            console.log(ctx);
+
+            return next();
+        };
+    }
+}
+
+```
+
+在`MIDDLEWARE`,`COMPONENT`类型bean中，Ctx对象需要自行传递。
+
+### process.env.ROOT_PATH
+
+Koatty定义的项目根目录，在项目中任何地方均可使用。
+
+### process.env.APP_PATH
+
+Koatty定义的项目应用目录(调试模式下启动，值为/`projectDIR`/src；在生产模式下启动，值为/`projectDIR`/dist)，在项目中任何地方均可使用。
+
+### process.env.THINK_PATH
+
+Koatty定义的框架根目录(/`projectDIR`/node_modules/koatty/)，在项目中任何地方均可使用。
+
+### process.env.LOGS_PATH
+
+Koatty定义的日志保存目录(默认为/`projectDIR`/logs，可在配置中修改)，在项目中任何地方均可使用。
 
 ## 配置
 
@@ -287,13 +376,56 @@ const conf: any = this.app.config("test");
 const cc: number = conf.bb.cc;
 ```
 
+### 运行环境配置
+
+Koatty可以自动识别当前运行环境，并且根据运行环境自动加载相应配置（如果存在）。
+
+运行环境由三个属性来进行定义：
+
+* app_debug 在项目入口文件的构造方法（init）内进行定义
+```
+//App.ts
+@Bootstrap()
+export class App extends Koatty {
+    public init() {
+        //app_debug值为true时，development模式
+        //app_debug值为false时，production模式
+        this.app_debug = false;
+    }
+}
+```
+
+* process.env.NODE_ENV Node.js的运行时环境变量，可以在系统环境定义，也可以在项目入口文件启动函数中定义
+
+* process.env.KOATTY_ENV Koatty框架运行时环境变量
+
+
+三者之间的关系和区别：
+
+| 变量 | 取值 | 说明 | 优先级
+---- | ---- | ---- | ----
+app_debug | true/false | 调试模式 | 低
+process.env.NODE_ENV | development/production | Node.js运行时环境变量 | 中
+process.env.KOATTY_ENV | 任意字符 | 框架运行时环境变量 | 高
+
+这里的优先级指加载运行时相应配置文件的优先级。
+
+例如`process.env.KOATTY_ENV=pro`,会自动加载带`_pro.ts`后缀的配置文件。
+
+`process.env.KOATTY_ENV`没有配置，如果`process.env.NODE_ENV=production`,会自动加载带`_production.ts`后缀的配置文件。
+
+如果`process.env.KOATTY_ENV`以及`process.env.NODE_ENV`都没有配置，则看`app_debug`的值，为true时，`process.env.NODE_ENV`自动赋值为development，为false时赋值为production，相应加载的配置文件也遵循`_development.ts`或`_production.ts`后缀
+
+通过对这三个变量的灵活配置，可以支持多样化的运行环境及配置
+
+
 ## 路由
 
 Koatty 通过RequestMapping类型装饰器进行路由注册，使用[@koa/router](https://github.com/koajs/router)进行路由解析。
 
 ### 控制器路由
 
-`@Controller()`装饰器的参数作为控制器访问入口，参数默认值为`\/`。然后再遍历该控制器的方法上的装饰器GetMaping、
+`@Controller()`装饰器的参数作为控制器访问入口，参数默认值为`/`。然后再遍历该控制器的方法上的装饰器GetMaping、
 DeleteMaping、PutMaping、PostMaping等进行方法路由注册。
 
 例如：
@@ -355,6 +487,8 @@ export class AdminController extends BaseController {
 
 ## 中间件
 
+Koatty是基于 Koa 实现的，所以 Koatty 的中间件形式和 Koa 的中间件形式是一样的，都是基于洋葱圈模型。每次我们编写一个中间件，就相当于在洋葱外面包了一层。
+
 Koatty框架默认加载了static、payload、trace三个中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
 
 Koatty中间件类必须使用`@Middleware`来声明，该类必须要包含名为`run(options: any, app: App)`的方法。该方法在应用启动的时候会被调用执行，并且返回值是一个`function (ctx: any, next: any){}`，这个function是Koa中间件的格式。
@@ -388,7 +522,7 @@ const defaultOpt = {
 
 
 @Middleware()
-export class Custom {
+export class CustomMiddleware implements IMiddleware {
 
     run(options: any, app: App) {
         options = Helper.extend(defaultOpt, this.options);
@@ -414,9 +548,9 @@ export class Custom {
 修改项目中间件配置 src/config/middleware.ts
 
 ```js
-list: ['Custom'], //加载的中间件列表
+list: ['CustomMiddleware'], //加载的中间件列表
 config: { //中间件配置 
-	Custom: {
+	CustomMiddleware: {
 		//中间件配置项
 	}
 }
@@ -431,19 +565,19 @@ config: { //中间件配置
 src/config/middleware.ts
 
 ```
-list: [], //列表中没有Passport，因此Passport不会执行
+list: [], //列表中没有PassportMiddleware，因此Passport中间件不会执行
 config: { //中间件配置 
-	'Passport': {
+	'PassportMiddleware': {
 		//中间件配置项
 	}
 }
 ```
-对于Koatty默认执行的三个中间件，我们也可以禁止它们执行（一般不建议）:
+对于Koatty默认执行的中间件，我们也可以禁止它们执行（一般不建议）:
 
 ```
 list: [], 
 config: { //中间件配置 
-	'Static': false //Static中间件被配置为不执行(koatty@1.21.0以上版本默认不再加载该中间件)
+	'StaticMiddleware': false //Static中间件被配置为不执行(koatty@1.21.0以上版本默认不再加载该中间件)
 }
 ```
 
@@ -458,7 +592,7 @@ const passport = require('koa-passport');
 
 
 @Middleware()
-export class Custom {
+export class PassportMiddleware implements IMiddleware {
 
     run(options: any, app: App) {
         return passport.initialize();
@@ -471,9 +605,9 @@ export class Custom {
 src/config/middleware.ts
 
 ```js
-list: ['Passport'], //加载的中间件列表
+list: ['PassportMiddleware'], //加载的中间件列表
 config: { //中间件配置 
-	'Passport': {
+	'PassportMiddleware': {
 		//中间件配置项
 	}
 }
@@ -577,7 +711,13 @@ export class IndexController extends RestController {
 
 ## 服务层
 
-服务层Service是对控制器中复杂业务逻辑、第三方接口调用等场景进行抽象和封装。Koatty中服务类使用`@Service()`装饰器声明。服务类默认放在项目的`src/service`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`Base`基类或`Base`的子类。
+简单来说，Service 就是在复杂业务场景下用于做业务逻辑封装的一个抽象层，提供这个抽象有以下几个好处：
+
+* 保持 Controller 中的逻辑更加简洁。
+* 保持业务逻辑的独立性，抽象出来的 Service 可以被多个 Controller 重复调用。
+* 将逻辑和展现分离，更容易编写测试用例
+
+Koatty中服务类使用`@Service()`装饰器声明。服务类默认放在项目的`src/service`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`BaseService`基类或`BaseService`的子类。
 
 ### 创建服务类
 
@@ -590,11 +730,11 @@ koatty service test
 会自动创建src/service/test.js,生成的模板代码：
 
 ```js
-import { Service, Base, Autowired, Scheduled, Cacheable } from "koatty";
+import { Service, BaseService, Autowired, Scheduled, Cacheable } from "koatty";
 import { App } from '../App';
 
 @Service()
-export class TestService extends Base  {
+export class TestService extends BaseService  {
     app: App;
 
     init() {
