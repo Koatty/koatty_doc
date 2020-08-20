@@ -856,9 +856,9 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 | -------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------- |
 | `@Aspect(identifier?: string)`                     | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 仅用于切面类           |
 | `@Bootstrap([bootFunc])`                           | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。 | 声明当前类是一个启动类，为项目的入口文件。                                | 仅用于应用启动类       |
-| `@ComponentScan(scanPath?: string \| string[])`    | `scanPath` 字符串或字符串数组                                               | 定义项目需要自动装载进容器的目录                                          | 仅用于应用启动类       |
+| `@ComponentScan(scanPath?: string | string[])`    | `scanPath` 字符串或字符串数组                                               | 定义项目需要自动装载进容器的目录                                          | 仅用于应用启动类       |
 | `@Component(identifier?: string)`                  | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类为一个组件类                                                      | 第三方模块或引入类使用 |
-| `@ConfiguationScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组，配置文件的目录                               | 定义项目需要加载的配置文件的目录                                          | 仅用于应用启动类       |
+| `@ConfiguationScan(scanPath?: string | string[])` | `scanPath` 字符串或字符串数组，配置文件的目录                               | 定义项目需要加载的配置文件的目录                                          | 仅用于应用启动类       |
 | `@Controller(path = "")`                           | `path` 绑定控制器访问路由                                                   | 定义该类是一个控制器类，并绑定路由。默认路由为"/"                         | 仅用于控制器类         |
 | `@Service(identifier?: string)`                    | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个服务类                                                      | 仅用于服务类           |
 | `@Middleware(identifier?: string)`                 | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个中间件类                                                    | 仅用于中间件类         |
@@ -909,6 +909,7 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 # API
 
 ## App
+--
 
 app 是全局应用对象，是应用App的实例，它继承自 Koa.Application。
 
@@ -926,8 +927,8 @@ app 是全局应用对象，是应用App的实例，它继承自 Koa.Application
 
 写入应用缓存。
 
-* key 缓存key
-* value  缓存值
+  * key 缓存key
+  * value  缓存值
 
 ### use(fn)
 
@@ -978,6 +979,7 @@ opts {
 ```
 
 ## Ctx
+--
 
 koa.ctx对象，[API文档](https://koajs.com/#context)。
 
@@ -985,6 +987,7 @@ koa.ctx对象，[API文档](https://koajs.com/#context)。
 
 
 ## IOCContainer
+--
 
 ### reg<T>(target: T, options?: ObjectDefinitionOptions): T;
 ### reg<T>(identifier: string, target: T, options?: ObjectDefinitionOptions): T;
@@ -1020,6 +1023,7 @@ koa.ctx对象，[API文档](https://koajs.com/#context)。
 
 
 ## BaseController
+--
 
 ### init()
 
