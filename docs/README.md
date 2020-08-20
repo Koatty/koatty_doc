@@ -794,7 +794,7 @@ koatty model --orm test
 
 ## IOC容器
 
-IOC容器
+Koatty实现了一个IOC容器，把Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。在项目启动时，会自动分析并装配Bean，自动处理好Bean之间的依赖问题。IOC容器提供了一系列的[API接口](#IOCContainer)，方便注册以及获取装配好的Bean。
 
 ## AOP切面
 
@@ -974,6 +974,44 @@ opts {
 
 koa.ctx对象，[API文档](https://koajs.com/#context)。
 
+
+
+
+## IOCContainer
+
+### reg<T>(target: T, options?: ObjectDefinitionOptions): T;
+### reg<T>(identifier: string, target: T, options?: ObjectDefinitionOptions): T;
+
+注册Bean到IOC容器。
+
+* target 类或者类的实例
+* identifier  别名，默认使用类名。如果自定义，从容器中获取也需要使用自定义别名
+* options Bean的配置，包含作用域、生命周期、类型等等
+
+### get(identifier: string, type?: CompomentType, args?: any[]): any;
+
+从容器中获取Bean。
+
+* identifier  别名，默认使用类名。如果自定义，从容器中获取也需要使用自定义别名
+* type 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。
+* args 构造方法入参，如果传入参数，获取的Bean默认生命周期为Prototype，否则为单例Singleton
+
+### getClass(identifier: string, type?: CompomentType): Function;
+
+从容器中获取类的原型。
+
+* identifier  别名，默认使用类名。如果自定义，从容器中获取也需要使用自定义别名
+* type 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。
+
+### getInsByClass<T>(target: T, args?: any[]): T;
+
+根据class类获取容器中的实例
+
+* target 类
+* args 构造方法入参，如果传入参数，获取的Bean默认生命周期为Prototype，否则为单例Singleton
+
+
+
 ## BaseController
 
 ### init()
@@ -1143,6 +1181,3 @@ return this.success('操作成功'); //页面输出 {"status":1,"errno":200,"err
 ```js
 return this.error('操作失败'); //页面输出 {"status":0,"errno":500,"errmsg":"操作失败","data":{}}
 ```
-
-
-## RestController
