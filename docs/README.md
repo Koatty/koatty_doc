@@ -386,11 +386,11 @@ export class App extends Koatty {
 
 三者之间的关系和区别：
 
-| 变量 | 取值 | 说明 | 优先级
----- | ---- | ---- | ----
-app_debug | true/false | 调试模式 | 低
-process.env.NODE_ENV | development/production | Node.js运行时环境变量 | 中
-process.env.KOATTY_ENV | 任意字符 | 框架运行时环境变量 | 高
+| 变量                   | 取值                   | 说明                  | 优先级 |
+| ---------------------- | ---------------------- | --------------------- | ------ |
+| app_debug              | true/false             | 调试模式              | 低     |
+| process.env.NODE_ENV   | development/production | Node.js运行时环境变量 | 中     |
+| process.env.KOATTY_ENV | 任意字符               | 框架运行时环境变量    | 高     |
 
 这里的优先级指加载运行时相应配置文件的优先级。
 
@@ -845,60 +845,58 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 
 ## ClassDecorator类装饰器
 
-装饰器名称  | 参数  | 说明 | 备注 
-------------- | ------------- | ------------- | ------------- 
-`@Aspect(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。  | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 仅用于切面类
-`@AfterEach(aopName = "__after")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__after`，此装饰器不生效，因为控制器会默认在每个方法之后执行`__after` | 为当前类声明一个切面，在每个方法执行之后执行切面类的run方法。
-`@BeforeEach(aopName = "__before")` | `aopName` 切点执行的切面类名称。如果在控制器中使用，该参数为空或者值等于`__before`，此装饰器不生效，因为控制器会默认在每个方法前执行`__before`| 为当前类声明一个切面，在每个方法执行之前执行切面类的run方法。
-`@Bootstrap([bootFunc])` | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。| 声明当前类是一个启动类，为项目的入口文件。 | 仅用于应用启动类
-`@ComponentScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组 | 定义项目需要自动装载进容器的目录 | 仅用于应用启动类
-`@Component(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。 | 定义该类为一个组件类 | 第三方模块或引入类使用
-`@ConfiguationScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组，配置文件的目录 | 定义项目需要加载的配置文件的目录 | 仅用于应用启动类
-`@Controller(path = "")` | `path` 绑定控制器访问路由 | 定义该类是一个控制器类，并绑定路由。默认路由为"/" | 仅用于控制器类
-`@Service(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。 | 定义该类是一个服务类 | 仅用于服务类
-`@Middleware(identifier?: string)` | `identifier` 注册到IOC容器的标识，默认值为类名。 | 定义该类是一个中间件类 | 仅用于中间件类
+| 装饰器名称                                         | 参数                                                                        | 说明                                                                      | 备注                   |
+| -------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------- |
+| `@Aspect(identifier?: string)`                     | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 仅用于切面类           |
+| `@Bootstrap([bootFunc])`                           | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。 | 声明当前类是一个启动类，为项目的入口文件。                                | 仅用于应用启动类       |
+| `@ComponentScan(scanPath?: string \| string[])`    | `scanPath` 字符串或字符串数组                                               | 定义项目需要自动装载进容器的目录                                          | 仅用于应用启动类       |
+| `@Component(identifier?: string)`                  | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类为一个组件类                                                      | 第三方模块或引入类使用 |
+| `@ConfiguationScan(scanPath?: string \| string[])` | `scanPath` 字符串或字符串数组，配置文件的目录                               | 定义项目需要加载的配置文件的目录                                          | 仅用于应用启动类       |
+| `@Controller(path = "")`                           | `path` 绑定控制器访问路由                                                   | 定义该类是一个控制器类，并绑定路由。默认路由为"/"                         | 仅用于控制器类         |
+| `@Service(identifier?: string)`                    | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个服务类                                                      | 仅用于服务类           |
+| `@Middleware(identifier?: string)`                 | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个中间件类                                                    | 仅用于中间件类         |
 
 ## PropertyDecorator属性装饰器
 
-装饰器名称  | 参数  | 说明 | 备注 
-------------- | ------------- | ------------- | ------------- 
-`@Autowired(identifier?: string, type?: CompomentType, constructArgs?: any[], isDelay = false)` | `identifier` 注册到IOC容器的标识，默认值为类名 <br> `type` 注入bean的类型 <br> `constructArgs` 注入bean构造方法入参。如果传递该参数，则返回request作用域的实例 <br> `isDelay` 是否延迟加载。延迟加载主要是解决循环依赖问题 | 从IOC容器自动注入bean到当前类 |
-`@Value(key: string, type?: string)` | `key` 配置项的key <br> `type` 配置项类型 |  配置项类型自动根据配置项所在文件来定义，例如 "db" 代表在 db.ts文件内
+| 装饰器名称                                                                                      | 参数                                                                                                                                                                                                                       | 说明                                                                 | 备注 |
+| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---- |
+| `@Autowired(identifier?: string, type?: CompomentType, constructArgs?: any[], isDelay = false)` | `identifier` 注册到IOC容器的标识，默认值为类名 <br> `type` 注入bean的类型 <br> `constructArgs` 注入bean构造方法入参。如果传递该参数，则返回request作用域的实例 <br> `isDelay` 是否延迟加载。延迟加载主要是解决循环依赖问题 | 从IOC容器自动注入bean到当前类                                        |
+| `@Value(key: string, type?: string)`                                                            | `key` 配置项的key <br> `type` 配置项类型                                                                                                                                                                                   | 配置项类型自动根据配置项所在文件来定义，例如 "db" 代表在 db.ts文件内 |
 
 
 ## MethodDecorator方法装饰器
 
-装饰器名称  | 参数  | 说明 | 备注 
-------------- | ------------- | ------------- | ------------- 
-`@Before(aopName: string)` |  `aopName` 切点执行的切面类名称。| 为当前方法声明一个切面，在当前方法执行之前执行切面类的run方法。| 
-`@After(aopName: string)` | `aopName` 切点执行的切面类名称。 | 为当前方法声明一个切面，在当前方法执行之后执行切面类的run方法。|
-`@RequestMapping([path, requestMethod, routerOptions])` | `path` 绑定的路由 <br> `requestMethod` 绑定的HTTP请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定路由 | 仅用于控制器方法
-`@GetMapping([path, routerOptions])` | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定Get路由 | 仅用于控制器方法
-`@PostMapping([path, routerOptions])` | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定Post路由 | 仅用于控制器方法
-`@DeleteMapping([path, routerOptions])` | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定Delete路由 | 仅用于控制器方法
-`@PutMapping([path, routerOptions])` | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定Put路由 | 仅用于控制器方法
-`@PatchMapping([path, routerOptions])` | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定Patch路由 | 仅用于控制器方法
-`@OptionsMapping([path, routerOptions])` | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定Options路由 | 仅用于控制器方法
-`@HeadMapping([path, routerOptions])` | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定Head路由 | 仅用于控制器方法
-`@Scheduled(cron: string)` | `cron` 任务计划配置<br> * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 0-11 (Jan-Dec)<br>Day of Week: 0-6 (Sun-Sat) | 定义类的方法执行计划任务 | 不能用于控制器方法
-`@Validated()` | | 配合DTO类型进行参数验证 | 方法入参没有DTO类型的不生效
-`@SchedulerLock(name?: string, lockTimeOut?: number, waitLockInterval?: number, waitLockTimeOut?: number, redisOptions?: RedisOptions)` | `name` 锁的名称<br> `lockTimeOut` 锁自动超时时间<br> `waitLockInterval` 尝试循环获取锁时间间隔 <br>`waitLockTimeOut` 尝试循环获取锁最长等待时间<br> `redisOptions` redis服务器连接配置 | 定义方法执行时必须先获取分布式锁(基于Redis) | 
-`@Cacheable(cacheName: string, paramKey?: number \| number[], redisOptions?: RedisOptions)` | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `redisOptions` Redis服务器连接配置 | 基于Redis的缓存 | 不能用于控制器方法
-`@CacheEvict(cacheName: string, paramKey?: number \| number[], eventTime: eventTimes = "Before", redisOptions?: RedisOptions)` |  `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `eventTime` 清除缓存的时点 <br>`redisOptions` Redis服务器连接配置 | 同@Cacheable配合使用，用于方法执行时清理缓存 | 不能用于控制器方法
+| 装饰器名称                                                                                                                              | 参数                                                                                                                                                                                                                      | 说明                                                            | 备注                        |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------- |
+| `@Before(aopName: string)`                                                                                                              | `aopName` 切点执行的切面类名称。                                                                                                                                                                                          | 为当前方法声明一个切面，在当前方法执行之前执行切面类的run方法。 |
+| `@After(aopName: string)`                                                                                                               | `aopName` 切点执行的切面类名称。                                                                                                                                                                                          | 为当前方法声明一个切面，在当前方法执行之后执行切面类的run方法。 |
+| `@RequestMapping([path, requestMethod, routerOptions])`                                                                                 | `path` 绑定的路由 <br> `requestMethod` 绑定的HTTP请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定路由                                          | 仅用于控制器方法            |
+| `@GetMapping([path, routerOptions])`                                                                                                    | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Get路由                                       | 仅用于控制器方法            |
+| `@PostMapping([path, routerOptions])`                                                                                                   | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Post路由                                      | 仅用于控制器方法            |
+| `@DeleteMapping([path, routerOptions])`                                                                                                 | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Delete路由                                    | 仅用于控制器方法            |
+| `@PutMapping([path, routerOptions])`                                                                                                    | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Put路由                                       | 仅用于控制器方法            |
+| `@PatchMapping([path, routerOptions])`                                                                                                  | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Patch路由                                     | 仅用于控制器方法            |
+| `@OptionsMapping([path, routerOptions])`                                                                                                | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Options路由                                   | 仅用于控制器方法            |
+| `@HeadMapping([path, routerOptions])`                                                                                                   | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Head路由                                      | 仅用于控制器方法            |
+| `@Scheduled(cron: string)`                                                                                                              | `cron` 任务计划配置<br> * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 0-11 (Jan-Dec)<br>Day of Week: 0-6 (Sun-Sat)                                                        | 定义类的方法执行计划任务                                        | 不能用于控制器方法          |
+| `@Validated()`                                                                                                                          |                                                                                                                                                                                                                           | 配合DTO类型进行参数验证                                         | 方法入参没有DTO类型的不生效 |
+| `@SchedulerLock(name?: string, lockTimeOut?: number, waitLockInterval?: number, waitLockTimeOut?: number, redisOptions?: RedisOptions)` | `name` 锁的名称<br> `lockTimeOut` 锁自动超时时间<br> `waitLockInterval` 尝试循环获取锁时间间隔 <br>`waitLockTimeOut` 尝试循环获取锁最长等待时间<br> `redisOptions` redis服务器连接配置                                    | 定义方法执行时必须先获取分布式锁(基于Redis)                     |
+| `@Cacheable(cacheName: string, paramKey?: number \| number[], redisOptions?: RedisOptions)`                                             | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `redisOptions` Redis服务器连接配置                                                                                        | 基于Redis的缓存                                                 | 不能用于控制器方法          |
+| `@CacheEvict(cacheName: string, paramKey?: number \| number[], eventTime: eventTimes = "Before", redisOptions?: RedisOptions)`          | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `eventTime` 清除缓存的时点 <br>`redisOptions` Redis服务器连接配置                                                         | 同@Cacheable配合使用，用于方法执行时清理缓存                    | 不能用于控制器方法          |
 
 ## ParameterDecorator参数装饰器
 
-装饰器名称  | 参数  | 说明 | 备注 
-------------- | ------------- | ------------- | -------------
-`@Body()` | | 获取ctx.body | 仅用于控制器方法参数
-`@File(name?: string)` | `name` 文件名 | 获取上传的文件对象 | 仅用于控制器方法参数
-`@Get(name?: string)` | `name` 参数名 | 获取querystring参数 | 仅用于控制器方法参数
-`@Header(name?: string)` | `name` 参数名 | 获取Header内容 | 仅用于控制器方法参数
-`@PathVariable(name?: string)` | `name` 参数名 | 获取querystring参数，功能同`@Get` | 仅用于控制器方法参数
-`@Post(name?: string)` | `name` 参数名 | 获取Post参数 | 仅用于控制器方法参数
-`@RequestBody()` |  | 获取ctx.body，功能同`@Body` | 仅用于控制器方法参数
-`@RequestParam(name?: string)` | `name` 参数名 | 获取Get或Post参数，Post优先 | 仅用于控制器方法参数
-`@Valid(rule: ValidRules \| ValidRules[] \| Function, message?: string)` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证
+| 装饰器名称                                                               | 参数                                                                                   | 说明                              | 备注                 |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- | --------------------------------- | -------------------- |
+| `@Body()`                                                                |                                                                                        | 获取ctx.body                      | 仅用于控制器方法参数 |
+| `@File(name?: string)`                                                   | `name` 文件名                                                                          | 获取上传的文件对象                | 仅用于控制器方法参数 |
+| `@Get(name?: string)`                                                    | `name` 参数名                                                                          | 获取querystring参数               | 仅用于控制器方法参数 |
+| `@Header(name?: string)`                                                 | `name` 参数名                                                                          | 获取Header内容                    | 仅用于控制器方法参数 |
+| `@PathVariable(name?: string)`                                           | `name` 参数名                                                                          | 获取querystring参数，功能同`@Get` | 仅用于控制器方法参数 |
+| `@Post(name?: string)`                                                   | `name` 参数名                                                                          | 获取Post参数                      | 仅用于控制器方法参数 |
+| `@RequestBody()`                                                         |                                                                                        | 获取ctx.body，功能同`@Body`       | 仅用于控制器方法参数 |
+| `@RequestParam(name?: string)`                                           | `name` 参数名                                                                          | 获取Get或Post参数，Post优先       | 仅用于控制器方法参数 |
+| `@Valid(rule: ValidRules \| ValidRules[] \| Function, message?: string)` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证                  |
 
 
 # API
@@ -908,5 +906,183 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 ## Ctx
 
 ## BaseController
+
+### ctx
+koa.ctx对象。
+
+```js
+this.ctx
+```
+### app
+app 是全局应用对象，是应用App的实例，它继承自 Koa.Application
+
+```js
+this.app
+```
+
+### __before()
+控制器默认前置切面方法。在控制器方法(绑定路由的)执行之前自动调用。该方法可以是异步的，无返回值。经常用于前置权限检查等场景。
+
+```js
+//src/controller/index.js控制器
+ ...
+ __before(){
+     console.log('hello');
+ }
+ 
+ @GetMapping("/index")
+ index(){
+     return this.write('hello world');
+ }
+ ...
+
+ //当访问 /index路由时，先打印 'hello' 到控制台， 然后输出页面
+```
+
+### __after()
+控制器默认后置切面方法。在控制器方法(绑定路由的)执行之后自动调用。该方法可以是异步的，无返回值。
+
+### isGet()
+
+判断当前request是否GET请求。
+
+```js
+if (this.isGet()) {
+    //当前请求为GET请求
+}
+```
+
+### isPost()
+
+判断当前request是否POST请求。
+
+```js
+if (this.isPost()) {
+    //当前请求为POST请求
+}
+```
+
+### isMethod(method)
+
+* method 请求类型 get/post等
+
+判断当前请求是否是传入的特定请求。
+
+```js
+if (this.isMethod('get')) {
+    //当前请求为GET请求
+}
+```
+
+### header(name, value)
+
+获取或设置header内容。
+
+* name 键
+* value 值
+
+```js
+this.header('Content-Type', 'text/plian'); //等同于 ctx.set('Content-Type', 'text/plian')
+
+this.header('Content-Type'); //等同于 ctx.get('Content-Type')
+```
+
+### param([name])
+* name 参数名,如果值为undefined则返回所有querystring以及post参数
+        querystring中同名key会被post值覆盖
+获取参数，先从post参数中查找，如果不存在则从querstring中查找。
+
+```js
+let all = this.param();
+
+let info = this.param('info') || {};
+
+```
+
+### type(contentType[, encoding])
+
+* contentType 文档类型
+* encoding 编码格式,默认值为'utf-8'
+content-type 操作。
+
+```js
+this.type('text/plian', 'utf-8');
+```
+
+### expires(timeout = 30)
+
+* timeout 缓存时间，单位秒
+
+设置`Cache-Control`的`max-age`的值
+
+
+### redirect(urls[, alt])
+
+* urls 需要跳转的url
+* alt 定义Referrer
+                               
+页面跳转。
+
+```js
+this.redirect('/index');
+
+this.redirect('http://baidu.com');
+```
+
+### deny([code = 403])
+返回403禁止访问。
+
+```js
+return this.deny();
+```
+
+### body(data[, contentType, encoding])
+
+对ctx.body赋值进行功能封装。 注意控制器中的this.body方法和直接对ctx.body赋值最大的不同是输出内容后，this.body方法会返回think.prevent()错误中断程序执行。
+
+* content 输出的内容
+* contentType 输出文档类型，默认 `text/plain`
+* encoding 输出文档编码，默认 `utf-8`，在项目配置文件 src/config/config.js内可修改
+
+```js
+return this.body('content', 'text/plain'); //页面输出 content
+```
+
+### json(data)
+
+* data 输出的数据
+
+response返回json格式数据。常用于API接口。
+
+```js
+return this.json({aa: 111, bb: 222}); //页面输出   {"aa": 111, "bb":222}
+```
+
+### ok(errmsg[, data, code = 200, options = {}])
+
+* errmsg 输出的信息
+* data 输出的数据
+* code 错误码
+* options 选项
+
+在控制器逻辑执行成功时,response返回统一格式化json数据。常用于API接口。
+
+```js
+return this.success('操作成功'); //页面输出 {"status":1,"errno":200,"errmsg":"操作成功","data":{}}
+```
+
+### fail(errmsg[, data, code = 500, options = {}])
+
+* errmsg 输出的信息
+* data 输出的数据
+* code 错误码
+* options 选项
+
+在控制器逻辑执行失败时,response返回统一格式化json数据。常用于API接口。
+
+```js
+return this.error('操作失败'); //页面输出 {"status":0,"errno":500,"errmsg":"操作失败","data":{}}
+```
+
 
 ## RestController
