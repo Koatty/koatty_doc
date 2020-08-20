@@ -233,6 +233,7 @@ export class TestMiddleware implements IMiddleware {
 * db.ts 数据库配置
 * router.ts 路由配置
 * middleware.ts 中间件配置
+* plugin.ts 插件配置
 
 除上述常见的配置文件之外，Koatty也支持用户自行定义的配置文件命名。
 
@@ -788,6 +789,12 @@ koatty model --orm test
 ```
 
 该工具会自动创建实体类。如果使用TypeORM，工具除实体类以外，还会自动创建一个中间件，需要修改src/config/middleware.ts中的中间件配置项进行配置。
+
+## 插件
+
+插件的定义和代码以及运行机制跟中间件非常相似，唯一的区别是，插件是在应用加载（加载中间件、控制器、服务类以及其他Component类型Bean）之前执行。适用于向注册中心注册、向配置中心拉取配置等场景使用。
+
+
 
 
 # 进阶应用
