@@ -903,22 +903,82 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 
 ## App
 
+app 是全局应用对象，是应用App的实例，它继承自 Koa.Application。
+
+### init()
+
+框架定义的构造方法，用来代替constructor.
+
+### getMap(key) 
+
+读取应用缓存值并返回。应用缓存一般保存着应用运行时必要的一些数据，例如配置、全局参数等。
+
+* key 缓存key
+
+### setMap(key, value)
+
+写入应用缓存。
+
+* key 缓存key
+* value  缓存值
+
+### use(fn)
+
+绑定运行koa中间件。
+
+* fn koa中间件函数
+
+### useExp(fn)
+
+绑定运行express中间件。
+
+* fn express中间件
+
+### prevent()
+
+抛出一个prevent异常，该异常并不会直接抛出错误，而是自动被框架拦截，作用是中断后续代码执行。一般在response返回后调用，防止response被重复执行
+
+### isPrevent(err)
+
+判断抛出的error是否prevent类型异常。
+
+* err error错误
+
+### config(name, type = "config")
+
+读取项目及应用配置。包括本地配置文件中的项目配置、中间件配置、路由配置等，还包括从apollo等配置中心中获取到的配置
+
+* name 配置key
+* type 配置类型，默认为 `config` 项目配置。如果是本地配置文件，文件名就是类型名；如果是配置中心，则可以自行定义，例如 apollo 中添加配置项 mongodb.host，类型为 mongodb
+
+### listen(opts)
+
+Koa.listen函数的封装。
+
+opts配置: 
+
+```
+opts {
+   port?: number;
+   host?: string;
+   backlog?: number;
+   path?: string;
+   exclusive?: boolean;
+   readableAll?: boolean;
+   writableAll?: boolean;
+   ipv6Only?: boolean; //default false 
+}
+```
+
 ## Ctx
+
+koa.ctx对象，[API文档](https://koajs.com/#context)。
 
 ## BaseController
 
-### ctx
-koa.ctx对象。
+### init()
 
-```js
-this.ctx
-```
-### app
-app 是全局应用对象，是应用App的实例，它继承自 Koa.Application
-
-```js
-this.app
-```
+框架定义的构造方法，用来代替constructor.
 
 ### __before()
 控制器默认前置切面方法。在控制器方法(绑定路由的)执行之前自动调用。该方法可以是异步的，无返回值。经常用于前置权限检查等场景。
