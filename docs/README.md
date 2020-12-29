@@ -841,7 +841,7 @@ import { App } from '../App';
 import { Apollo } from 'koatty_apollo';
 
 @Plugin()
-export class TestPlugin implements IPlugin {
+export class ApolloPlugin implements IPlugin {
   run(options: any, app: App) {
     return Apollo(options, app);
   }
