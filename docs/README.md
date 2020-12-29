@@ -551,7 +551,7 @@ import { App } from '../App';
 import jwt from "think_jwt";
 
 @Middleware()
-export class CustomMiddleware implements IMiddleware {
+export class JwtMiddleware implements IMiddleware {
     run(options: any, app: App) {
         return jwt(options, app);
     }
@@ -561,9 +561,9 @@ export class CustomMiddleware implements IMiddleware {
 修改项目中间件配置 src/config/middleware.ts
 
 ```js
-list: ['CustomMiddleware'], //加载的中间件列表
+list: ['JwtMiddleware'], //加载的中间件列表
 config: { //中间件配置 
-	CustomMiddleware: {
+	JwtMiddleware: {
 		//中间件配置项
 	}
 }
