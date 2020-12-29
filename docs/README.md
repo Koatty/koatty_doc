@@ -79,38 +79,46 @@ npm start
 
 Koatty的命令行工具`koatty_cli`在创建项目的时候，默认会形成以下目录结构:
 
-
-```js
-├── dist                    //应用文件目录(编译后文件)
-
-├── logs                   //日志文件目录
-
-├── node_modules           //node模块目录
-
-├── src                    //应用文件目录(源文件)
-
-    └──config              //应用配置目录
-
-        └──config.ts       //应用配置文件
-
-        └──db.ts           //应用数据库配置文件
-        
-        └──middleware.ts   //应用中间件配置文件
-        
-        └──router.ts       //应用路由配置文件
-
-    └──controller　　　　   //应用控制器目录
-
-    └──model　　　　　　　   //应用持久层目录
-
-    └──service　　　　　　　 //应用服务层目录
-
-├── static　　　　　　       //静态资源目录,如果使用nginx请将root指向此目录
-
-├── App.ts                 //应用入口文件
-
-├── package.json           //应用依赖配置
-```
+ ```shell
+<projectName>
+├── .vscode                       # vscode配置
+│   └── launch.json               # node本地调试脚本
+├── dist                          # 编译后目录
+├── src                           # 项目源代码
+│   ├── config
+│   │   ├── config.ts             # 框架配置
+│   │   ├── db.ts                 # 存储配置
+│   │   ├── middleware.ts         # 中间件配置
+│   │   ├── plugin.ts             # 插件配置
+│   │   └── router.ts             # 路由配置
+│   ├── controller                # 控制器
+│   │   └── TestController.ts
+│   ├── middleware                # 中间件
+│   │   ├── JwtMiddleware.ts
+│   │   └── ViewMiddleware.ts
+│   ├── model                     # 持久层
+│   │   └── TestModel.ts
+│   ├── plugin                    # 插件
+│   │   └── TestPlugin.ts
+│   ├── proto                     # pb协议
+│   │   └── helloworld.proto
+│   ├── resource                  # 用于存放静态数据或白名单等
+│   │   └── data.json
+│   ├── service                   # service逻辑层
+│   │   └── TestService.ts
+│   ├── utils                     # 工具函数
+│   │   └── index.ts
+│   └── App.ts                    # 入口文件
+├── static                        # 静态文件目录
+│   └── index.html
+├── test                          # 测试用例
+│   └── index.test.js
+├── apidoc.json
+├── pm2.json
+├── package.json
+├── README.md
+└── tsconfig.json
+ ```
 
 但是Koatty支持灵活的自定义项目结构，除配置目录(通过@ConfiguationScan()定制)以及静态资源目录(需要修改Static中间件默认配置)以外，其他目录名称、结构等都可以自行定制。
 
@@ -137,7 +145,7 @@ import { Koatty, Bootstrap } from "koatty";
 // @ConfiguationScan('./config')
 export class App extends Koatty {
     public init() {
-        // this.app_debug = true; //线上环境请将debug模式关闭，即：app_debug:false
+        // this.appDebug = true; //线上环境请将debug模式关闭，即：appDebug:false
     }
 }
 ```
@@ -150,7 +158,7 @@ Koatty通过`@Bootstrap()`装饰器来定义项目入口，`@Bootstrap()`可以�
 
 `@ConfiguationScan()`装饰器用于定制项目配置文件目录。
 
-`app_debug` 值为`true`时，nodeEnv环境在 `development` 模式。并且控制器打印详细的日志信息。
+`appDebug` 值为`true`时，nodeEnv环境在 `development` 模式。并且控制器打印详细的日志信息。
 
 ## 基础对象
 
@@ -367,43 +375,53 @@ Koatty可以自动识别当前运行环境，并且根据运行环境自动加�
 
 运行环境由三个属性来进行定义：
 
-* app_debug 在项目入口文件的构造方法（init）内进行定义
+* appDebug
+
+	在项目入口文件的构造方法（init）内进行定义
+
 ```
 //App.ts
 @Bootstrap()
 export class App extends Koatty {
     public init() {
-        //app_debug值为true时，development模式
-        //app_debug值为false时，production模式
-        this.app_debug = false;
+        //appDebug值为true时，development模式
+        //appDebug值为false时，production模式
+        this.appDebug = false;
     }
 }
 ```
 
-* process.env.NODE_ENV Node.js的运行时环境变量，可以在系统环境定义，也可以在项目入口文件启动函数中定义
+* process.env.NODE_ENV
 
-* process.env.KOATTY_ENV Koatty框架运行时环境变量
+	Node.js的运行时环境变量，可以在系统环境定义，也可以在项目入口文件启动函数中定义
+
+* process.env.KOATTY_ENV
+
+	Koatty框架运行时环境变量
 
 
 三者之间的关系和区别：
 
 | 变量                   | 取值                   | 说明                  | 优先级 |
 | ---------------------- | ---------------------- | --------------------- | ------ |
-| app_debug              | true/false             | 调试模式              | 低     |
+| appDebug               | true/false             | 调试模式              | 低     |
 | process.env.NODE_ENV   | development/production | Node.js运行时环境变量 | 中     |
 | process.env.KOATTY_ENV | 任意字符               | 框架运行时环境变量    | 高     |
 
+
 这里的优先级指加载运行时相应配置文件的优先级。
 
-例如`process.env.KOATTY_ENV=pro`,会自动加载带`_pro.ts`后缀的配置文件。
+例如：
 
-`process.env.KOATTY_ENV`没有配置，如果`process.env.NODE_ENV=production`,会自动加载带`_production.ts`后缀的配置文件。
+- `process.env.KOATTY_ENV=pro`,会自动加载带`_pro.ts`后缀的配置文件。
 
-如果`process.env.KOATTY_ENV`以及`process.env.NODE_ENV`都没有配置，则看`app_debug`的值，为true时，`process.env.NODE_ENV`自动赋值为development，为false时赋值为production，相应加载的配置文件也遵循`_development.ts`或`_production.ts`后缀
+- `process.env.KOATTY_ENV`没有配置，如果`process.env.NODE_ENV=production`,会自动加载带`_production.ts`后缀的配置文件。
+
+- 如果`process.env.KOATTY_ENV`以及`process.env.NODE_ENV`都没有配置，则看`appDebug`的值，为true时，`process.env.NODE_ENV`自动赋值为development，为false时赋值为production，相应加载的配置文件也遵循`_development.ts`或`_production.ts`后缀
 
 通过对这三个变量的灵活配置，可以支持多样化的运行环境及配置
 
-### 常用的环境变量配置
+### 常用的环境变量
 
 * process.env.ROOT_PATH
 
@@ -492,19 +510,34 @@ export class AdminController extends BaseController {
 
 Koatty是基于 Koa 实现的，所以 Koatty 的中间件形式和 Koa 的中间件形式是一样的，都是基于洋葱圈模型。每次我们编写一个中间件，就相当于在洋葱外面包了一层。
 
-Koatty框架默认加载了static(2.x版本默认不加载)、payload、trace三个中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
+Koatty框架默认加载了static、payload等中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
 
 Koatty中间件类必须使用`@Middleware`来声明，该类必须要包含名为`run(options: any, app: App)`的方法。该方法在应用启动的时候会被调用执行，并且返回值是一个`function (ctx: any, next: any){}`，这个function是Koa中间件的格式。
 
-### 创建中间件
+### 使用中间件
+
+中间件一般通过 npm 模块的方式进行复用：
+
+```shell
+npm i think_jwt --save
+```
+注意：我们建议通过 ^ 的方式引入依赖，并且强烈不建议锁定版本。
+
+```
+{
+  "dependencies": {
+    "think_jwt": "^1.0.0"
+  }
+}
+```
 
 使用命令行工具koatty_cli，在命令行执行命令:
 
 ```bash
-//custom 为自定义中间件名
-koatty middleware custom
+//jwt 为自定义中间件名
+koatty middleware jwt
 ```
-会自动在项目目录生成文件 src/middleware/Custom.ts
+会自动在项目目录生成文件 src/middleware/JwtMiddleware.ts
 
 生成的中间件代码模板: 
 
@@ -517,36 +550,15 @@ koatty middleware custom
 
 import { Middleware, Helper } from "koatty";
 import { App } from '../App';
-
-
-const defaultOpt = {
-    //默认配置项
-};
-
+import jwt from "think_jwt";
 
 @Middleware()
 export class CustomMiddleware implements IMiddleware {
-
     run(options: any, app: App) {
-        options = Helper.extend(defaultOpt, this.options);
-        //应用启动执行一次
-        // app.once('appReady', () => {
-        // });
-
-        return function (ctx: any, next: any) {
-            return next();
-        };
+        return jwt(options, app);
     }
 }
 ```
-* options 中间件配置，src/config/middleware.ts内config项中间件名同名属性值
-* app koatty实例
-* ctx koa ctx上下文对象
-* next 下一中间件操作句柄
-
-
-### 配置中间件
-写好自定义的中间件以后，开始定义配置并挂载运行：
 
 修改项目中间件配置 src/config/middleware.ts
 
@@ -559,8 +571,6 @@ config: { //中间件配置
 }
 
 ```
-
-
 ### 禁用中间件
 
 对于项目中自行开发中间件，如果要禁用，只需要修改中间件配置文件即可:
@@ -570,17 +580,16 @@ src/config/middleware.ts
 ```
 list: [], //列表中没有PassportMiddleware，因此Passport中间件不会执行
 config: { //中间件配置 
-	'PassportMiddleware': {
-		//中间件配置项
-	}
+	'PassportMiddleware': false, // 中间件配置为false，中间件也不会执行
 }
 ```
+
 对于Koatty默认执行的中间件，我们也可以禁止它们执行（一般不建议）:
 
 ```
 list: [], 
 config: { //中间件配置 
-	'StaticMiddleware': false //Static中间件被配置为不执行(koatty@1.21.0以上版本默认不再加载该中间件)
+	'StaticMiddleware': false //Static中间件被配置为不执行
 }
 ```
 
@@ -596,7 +605,6 @@ const passport = require('koa-passport');
 
 @Middleware()
 export class PassportMiddleware implements IMiddleware {
-
     run(options: any, app: App) {
         return passport.initialize();
     }
@@ -774,7 +782,7 @@ this.testService.test();
 
 ## 持久层
 
-koatty目前能够很好的支持两种ORM框架，分别是ThinkORM以及TypeORM。
+通过使用`koatty_cli`工具，koatty目前默认支持两种ORM框架，分别是ThinkORM以及TypeORM。如需使用其他类型的ORM，例如sequelize、mongose等，需要自行实现，koatty并不做限制。
 
 ### 创建数据实体
 
@@ -792,20 +800,175 @@ koatty model --orm test
 
 ## 插件
 
-插件的定义和代码以及运行机制跟中间件非常相似，唯一的区别是，插件是在应用加载（加载中间件、控制器、服务类以及其他Component类型Bean）之前执行。适用于向注册中心注册、向配置中心拉取配置等场景使用。
+插件机制是在保证框架核心的足够精简、稳定的前提下，对框架进行底层扩展。
+
+### 为什么需要插件
+
+我们在使用中间件的过程中，发现一些问题：
+
+* 中间件的定位是拦截用户请求，并在它前后做一些事情，例如：鉴权、安全检查、访问日志等等。但实际情况是，有些功能是和请求无关的，例如：定时任务、消息订阅、后台逻辑等等。
+
+* 有些功能包含非常复杂的初始化逻辑，需要在应用启动的时候完成。这显然也不适合放到中间件中去实现。
+
+综上所述，我们需要一套更加强大的机制，来管理、编排那些相对独立的业务逻辑。典型的应用场景就是注册中心注册、向配置中心拉取配置等。
 
 
+### 创建插件
 
+插件一般通过 npm 模块的方式进行复用：
 
+```shell
+npm i koatty_apollo --save
+```
+注意：我们建议通过 ^ 的方式引入依赖，并且强烈不建议锁定版本。
+
+```
+{
+  "dependencies": {
+    "koatty_apollo": "^1.0.0"
+  }
+}
+```
+
+使用`koatty_cli`在应用中创建一个插件类:
+
+```shell
+koatty plugin apollo
+```
+生成的插件代码模板: 
+
+```js
+import { Plugin, IPlugin } from 'koatty';
+import { App } from '../App';
+import { Apollo } from 'koatty_apollo';
+
+@Plugin()
+export class TestPlugin implements IPlugin {
+  run(options: any, app: App) {
+    return Apollo(options, app);
+  }
+}
+
+```
+
+然后需要在应用的 config/plugin.ts 中声明：
+
+```js
+list: ['ApolloPlugin'], //加载的插件列表
+config: { //插件配置 
+	'ApolloPlugin': {
+		//插件配置项
+	}
+}
+```
+### 禁用插件
+
+对于项目中插件，如果要禁用，只需要修改插件配置文件即可:
+
+src/config/plugin.ts
+
+```
+list: [], //列表中没有ApolloPlugin，因此ApolloPlugin插件不会执行
+
+config: { //插件配置 
+	'ApolloPlugin': false,  // 插件配置为false，ApolloPlugin插件也不会执行
+}
+
+```
 # 进阶应用
 
 ## IOC容器
 
-Koatty实现了一个IOC容器，把Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。在项目启动时，会自动分析并装配Bean，自动处理好Bean之间的依赖问题。IOC容器提供了一系列的[API接口](#IOCContainer)，方便注册以及获取装配好的Bean。
+IoC全称Inversion of Control，直译为控制反转。在以ES6 Class范式编程中，简单的通过new创建实例并持有的方式，会发现以下缺点：
+
+* 实例化一个组件，要先实例化依赖的组件，强耦合
+
+* 每个组件都需要实例化一个依赖组件，没有复用
+
+* 很多组件需要销毁以便释放资源，例如DataSource，但如果该组件被多个组件共享，如何确保它的使用方都已经全部被销毁
+
+* 随着更多的组件被引入，需要共享的组件写起来会更困难，这些组件的依赖关系会越来越复杂
+
+
+如果一个系统有大量的组件，其生命周期和相互之间的依赖关系如果由组件自身来维护，不但大大增加了系统的复杂度，而且会导致组件之间极为紧密的耦合，继而给测试和维护带来了极大的困难。
+
+因此，核心问题是：
+
+- 1、谁负责创建组件？
+- 2、谁负责根据依赖关系组装组件？
+- 3、销毁时，如何按依赖顺序正确销毁？
+
+解决这一问题的核心方案就是IoC。参考Spring IOC的实现机制，Koatty实现了一个IOC容器（koatty_container），在应用启动的时候，自动分类装载组件，并且根据依赖关系，注入相应的依赖。因此，IoC又称为依赖注入（DI：Dependency Injection），它解决了一个最主要的问题：将组件的创建+配置与组件的使用相分离，并且，由IoC容器负责管理组件的生命周期。
+
+### 组件分类
+
+根据组件的不同应用创建，Koatty把Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。
+
+* COMPONENT
+  扩展类、第三方类属于此类型，例如 Plugin，ORM持久层等
+
+* CONTROLLER
+  控制器类
+
+* MIDDLEWARE
+  中间件类
+
+* SERVICE
+  逻辑服务类
+
+### 组件加载
+
+通过Koatty框架核心的Loader，在项目启动时，会自动分析并装配Bean，自动处理好Bean之间的依赖问题。IOC容器提供了一系列的[API接口](#IOCContainer)，方便注册以及获取装配好的Bean。
 
 ## AOP切面
 
-AOP切面
+Koatty基于IOC容器实现了一套切面编程机制，利用装饰器以及内置特殊方法，在bean装载到IOC容器内的时候，通过嵌套函数的原理进行封装，简单而且高效。
+
+### 切点声明类型
+
+* 装饰器声明
+  通过@Before、@After、@BeforeEach、@AfterEach装饰器声明的切点
+
+* 内置方法声明
+  通过__before、__after 内置隐藏方法声明的切点
+
+两种声明方式的区别:
+
+| 声明方式     | 依赖Aspect切面类 | 能否使用类作用域 | 入参依赖切点方法 |
+| ------------ | ---------------- | ---------------- | ---------------- |
+| 装饰器声明   | 依赖             | 不能             | 依赖             |
+| 内置方法声明 | 不依赖           | 能               | 不依赖           |
+
+依赖Aspect切面类： 需要创建对应的Aspect切面类才能使用
+
+能否使用类作用域： 能不能使用切点所在类的this指针
+
+入参依赖切点方法： 装饰器声明切点所在方法的入参同切面共享，内置方法声明的切点因为可以使用this，理论上能获取切点所在类的任何属性，更加灵活
+
+例如: 
+
+```js
+@Controller('/')
+export class TestController extends BaseController {
+  app: App;
+  ctx: KoattyContext;
+
+  @Autowired()
+  protected TestService: TestService;
+
+  // 不依赖切面类
+  async __before(): Promise<any> { // 不依赖具体方法的入参，自行通过this指针获取
+      console.log(this.app)  // 可以使用类作用域，通过this指针获取当前类属性
+      console.log(this.ctx)
+  }
+
+  @Before(TestAspect) //依赖TestAspect切面类, 能够获取path参数
+  async test(path: string){
+
+  }
+}
+
+```
 
 ## 启动自定义
 
@@ -852,16 +1015,16 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 
 ## ClassDecorator类装饰器
 
-| 装饰器名称                                         | 参数                                                                        | 说明                                                                      | 备注                   |
-| -------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------- |
-| `@Aspect(identifier?: string)`                     | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 仅用于切面类           |
-| `@Bootstrap([bootFunc])`                           | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。 | 声明当前类是一个启动类，为项目的入口文件。                                | 仅用于应用启动类       |
+| 装饰器名称                                        | 参数                                                                        | 说明                                                                      | 备注                   |
+| ------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------- |
+| `@Aspect(identifier?: string)`                    | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用 | 仅用于切面类           |
+| `@Bootstrap([bootFunc])`                          | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。 | 声明当前类是一个启动类，为项目的入口文件。                                | 仅用于应用启动类       |
 | `@ComponentScan(scanPath?: string | string[])`    | `scanPath` 字符串或字符串数组                                               | 定义项目需要自动装载进容器的目录                                          | 仅用于应用启动类       |
-| `@Component(identifier?: string)`                  | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类为一个组件类                                                      | 第三方模块或引入类使用 |
+| `@Component(identifier?: string)`                 | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类为一个组件类                                                      | 第三方模块或引入类使用 |
 | `@ConfiguationScan(scanPath?: string | string[])` | `scanPath` 字符串或字符串数组，配置文件的目录                               | 定义项目需要加载的配置文件的目录                                          | 仅用于应用启动类       |
-| `@Controller(path = "")`                           | `path` 绑定控制器访问路由                                                   | 定义该类是一个控制器类，并绑定路由。默认路由为"/"                         | 仅用于控制器类         |
-| `@Service(identifier?: string)`                    | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个服务类                                                      | 仅用于服务类           |
-| `@Middleware(identifier?: string)`                 | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个中间件类                                                    | 仅用于中间件类         |
+| `@Controller(path = "")`                          | `path` 绑定控制器访问路由                                                   | 定义该类是一个控制器类，并绑定路由。默认路由为"/"                         | 仅用于控制器类         |
+| `@Service(identifier?: string)`                   | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个服务类                                                      | 仅用于服务类           |
+| `@Middleware(identifier?: string)`                | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个中间件类                                                    | 仅用于中间件类         |
 
 ## PropertyDecorator属性装饰器
 
