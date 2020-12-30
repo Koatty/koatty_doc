@@ -1345,11 +1345,12 @@ return this.error('操作失败'); //页面输出 {"status":0,"errno":500,"errms
 
 抛出一个prevent异常，该异常并不会直接抛出错误，而是自动被框架拦截，作用是中断后续代码执行。一般在response返回后调用，防止response被重复执行
 
-# 编程风格
+
+# 编程规范和约定
 
 Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮性，做了一些默认的规范和约定。
 
-### Koatty框架及周边组件版本定义
+## Koatty框架及周边组件版本定义
 
 * 小版本，如：1.1.1 => 1.1.2（小功能增加，bug 修复等，向下兼容1.1.x）
 
@@ -1357,19 +1358,27 @@ Koatty遵循约定大于配置的原则。为规范项目代码，提高健壮�
 
 * 大版本，如：1.0.0 => 2.0.0（框架整体设计、重构等，不向下兼容）
 
-### 以Class范式编程
+## 编程风格
 
-包括Controller、Service、Model等类型的类，使用`Class` 而非 `function`来组织代码。配置、工具、函数库、第三方库除外。
+* 以Class范式编程
+  
+  包括Controller、Service、Model等类型的类，使用`Class` 而非 `function`来组织代码。配置、工具、函数库、第三方库除外。
 
-### 单个文件仅export一个类
+* 单个文件仅export一个类
 
 在项目中，单个`.ts`文件仅`export`一次且导出的是`Class`。配置、工具、函数库、第三方库除外。
 
-### 类名必须与文件名相同
+* 类名必须与文件名相同
 
 熟悉JAVA的人对此一定不会陌生。类名同文件名必须相同，使得在IOC容器内保持唯一性，防止类被覆盖。
 
-### 同类型不允许存在同名类
+* 同类型不允许存在同名类
+  
+Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。
 
-Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。相同类型的Bean不允许有同名的类，否则会导致装载失败。例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。需要注意的是，Bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
+相同类型的Bean不允许有同名的类，否则会导致装载失败。
+
+例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。
+
+需要注意的是，Bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
 
