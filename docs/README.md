@@ -1084,6 +1084,23 @@ export class TestAspect {
 | `@RequestParam(name?: string)`                                           | `name` 参数名                                                                          | 获取Get或Post参数，Post优先             | 仅用于控制器方法参数 |
 | `@Valid(rule: ValidRules \| ValidRules[] \| Function, message?: string)` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证                        |
 
+## 异常处理
+
+koatty框架封装了一个Exception类，用于处理项目中需要抛出错误的场景，用于替代原有的Error。Exception类继承于Error类，Exception类解决了什么问题？
+
+* 规范项目中抛出错误的方式
+* 定制HTTP Status、业务错误码以及错误消息
+* 保存日志内错误栈
+
+示例: 
+
+```js
+
+throw new Exception(message: string, code = 1, status?: HttpStatusCode)
+
+```
+
+
 
 # API
 
