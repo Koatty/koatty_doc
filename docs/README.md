@@ -229,8 +229,19 @@ export class TestMiddleware implements IMiddleware {
 
 ```
 
-在`SERVICE`,`COMPONENT`类型bean中，Ctx对象需要自行传递。
+在`SERVICE`,`COMPONENT`类型bean中，Ctx对象可以从app获取:
 
+```js
+@Service()
+export class RequestService extends BaseService {
+    app: App;
+
+    Test(){
+        //打印ctx对象
+        console.log(this.app.context);
+    }
+}
+```
 ## 配置
 
 实际项目中，肯定需要各种配置，包括：框架需要的配置以及项目自定义的配置。Koatty 将所有的配置都统一管理，并根据不同的功能划分为不同的配置文件。
@@ -1039,8 +1050,6 @@ export class TestAspect {
 | `@Controller(path = "")`                           | `path` 绑定控制器访问路由                                                   | 定义该类是一个控制器类，并绑定路由。默认路由为"/"                                                                       | 仅用于控制器类                                                                        |
 | `@Service(identifier?: string)`                    | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个服务类                                                                                                    | 仅用于服务类                                                                          |
 | `@Middleware(identifier?: string)`                 | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个中间件类                                                                                                  | 仅用于中间件类                                                                        |
-| `@EnableCacheStore()`                              |                                                                             | 开启缓存                                                                                                                | 开启后，@CacheAble、@CacheEvict才能生效，仅用于应用启动类，依赖`koatty_cacheable`模块 |
-| `@EnableScheduleLock()`                            |                                                                             | 开启计划任务执行锁                                                                                                      | 开启后，@SchedulerLock才能生效，仅用于应用启动类，依赖`koatty_schedule`模块           |
 | `@BeforeEach(aopName: string)`                     | `aopName` 切点执行的切面类名                                                | 为当前类声明一个切面，在当前类每一个方法("constructor", "init", "__before", "__after"除外)执行之前执行切面类的run方法。 |
 | `@AfterEach(aopName: string)`                      | `aopName` 切点执行的切面类名                                                | 为当前类声明一个切面，在当前每一个方法("constructor", "init", "__before", "__after"除外)执行之后执行切面类的run方法。   |
 ### 属性装饰器
