@@ -707,24 +707,6 @@ init(){
 
 控制器属性及方法请参考[API](##BaseController)
 
-### RESTful控制器
-
-通过继承`RestController`即可快速实现一个RESTful风格的控制器:
-
-```js
-import { Controller, BaseController, GetMapping } from "koatty";
-import { App } from '../App';
-
-@Controller("/")
-export class IndexController extends RestController {
-    app: App;
-
-    __before() {
-        //使用__before切面实现访问权限控制
-
-    }
-}
-```
 
 当GET方式访问path路由`/user/1`，控制器会自动查询UserModel对应实体内的ID为1的资源。
 
