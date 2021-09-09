@@ -773,21 +773,19 @@ this.testService.test();
 
 ## 持久层
 
-通过使用`koatty_cli`工具，koatty目前默认支持两种ORM框架，分别是ThinkORM以及TypeORM。如需使用其他类型的ORM，例如sequelize、mongose等，需要自行实现，koatty并不做限制。
+通过使用`koatty_cli`工具，koatty目前默认支持TypeORM。如需使用其他类型的ORM，例如sequelize、mongose等，需要自行实现，koatty并不做限制。
 
 ### 创建数据实体
 
 通过koatty_cli命令行工具创建数据实体:
 
 ```shell
-// default is thinkorm
-koatty model test
 
 //typeorm
-koatty model --orm test
+koatty model test
 ```
 
-该工具会自动创建实体类。如果使用TypeORM，工具除实体类以外，还会自动创建一个中间件，需要修改src/config/middleware.ts中的中间件配置项进行配置。
+该工具会自动创建实体类。除实体类以外，还会自动创建一个中间件，需要修改src/config/middleware.ts中的中间件配置项进行配置。
 
 ## 插件
 
