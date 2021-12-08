@@ -21,7 +21,7 @@ npm i -g koatty_cli
 ### 2.新建项目
 
 ```bash
-koatty new projectName
+kt new projectName
 
 cd ./projectName
 
@@ -418,17 +418,53 @@ export class App extends Koatty {
 | process.env.KOATTY_ENV | 任意字符               | 框架运行时环境变量    | 高     |
 
 
-这里的优先级指加载运行时相应配置文件的优先级。
+这里的优先级指加载运行时相应配置文件的优先级，优先级高的配置会覆盖优先级低的配置。
 
-例如：
 
-- `process.env.KOATTY_ENV=pro`,会自动加载带`_pro.ts`后缀的配置文件。
+```js
+const env = process.env.KOATTY_ENV || process.env.NODE_ENV || (appDebug == true ? "development" : "production");
+```
 
-- `process.env.KOATTY_ENV`没有配置，如果`process.env.NODE_ENV=production`,会自动加载带`_production.ts`后缀的配置文件。
+如果 `env = production`, koatty_config 会自动加载以 `_pro.ts` 或 `_production.ts` 后缀的配置文件。
 
-- 如果`process.env.KOATTY_ENV`以及`process.env.NODE_ENV`都没有配置，则看`appDebug`的值，为true时，`process.env.NODE_ENV`自动赋值为development，为false时赋值为production，相应加载的配置文件也遵循`_development.ts`或`_production.ts`后缀
+例如:
+
+```sh
+// 自动加载 config_dev.ts 或 config_development.ts
+NODE_ENV=dev ts-node "test/test.ts" 
+```
 
 通过对这三个变量的灵活配置，可以支持多样化的运行环境及配置
+
+
+### 命令行参数
+
+koatty可以自动识别命令行参数，并且自动填充到相应的配置项:
+
+```sh
+// 自动填充config.cc.dd.ee的值
+NODE_ENV=dev ts-node "test/test.ts" --config.cc.dd.ee=77
+
+```
+
+### 占位符变量替换
+
+koatty可以自动将配置文件中使用 `${}` 占位符标识的配置项替换为process.env内的同名项的值:
+
+config.ts
+```js
+export default {
+    ...
+    ff: "${ff_value}"
+    ...
+}
+```
+
+```sh
+// 自动填充ff的值
+NODE_ENV=dev ff_value=999 ts-node "test/test.ts"
+
+```
 
 ### 常用的环境变量
 
@@ -547,7 +583,7 @@ npm i think_jwt --save
 
 ```bash
 //jwt 为自定义中间件名
-koatty middleware jwt
+kt middleware jwt
 ```
 会自动在项目目录生成文件 src/middleware/JwtMiddleware.ts
 
@@ -652,11 +688,11 @@ Koatty控制器类使用`@Controller()`装饰器声明，该装饰器的入参�
 单模块模式：
 
 ```bash
-koatty controller index
+kt controller index
 
 // or
 
-koatty controller -t http index
+kt controller -t http index
 ```
 
 会自动创建 src/controller/IndexController.ts文件。
@@ -739,7 +775,7 @@ Koatty中服务类使用`@Service()`装饰器声明。服务类默认放在项�
 使用koatty_cli命令行工具：
 
 ```bash
-koatty service test
+kt service test
 ```
 
 会自动创建src/service/test.js,生成的模板代码：
@@ -795,7 +831,7 @@ this.testService.test();
 ```shell
 
 //typeorm
-koatty model test
+kt model test
 ```
 
 该工具会自动创建实体类。除实体类以外，还会自动创建一个中间件，需要修改src/config/middleware.ts中的中间件配置项进行配置。
@@ -835,7 +871,7 @@ npm i koatty_apollo --save
 使用`koatty_cli`在应用中创建一个插件类:
 
 ```shell
-koatty plugin apollo
+kt plugin apollo
 ```
 生成的插件代码模板: 
 
@@ -879,6 +915,153 @@ config: { //插件配置
 ```
 # 进阶应用
 
+## 参数验证
+
+参数验证在项目中是非常常用的功能，koatty框架为此专门封装了一个库 `koatty_validation`，可以在项目中很方便的使用。koatty提供了两种参数验证的方案，分别适用于不同的场景:
+
+### 方案一：装饰器@Valid及@Validated
+
+@Valid及@Validated装饰器仅适用于控制器类
+
+```js
+@RequestMapping('/')
+// 判断入参是否为email
+index(@RequestBody() @Valid("IsEmail") body: string): Promise<any> {
+  return this.ok('Hi Koatty');
+}
+```
+@Validated装饰器需要配合Dto类使用:
+
+```js
+  @RequestMapping('/SayHello') 
+  @Validated() // 增加参数验证装饰器
+  SayHello(@RequestBody() params: SayHelloRequestDto): Promise<SayHelloReplyDto> {
+    const res = new SayHelloReplyDto();
+    return Promise.resolve(res);
+  }
+```
+
+使用cli工具创建Dto类:
+
+```sh
+kt dto SayHelloReply
+```
+
+Dto类增加验证规则:
+
+```js
+@Component()
+export class SayHelloReplyDto {
+  @IsNotEmpty({ message: "手机号码不能为空" })
+  phoneNum: string;
+
+  ...
+
+}
+```
+
+### 方案二：FunctionValidator及ClassValidator
+
+非控制器类型的bean内想要做参数验证，我们可以使用FunctionValidator及ClassValidator。
+
+FunctionValidator:
+
+```js
+if (!FunctionValidator.IsNotEmpty(data)) {
+    console.log('error');
+}
+```
+ClassValidator:
+
+```js
+class SchemaClass {
+    @IsDefined
+    id: number;
+    
+    @IsNotEmpty
+    name: string;
+}
+
+const ins = new SchemaClass();
+ins.name = "";
+ClassValidator.valid(SchemaClass, ins).catch(err => {
+    console.log(err);
+})
+```
+### 验证规则
+
+`koatty_validation`定义了一系列常用的验证规则:
+
+装饰器规则:
+
+* @IsDefined
+* @IsCnName
+* @IsIdNumber
+* @IsZipCode
+* @IsMobile
+* @IsPlateNumber
+* @IsEmail
+* @IsIP
+* @IsPhoneNumber
+* @IsUrl
+* @IsHash
+* @IsNotEmpty
+* @Equals
+* @NotEquals
+* @Contains
+* @IsIn
+* @IsNotIn
+* @IsDate
+* @Min
+* @Max
+* @Length
+
+FunctionValidator规则:
+
+* FunctionValidator.IsCnName
+* FunctionValidator.IsIdNumber
+* FunctionValidator.IsZipCode
+* FunctionValidator.IsMobile
+* FunctionValidator.IsPlateNumber
+* FunctionValidator.IsEmail
+* FunctionValidator.IsIP
+* FunctionValidator.IsPhoneNumber
+* FunctionValidator.IsUrl
+* FunctionValidator.IsHash
+* FunctionValidator.IsNotEmpty
+* FunctionValidator.Equals
+* FunctionValidator.NotEquals
+* FunctionValidator.Contains
+* FunctionValidator.IsIn
+* FunctionValidator.IsNotIn
+* FunctionValidator.IsDate
+* FunctionValidator.Min
+* FunctionValidator.Max
+* FunctionValidator.Length
+
+## 异常处理
+
+koatty框架封装了一个Exception类，用于处理项目中需要抛出错误的场景，用于替代原有的Error。Exception类继承于Error类，Exception类解决了什么问题？
+
+* 规范项目中抛出错误的方式
+* 定制HTTP Status、业务错误码以及错误消息
+* 保存日志内错误栈
+
+示例: 
+
+```js
+
+throw new Exception(message: string, code = 1, status?: HttpStatusCode)
+
+```
+## 事件机制(event)
+
+koatty框架在应用启动过程中，app对象除koa自身包含的事件之外，还定义了一系列事件:
+
+![1638948913222UZlPrI](https://upic-1258482165.cos.ap-chengdu.myqcloud.com/2021-12-08/1638948913222UZlPrI.png)
+
+我们可以根据项目需要绑定到不同的事件。例如在服务注册发现场景，如果硬要宕机，可以在appStop事件上绑定处理服务注销处理。
+
 ## gRPC
 
 Koatty从 3.4.x版本开始支持gRPC服务。
@@ -888,7 +1071,7 @@ Koatty从 3.4.x版本开始支持gRPC服务。
 使用koatty_cli命令行工具(>=3.4.6)：
 
 ```bash
-koatty proto hello
+kt proto hello
 ```
 
 会自动创建 src/proto/Hello.proto文件。根据实际情况进行修改
@@ -900,7 +1083,7 @@ koatty proto hello
 单模块模式：
 
 ```bash
-koatty controller -t grpc hello
+kt controller -t grpc hello
 ```
 
 会自动创建 src/controller/HelloController.ts文件。
@@ -945,6 +1128,7 @@ export class HelloController extends BaseController {
    * @returns
    */
   @RequestMapping('/SayHello') // Consistent with proto.service.method name
+  @Validated() // 参数验证
   SayHello(@RequestBody() params: SayHelloRequestDto): Promise<SayHelloReplyDto> {
     const res = new SayHelloReplyDto();
     return Promise.resolve(res);
@@ -954,32 +1138,6 @@ export class HelloController extends BaseController {
 ```
 
 除控制器文件以外，Koatty还会自动创建RPC协议的输入输出Dto类，例如上文中的 `SayHelloRequestDto`以及 `SayHelloReplyDto`
-
-### 参数验证
-
-同HTTP 控制器一样，gRPC协议控制器可以使用相同的方式进行参数验证:
-
-```js
-  @RequestMapping('/SayHello') 
-  @Validated() // 增加参数验证装饰器
-  SayHello(@RequestBody() params: SayHelloRequestDto): Promise<SayHelloReplyDto> {
-    const res = new SayHelloReplyDto();
-    return Promise.resolve(res);
-  }
-```
-
-修改Dto类，增加验证规则:
-
-```js
-@Component()
-export class SayHelloReplyDto {
-  @IsNotEmpty({ message: "手机号码不能为空" })
-  phoneNum: string;
-
-  ...
-
-}
-```
 
 ### 服务配置
 
@@ -1025,7 +1183,7 @@ Koatty从 3.4.x版本开始支持WebSocket服务。
 单模块模式：
 
 ```bash
-koatty controller -t ws requst
+kt controller -t ws requst
 ```
 
 会自动创建 src/controller/RequstController.ts文件。
@@ -1034,7 +1192,7 @@ koatty controller -t ws requst
 
 
 ```bash
-think controller -t ws admin/requst
+kt controller -t ws admin/requst
 ```
 
 会自动创建 src/controller/Admin/RequstController.ts文件。
@@ -1071,24 +1229,11 @@ export class RequstController extends BaseController {
    * @memberof RequstController
    */
   @RequestMapping('/')
-  index(@RequestBody() body: string): Promise<any> {
+  index(@RequestBody() @Valid("IsEmail") body: string): Promise<any> {
     return this.ok('Hi Koatty');
   }
 
 }
-```
-
-除控制器文件以外，Koatty还会自动创建RPC协议的输入输出Dto类，例如上文中的 `SayHelloRequestDto`以及 `SayHelloReplyDto`
-
-### 参数验证
-
-同HTTP 控制器一样，WebSocket协议控制器可以使用相同的方式进行参数验证:
-
-```js
-  @RequestMapping('/')
-  index(@RequestBody() @Valid("IsEmail") body: string): Promise<any> {
-    return this.ok('Hi Koatty');
-  }
 ```
 
 ### 服务配置
@@ -1105,8 +1250,34 @@ export default {
 }
 ```
 
-
 OK，现在可以启动一个WebSocket服务器。
+
+## 启动自定义
+
+装饰器`@Bootstrap`的作用是声明的项目入口类，该装饰器支持传入一个函数作为参数，此函数在项目启动时会先执行。
+
+```js
+@Bootstrap(
+    //bootstrap function
+    (app: any) => {
+        // todo
+    }
+)
+```
+常见的应用场景是启动之前处理一些运行环境设置，例如NODE_ENV等。启动函数支持异步。
+
+> 注意： 启动函数执行时机在框架执行`initialize`初始化之后，此时框架的相关路径属性(appPath、rootPath等)和process.env已经加载设置完成，在定义启动函数的时候需要注意。
+
+
+## 装载自定义
+
+项目入口类还可以设置另外两个装饰器，它们分别是：
+
+* @ComponentScan('./')
+  声明项目组件的目录，默认为项目src目录，含所有的组件类型
+
+* @ConfiguationScan('./config')
+  声明项目的配置文件目录，默认为src/config目录
 
 ## IOC容器
 
@@ -1150,6 +1321,22 @@ IoC全称Inversion of Control，直译为控制反转。在以ES6 Class范式编
 ### 组件加载
 
 通过Koatty框架核心的Loader，在项目启动时，会自动分析并装配Bean，自动处理好Bean之间的依赖问题。IOC容器提供了一系列的[API接口](#IOCContainer)，方便注册以及获取装配好的Bean。
+
+### 循环依赖
+
+随着项目规模的扩大，很容易出现循环依赖。koatty_container解决循环依赖的思路是延迟加载。koatty_container在 `app` 上绑定了一个 `appReady` 事件，用于延迟加载产生循环依赖的bean, 在使用IOC的时候需要进行处理：
+
+```js
+// 
+app.emit("appReady");
+```
+
+注意：虽然延迟加载能够解决大部分场景下的循环依赖，但是在极端情况下仍然可能装配失败，解决方案：
+
+1、尽量避免循环依赖，新增第三方公共类来解耦互相依赖的类
+
+2、使用IOC容器获取类的原型(getClass)，自行实例化
+
 
 ## AOP切面
 
@@ -1206,7 +1393,7 @@ export class TestController extends BaseController {
 使用`koatty_cli`进行创建：
 
 ```bash
-koatty aspect test
+kt aspect test
 ```
 
 自动生成的模板代码:
@@ -1225,31 +1412,6 @@ export class TestAspect {
 }
 ```
 
-## 启动自定义
-
-装饰器`@Bootstrap`的作用是声明的项目入口类，该装饰器支持传入一个函数作为参数，此函数在项目启动时会先执行。
-
-```js
-@Bootstrap(
-    //bootstrap function
-    (app: any) => {
-        // todo
-    }
-)
-```
-常见的应用场景是启动之前处理一些运行环境设置，例如NODE_ENV等。启动函数支持异步。
-
-
-## 装载自定义
-
-项目入口类还可以设置另外两个装饰器，它们分别是：
-
-* @ComponentScan('./')
-  声明项目组件的目录，默认为项目src目录，含所有的组件类型
-
-* @ConfiguationScan('./config')
-  声明项目的配置文件目录，默认为src/config目录
-
 ## 装饰器
 
 ### 类装饰器
@@ -1267,7 +1429,6 @@ export class TestAspect {
 | `@BeforeEach()`       | `aopName` 切点执行的切面类名                                 | 为当前类声明一个切面，在当前类每一个方法("constructor", "init", "__before", "__after"除外)执行之前执行切面类的run方法。 |                        |
 | `@AfterEach()`        | `aopName` 切点执行的切面类名                                 | 为当前类声明一个切面，在当前每一个方法("constructor", "init", "__before", "__after"除外)执行之后执行切面类的run方法。 |                        |
 |                       |                                                              |                                                              |                        |
-
 
 
 ### 属性装饰器
@@ -1294,7 +1455,7 @@ export class TestAspect {
 | `@OptionsMapping()`        | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项   | 用于控制器方法绑定Options路由                                | 仅用于控制器方法                              |
 | `@HeadMapping()`           | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项   | 用于控制器方法绑定Head路由                                   | 仅用于控制器方法                              |
 | `@Scheduled()`             | `cron` 任务计划配置<br> * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 0-11 (Jan-Dec)<br>Day of Week: 0-6 (Sun-Sat) | 定义类的方法执行计划任务                                     | 不能用于控制器方法，依赖`koatty_schedule`模块 |
-| `@Validated()`             |                                                              | 配合DTO类型进行参数验证                                      | 方法入参没有DTO类型的不生效                   |
+| `@Validated()`             |                                                              | 配合DTO类型进行参数验证                                      | 方法入参没有DTO类型的不生效，仅用于控制器类                 | 
 | `@SchedulerLock()`         | `name` 锁的名称<br> `lockTimeOut` 锁自动超时时间<br> `waitLockInterval` 尝试循环获取锁时间间隔 <br>`waitLockTimeOut` 尝试循环获取锁最长等待时间<br> `redisOptions` redis服务器连接配置 | 定义方法执行时必须先获取分布式锁(基于Redis)，依赖`koatty_schedule`模块 |                                               |
 | `@CacheAble()`             | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `redisOptions` Redis服务器连接配置 | 基于Redis的缓存，依赖`koatty_cacheable`模块                  | 不能用于控制器方法                            |
 | `@CacheEvict()`            | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `eventTime` 清除缓存的时点 <br>`redisOptions` Redis服务器连接配置 | 同@Cacheable配合使用，用于方法执行时清理缓存，依赖`koatty_cacheable`模块 | 不能用于控制器方法                            |
@@ -1312,24 +1473,7 @@ export class TestAspect {
 | `@Post()`                                                   | `name` 参数名                                                                          | 获取Post参数                            | 仅用于HTTP控制器方法参数 |
 | `@RequestBody()`                                                         |                                                                                        | 获取ctx.body                            | 仅用于控制器方法参数 |
 | `@RequestParam()`                                           | `name` 参数名                                                                          | 获取Get或Post参数，Post优先             | 仅用于HTTP控制器方法参数 |
-| `@Valid()` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证                        ||
-
-## 异常处理
-
-koatty框架封装了一个Exception类，用于处理项目中需要抛出错误的场景，用于替代原有的Error。Exception类继承于Error类，Exception类解决了什么问题？
-
-* 规范项目中抛出错误的方式
-* 定制HTTP Status、业务错误码以及错误消息
-* 保存日志内错误栈
-
-示例: 
-
-```js
-
-throw new Exception(message: string, code = 1, status?: HttpStatusCode)
-
-```
-
+| `@Valid()` | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证                       |仅用于控制器类|
 
 # 编程规范和约定
 
