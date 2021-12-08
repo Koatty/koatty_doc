@@ -439,7 +439,7 @@ NODE_ENV=dev ts-node "test/test.ts"
 
 ### 命令行参数
 
-koatty可以自动识别命令行参数，并且自动填充到相应的配置项:
+Koatty可以自动识别命令行参数，并且自动填充到相应的配置项:
 
 ```sh
 // 自动填充config.cc.dd.ee的值
@@ -449,7 +449,7 @@ NODE_ENV=dev ts-node "test/test.ts" --config.cc.dd.ee=77
 
 ### 占位符变量替换
 
-koatty可以自动将配置文件中使用 `${}` 占位符标识的配置项替换为process.env内的同名项的值:
+Koatty可以自动将配置文件中使用 `${}` 占位符标识的配置项替换为process.env内的同名项的值:
 
 config.ts
 ```js
@@ -487,7 +487,7 @@ Koatty定义的日志保存目录(默认为/`projectDIR`/logs，可在配置中�
 
 ## 路由
 
-Koatty 通过RequestMapping类型装饰器进行路由注册，使用[@koa/router](https://github.com/koajs/router)进行路由解析。
+Koatty 封装了一个专门处理路由的库 `koatty_router`，支持 http1/2, websocket, gRPC 等协议类型的路由处理。
 
 ### 控制器路由
 
@@ -508,15 +508,19 @@ export class AdminController extends BaseController {
 ```
 上述代码注册了路由 `/admin/test` ==> AdminController.test();
 
+> 注意：在gRPC服务中，@Controller绑定的路由必须同proto定义的serviceName相同。例如@Controller("/Book")绑定的是 proto中的 service Book。
+
+
 ### 方法路由
 
-用于控制器方法绑定路由 [参考装饰器章节](##MethodDecorator方法装饰器)
+用于控制器方法绑定路由 [参考装饰器章节](##方法装饰器)
 
-方法路由的装饰器有 `GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`
+方法路由的装饰器有 `@GetMapping`、`@PostMapping`、`@DeleteMapping`、`@PutMapping`、`@PatchMapping`、`@OptionsMapping`、`@HeadMapping`、`@RequestMapping`
 
+> 注意：在gRPC服务中，请使用 @PostMapping 或者 @RequestMapping进行绑定，并且@RequestMapping(path) 中的path必须同proto定义中的方法名一致；在WebSocket服务中，请使用 @GetMapping 或者 @RequestMapping进行绑定。
 ### 路由配置
 
-在项目 src/config/router.ts存放着路由自定义配置，该配置用于初始化`@koa/router`实例，作为**构造方法入参**使用，具体配置项请参考 [@koa/router](https://github.com/koajs/router)。
+在项目 src/config/router.ts存放着路由自定义配置，该配置用于初始化路由实例。
 
 ```js
     prefix: string;
@@ -545,13 +549,13 @@ export default {
 
 * @Controller()装饰器有两个作用，一是声明bean的类型是控制器；二是绑定控制器路由。如果使用@Controller()装饰器的时候没有指定path(没有参数)，默认参数值为"/"
 
-* 路由装饰器（包括`RequestMapping`、`GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`）仅可用于装饰控制器类的方法。
+* 方法路由装饰器仅可用于控制器类的方法。
 
-* 路由装饰器（包括`RequestMapping`、`GetMapping`、`PostMapping`、`DeleteMapping`、`PutMapping`、`PatchMapping`、`OptionsMapping`、`HeadMapping`）可以给同一个方法添加多次。但是@Controller()装饰器同一个类仅能使用一次。
+* 方法路由装饰器可以给同一个方法添加多次。但是@Controller()装饰器同一个类仅能使用一次。
 
 * 如果绑定的路由存在重复，按照IOC容器中控制器类的加载顺序，第一个加载的路由规则生效。需要注意此类问题。在后续版本中可能会增加优先级的特性来控制。
 
-* 路由支持正则，支持参数绑定。详细路由相关教程请参考 [@koa/router](https://github.com/koajs/router) 
+* 路由支持正则，支持参数绑定(gRPC服务中不可用)。详细路由相关教程请参考 [@koa/router](https://github.com/koajs/router) 
 
 
 ## 中间件
@@ -678,21 +682,24 @@ config: { //中间件配置
 
 ## 控制器
 
-Koatty控制器类使用`@Controller()`装饰器声明，该装饰器的入参用于绑定控制器访问路由，参数默认值为`\/`。控制器类默认放在项目的`src/controller`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`BaseController`或`BaseController`的子类。HTTP/S协议下的控制器可以继承`HttpController`。
+Koatty控制器类使用`@Controller()`装饰器声明，该装饰器的入参用于绑定控制器访问路由，参数默认值为`\/`。控制器类默认放在项目的`src/controller`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`BaseController`或`BaseController`的子类。
+
+> HTTP/S协议下的控制器需要继承`HttpController`；gRPC、WebSocket服务需要继承`BaseController`
+
 
 ### 创建控制器
-
 
 使用koatty_cli命令行工具：
 
 单模块模式：
 
 ```bash
-kt controller index
+kt controller index //默认http协议
 
-// or
-
+//
 kt controller -t http index
+kt controller -t grpc index
+kt controller -t ws index
 ```
 
 会自动创建 src/controller/IndexController.ts文件。
@@ -754,11 +761,7 @@ init(){
 
 ### 控制器属性及方法
 
-控制器属性及方法请参考[API](##BaseController)
-
-
-当GET方式访问path路由`/user/1`，控制器会自动查询UserModel对应实体内的ID为1的资源。
-
+控制器属性及方法请参考[HttpController API](##HttpController)以及 [BaseController API](##BaseController)
 
 ## 服务层
 
@@ -822,7 +825,7 @@ this.testService.test();
 
 ## 持久层
 
-通过使用`koatty_cli`工具，koatty目前默认支持TypeORM。如需使用其他类型的ORM，例如sequelize、mongose等，需要自行实现，koatty并不做限制。
+通过使用`koatty_cli`工具，Koatty目前默认支持TypeORM。如需使用其他类型的ORM，例如sequelize、mongose等，需要自行实现，Koatty并不做限制。
 
 ### 创建数据实体
 
@@ -834,7 +837,83 @@ this.testService.test();
 kt model test
 ```
 
-该工具会自动创建实体类。除实体类以外，还会自动创建一个中间件，需要修改src/config/middleware.ts中的中间件配置项进行配置。
+该工具会自动创建实体类。除实体类以外，还会自动创建一个TypeORM的插件:
+
+```js
+import { Koatty, Plugin, IPlugin } from "koatty";
+import typeorm from 'koatty_typeorm';
+
+@Plugin()
+export class TypeormPlugin implements IPlugin {
+  run(options: any, app: Koatty) {
+    return typeorm(options, app);
+  }
+}
+```
+
+### 数据库配置
+
+在项目的plugin配置 config/plugin.ts 中，修改数据库相关配置项:
+
+```js
+// src/config/plugin.ts
+export default {
+  list: ['TypeormPlugin'], // 加载的插件列表,执行顺序按照数组元素顺序
+  config: { // 插件配置
+    TypeormPlugin: {
+        //默认配置项
+        "type": "mysql", //mysql, mariadb, postgres, sqlite, mssql, oracle, mongodb, cordova
+        host: "127.0.0.1",
+        port: 3306,
+        username: "test",
+        password: "test",
+        database: "test",
+
+        "synchronize": false, //true 每次运行应用程序时实体都将与数据库同步
+        "logging": true,
+        "entities": [`${process.env.APP_PATH}/model/*`],
+        "entityPrefix": ""
+    }
+  },
+};
+
+```
+
+为了方便管理，我们也可以将数据库配置统一放到 config/db.ts内(需要删除 config/plugin.ts 中TypeormPlugin配置):
+```js
+export default {
+    /*database config*/
+    "DataBase": { // used koatty_typeorm
+        //默认配置项
+        "type": "mysql", //mysql, mariadb, postgres, sqlite, mssql, oracle, mongodb, cordova
+        host: "${mysql_host}",
+        port: "${mysql_port}",
+        username: "${mysql_user}",
+        password: "${mysql_pass}",
+        database: "${mysql_database}",
+
+        "synchronize": false, //true 每次运行应用程序时实体都将与数据库同步
+        "logging": true,
+        "entities": [`${process.env.APP_PATH}/model/*`],
+        "entityPrefix": ""
+    },
+
+    "CacheStore": {
+        type: "memory", // redis or memory
+        // key_prefix: "koatty",
+        // host: '127.0.0.1',
+        // port: 6379,
+        // name: "",
+        // username: "",
+        // password: "",
+        // db: 0,
+        // timeout: 30,
+        // pool_size: 10,
+        // conn_timeout: 30
+    },
+
+};
+```
 
 ## 插件
 
@@ -858,15 +937,7 @@ kt model test
 ```shell
 npm i koatty_apollo --save
 ```
-注意：我们建议通过 ^ 的方式引入依赖，并且强烈不建议锁定版本。
 
-```js
-{
-  "dependencies": {
-    "koatty_apollo": "^1.0.0"
-  }
-}
-```
 
 使用`koatty_cli`在应用中创建一个插件类:
 
@@ -917,7 +988,7 @@ config: { //插件配置
 
 ## 参数验证
 
-参数验证在项目中是非常常用的功能，koatty框架为此专门封装了一个库 `koatty_validation`，可以在项目中很方便的使用。koatty提供了两种参数验证的方案，分别适用于不同的场景:
+参数验证在项目中是非常常用的功能，Koatty框架为此专门封装了一个库 `koatty_validation`，可以在项目中很方便的使用。Koatty提供了两种参数验证的方案，分别适用于不同的场景:
 
 ### 方案一：装饰器@Valid及@Validated
 
@@ -1041,7 +1112,7 @@ FunctionValidator规则:
 
 ## 异常处理
 
-koatty框架封装了一个Exception类，用于处理项目中需要抛出错误的场景，用于替代原有的Error。Exception类继承于Error类，Exception类解决了什么问题？
+Koatty框架封装了一个Exception类，用于处理项目中需要抛出错误的场景，用于替代原有的Error。Exception类继承于Error类，Exception类解决了什么问题？
 
 * 规范项目中抛出错误的方式
 * 定制HTTP Status、业务错误码以及错误消息
@@ -1051,17 +1122,16 @@ koatty框架封装了一个Exception类，用于处理项目中需要抛出错�
 
 ```js
 
-throw new Exception(message: string, code = 1, status?: HttpStatusCode)
+// res: {"code":1,"message":"error"}
+throw new Exception("error");
+
+// res: {"code":1000,"message":"error"}
+throw new Exception("error", 1000);
+
+// res: {"code":1,"message":"error"} httpStatus=200
+throw new Exception("error", 1000, 200);
 
 ```
-## 事件机制(event)
-
-koatty框架在应用启动过程中，app对象除koa自身包含的事件之外，还定义了一系列事件:
-
-![1638948913222UZlPrI](https://upic-1258482165.cos.ap-chengdu.myqcloud.com/2021-12-08/1638948913222UZlPrI.png)
-
-我们可以根据项目需要绑定到不同的事件。例如在服务注册发现场景，如果硬要宕机，可以在appStop事件上绑定处理服务注销处理。
-
 ## gRPC
 
 Koatty从 3.4.x版本开始支持gRPC服务。
@@ -1252,7 +1322,24 @@ export default {
 
 OK，现在可以启动一个WebSocket服务器。
 
-## 启动自定义
+
+## 事件机制(event)
+
+Koatty框架在应用启动过程中，app对象除koa自身包含的事件之外，还定义了一系列事件:
+
+![1638948913222UZlPrI](https://upic-1258482165.cos.ap-chengdu.myqcloud.com/2021-12-08/1638948913222UZlPrI.png)
+
+我们可以根据项目需要绑定到不同的事件。例如在服务注册发现场景，如果硬要宕机，可以在appStop事件上绑定处理服务注销处理。
+
+```js
+
+app.once("appStop", () => {
+  //注销服务
+  ...
+})
+```
+
+### bootFunc
 
 装饰器`@Bootstrap`的作用是声明的项目入口类，该装饰器支持传入一个函数作为参数，此函数在项目启动时会先执行。
 
@@ -1263,10 +1350,42 @@ OK，现在可以启动一个WebSocket服务器。
         // todo
     }
 )
+export class App extends Koatty {
+  ...
+}
 ```
 常见的应用场景是启动之前处理一些运行环境设置，例如NODE_ENV等。启动函数支持异步。
 
 > 注意： 启动函数执行时机在框架执行`initialize`初始化之后，此时框架的相关路径属性(appPath、rootPath等)和process.env已经加载设置完成，在定义启动函数的时候需要注意。
+
+### AppReadyHookFunc
+
+除了 `@Bootstrap`装饰器，我们还可以通过 `AppReadyHookFunc` 自定义装饰器用于启动类。
+
+```js
+// src/TestBootstrap.ts:
+export function TestBootstrap(): ClassDecorator {
+  return (target: any) => {
+    BindAppReadyHook((app: Koatty) => {
+        // todo
+        return Promise.resolve();
+    }, target)   
+  }
+}
+
+```
+
+在项目启动类上使用:
+
+```js
+@Bootstrap()
+@TestBootstrap()
+export class App extends Koatty {
+  ...
+}
+```
+
+> 注意：通过AppReadyHookFunc创建的自定义装饰器，其函数执行是由 appReady 事件触发，需要注意框架启动逻辑及相关上下文
 
 
 ## 装载自定义
@@ -1513,6 +1632,16 @@ Koatty将IOC容器内的Bean分为 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | '
 例如：`src/Controller/IndexController.ts` 和 `src/Controller/Test/IndexController.ts`就是同名类。
 
 需要注意的是，Bean的类型是由装饰器决定的而非文件名或目录名。给`IndexController.ts`加 `@Service()`装饰器的话那么它的类型就是`SERVICE`。
+
+* 对于Koatty官方出品的组件，我们建议通过 ^ 的方式引入依赖，并且强烈不建议锁定版本。
+
+```js
+{
+  "dependencies": {
+    "koatty_lib": "^1.0.0"
+  }
+}
+```
 
 # Q & A
 
