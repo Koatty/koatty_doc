@@ -1356,7 +1356,7 @@ export class App extends Koatty {
 ```
 常见的应用场景是启动之前处理一些运行环境设置，例如NODE_ENV等。启动函数支持异步。
 
-> 注意： 启动函数执行时机在框架执行`initialize`初始化之后，此时框架的相关路径属性(appPath、rootPath等)和process.env已经加载设置完成，在定义启动函数的时候需要注意。
+> 注意： 启动函数执行时机在框架执行`initialize`初始化之后，此时框架的相关路径属性(appPath、rootPath等)和process.env已经加载设置完成，但是配置及其他组件(插件、中间件、控制器等)并未加载，在定义启动函数的时候需要注意。
 
 ### AppReadyHookFunc
 
