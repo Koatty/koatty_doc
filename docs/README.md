@@ -1327,7 +1327,7 @@ OK，现在可以启动一个WebSocket服务器。
 
 Koatty框架在应用启动过程中，app对象除koa自身包含的事件之外，还定义了一系列事件:
 
-![1638948913222UZlPrI](https://upic-1258482165.cos.ap-chengdu.myqcloud.com/2021-12-08/1638948913222UZlPrI.png)
+![时间轴](https://cdn.jsdelivr.net/gh/richenlin/ARTS@master/resource/时间轴.png)
 
 我们可以根据项目需要绑定到不同的事件。例如在服务注册发现场景，如果硬要宕机，可以在appStop事件上绑定处理服务注销处理。
 
