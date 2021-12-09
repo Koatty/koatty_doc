@@ -1806,23 +1806,302 @@ Comesoon...
 
 ## app
 
-Comesoon...
+app 是全局应用对象，是应用App的实例，它继承自 Koa.Application。
 
+### env: string;
+运行环境，取值为development/production
+### version: string;
+
+框架版本号
+
+### options: InitOptions;
+
+框架初始化参数
+### container: Container;
+框架IOC容器
+### context: KoattyContext;
+Context 对象，每次请求会创建不同的Context 对象，可以使用 app.context操作
+### server: KoattyServer;
+框架server 对象，保存了服务启动实例
+### router: KoattyRouter;
+框架路由实例
+### appPath: string;
+应用物理路径
+### rootPath: string;
+项目根路径
+### thinkPath: string;
+框架物理路径
+### appDebug: boolean;
+是否运行在debug模式
+### init()
+
+框架定义的构造方法，用来代替constructor.
+
+### getMetaData(key) 
+
+读取应用缓存值并返回。应用缓存一般保存着应用运行时必要的一些数据，例如配置、全局参数等。
+
+* key 缓存key
+
+### setMetaData(key: string, value: any): any
+
+写入应用缓存。
+
+  * key 缓存key
+  * value  缓存值
+
+### use(fn)
+
+绑定运行koa中间件。
+
+* fn koa中间件函数
+
+### useExp(fn)
+
+绑定运行express中间件。
+
+* fn express中间件
+
+### config(name, type = "config")
+
+读取项目及应用配置。包括本地配置文件中的项目配置、中间件配置、路由配置等，还包括从apollo等配置中心中获取到的配置
+
+* name 配置key
+* type 配置类型，默认为 `config` 项目配置。如果是本地配置文件，文件名就是类型名；如果是配置中心，则可以自行定义，例如 apollo 中添加配置项 mongodb.host，类型为 mongodb
+
+### createContext(req: any, res: any, protocol?: string)
+
+根据服务协议(HTTP1/2、gRPC、WS)创建Context对象
 ## ctx
 
 Comesoon...
 
 ## BaseController
 
-Comesoon...
+### init()
+
+框架定义的构造方法，用来代替constructor.
+
+### __before()
+控制器默认前置切面方法。在控制器方法(绑定路由的)执行之前自动调用。该方法可以是异步的，无返回值。经常用于前置权限检查等场景。
+
+```js
+//src/controller/index.js控制器
+ ...
+ __before(){
+     console.log('hello');
+ }
+ 
+ @GetMapping("/index")
+ index(){
+     return this.write('hello world');
+ }
+ ...
+
+ //当访问 /index路由时，先打印 'hello' 到控制台， 然后输出页面
+```
+
+### __after()
+控制器默认后置切面方法。在控制器方法(绑定路由的)执行之后自动调用。该方法可以是异步的，无返回值。
+
+### ok(errmsg[, data, code = 200, options = {}])
+
+* errmsg 输出的信息
+* data 输出的数据
+* code 错误码
+* options 选项
+
+在控制器逻辑执行成功时,response返回统一格式化json数据。常用于API接口。
+
+```js
+return this.success('操作成功'); //页面输出 {"status":1,"errno":200,"errmsg":"操作成功","data":{}}
+```
+
+### fail(errmsg[, data, code = 500, options = {}])
+
+* errmsg 输出的信息
+* data 输出的数据
+* code 错误码
+* options 选项
+
+在控制器逻辑执行失败时,response返回统一格式化json数据。常用于API接口。
+
+```js
+return this.error('操作失败'); //页面输出 {"status":0,"errno":500,"errmsg":"操作失败","data":{}}
+```
 
 ## HttpController
 
-Comesoon...
+HttpController是 HTTP协议控制器的基类
+### init()
 
+框架定义的构造方法，用来代替constructor.
+
+### __before()
+控制器默认前置切面方法。在控制器方法(绑定路由的)执行之前自动调用。该方法可以是异步的，无返回值。经常用于前置权限检查等场景。
+
+```js
+//src/controller/index.js控制器
+ ...
+ __before(){
+     console.log('hello');
+ }
+ 
+ @GetMapping("/index")
+ index(){
+     return this.write('hello world');
+ }
+ ...
+
+ //当访问 /index路由时，先打印 'hello' 到控制台， 然后输出页面
+```
+
+### __after()
+控制器默认后置切面方法。在控制器方法(绑定路由的)执行之后自动调用。该方法可以是异步的，无返回值。
+
+### isGet()
+
+判断当前request是否GET请求。
+
+```js
+if (this.isGet()) {
+    //当前请求为GET请求
+}
+```
+
+### isPost()
+
+判断当前request是否POST请求。
+
+```js
+if (this.isPost()) {
+    //当前请求为POST请求
+}
+```
+
+### isMethod(method)
+
+* method 请求类型 get/post等
+
+判断当前请求是否是传入的特定请求。
+
+```js
+if (this.isMethod('get')) {
+    //当前请求为GET请求
+}
+```
+
+### header(name, value)
+
+获取或设置header内容。
+
+* name 键
+* value 值
+
+```js
+this.header('Content-Type', 'text/plian'); //等同于 ctx.set('Content-Type', 'text/plian')
+
+this.header('Content-Type'); //等同于 ctx.get('Content-Type')
+```
+
+### param([name])
+* name 参数名,如果值为undefined则返回所有querystring以及post参数
+        querystring中同名key会被post值覆盖
+获取参数，先从post参数中查找，如果不存在则从querstring中查找。
+
+```js
+let all = this.param();
+
+let info = this.param('info') || {};
+
+```
+
+### type(contentType[, encoding])
+
+* contentType 文档类型
+* encoding 编码格式,默认值为'utf-8'
+content-type 操作。
+
+```js
+this.type('text/plian', 'utf-8');
+```
+
+### expires(timeout = 30)
+
+* timeout 缓存时间，单位秒
+
+设置`Cache-Control`的`max-age`的值
+
+
+### redirect(urls[, alt])
+
+* urls 需要跳转的url
+* alt 定义Referrer
+                               
+页面跳转。
+
+```js
+this.redirect('/index');
+
+this.redirect('http://baidu.com');
+```
+
+### deny([code = 403])
+返回403禁止访问。
+
+```js
+return this.deny();
+```
+
+### body(data[, contentType, encoding])
+
+对ctx.body赋值进行功能封装。 注意控制器中的this.body方法和直接对ctx.body赋值最大的不同是输出内容后，this.body方法会返回think.prevent()错误中断程序执行。
+
+* content 输出的内容
+* contentType 输出文档类型，默认 `text/plain`
+* encoding 输出文档编码，默认 `utf-8`，在项目配置文件 src/config/config.js内可修改
+
+```js
+return this.body('content', 'text/plain'); //页面输出 content
+```
+
+### json(data)
+
+* data 输出的数据
+
+response返回json格式数据。常用于API接口。
+
+```js
+return this.json({aa: 111, bb: 222}); //页面输出   {"aa": 111, "bb":222}
+```
+
+### ok(errmsg[, data, code = 200, options = {}])
+
+* errmsg 输出的信息
+* data 输出的数据
+* code 错误码
+* options 选项
+
+在控制器逻辑执行成功时,response返回统一格式化json数据。常用于API接口。
+
+```js
+return this.success('操作成功'); //页面输出 {"status":1,"errno":200,"errmsg":"操作成功","data":{}}
+```
+
+### fail(errmsg[, data, code = 500, options = {}])
+
+* errmsg 输出的信息
+* data 输出的数据
+* code 错误码
+* options 选项
+
+在控制器逻辑执行失败时,response返回统一格式化json数据。常用于API接口。
+
+```js
+return this.error('操作失败'); //页面输出 {"status":0,"errno":500,"errmsg":"操作失败","data":{}}
+```
 ## IOCContainer
 
-### reg<T>(target: T, options?: ObjectDefinitionOptions): T;
 ### reg<T>(identifier: string, target: T, options?: ObjectDefinitionOptions): T;
 
 注册Bean到IOC容器。
