@@ -229,16 +229,16 @@ export class TestMiddleware implements IMiddleware {
 
 ```
 
-在`SERVICE`,`COMPONENT`类型bean中，Ctx对象可以从app获取:
+在`SERVICE`,`COMPONENT`类型bean中，Ctx对象需要自行传递:
 
 ```js
 @Service()
 export class RequestService extends BaseService {
     app: App;
 
-    Test(){
+    Test(ctx: KoattyContext){
         //打印ctx对象
-        console.log(this.app.context);
+        console.log(ctx);
     }
 }
 ```
