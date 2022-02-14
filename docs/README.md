@@ -1422,7 +1422,7 @@ export class TestService {
 
 ## 计划任务
 
-Koatty封装了一个计划任务库 [koatty_cacheable](https://github.com/koatty/koatty_schedule)，支持cron表达式以及基于redis的分布式锁。
+Koatty封装了一个计划任务库 [koatty_schedule](https://github.com/koatty/koatty_schedule)，支持cron表达式以及基于redis的分布式锁。
 
 ### cron表达式
 
