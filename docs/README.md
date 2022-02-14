@@ -1724,6 +1724,7 @@ export class TestAspect {
 | `@Controller()`       | `path` 绑定控制器访问路由                                    | 定义该类是一个控制器类，并绑定路由。默认路由为"/"            | 仅用于控制器类         |
 | `@Service()`          | `identifier` 注册到IOC容器的标识，默认值为类名。             | 定义该类是一个服务类                                         | 仅用于服务类           |
 | `@Middleware()`       | `identifier` 注册到IOC容器的标识，默认值为类名。             | 定义该类是一个中间件类                                       | 仅用于中间件类         |
+| `@ExceptionHandler()`       |  | 定义该类是一个全局异常处理类类                                       | 仅用于异常处理类        |
 | `@BeforeEach()`       | `aopName` 切点执行的切面类名                                 | 为当前类声明一个切面，在当前类每一个方法("constructor", "init", "__before", "__after"除外)执行之前执行切面类的run方法。 |                        |
 | `@AfterEach()`        | `aopName` 切点执行的切面类名                                 | 为当前类声明一个切面，在当前每一个方法("constructor", "init", "__before", "__after"除外)执行之后执行切面类的run方法。 |                        |
 |                       |                                                              |                                                              |                        |
