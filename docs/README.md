@@ -1409,7 +1409,7 @@ export class TestService {
     }
 
     test(){
-        // 自行缓存缓存实例操作缓存
+        // 自行操作缓存实例
         const store = GetCacheStore(this.app);
         store.set(key, value);
     }
