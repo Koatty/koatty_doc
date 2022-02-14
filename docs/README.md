@@ -1830,108 +1830,15 @@ Comesoon...
 
 ## app
 
-app 是全局应用对象，是应用App的实例，它继承自 Koa.Application。
-
-### env: string;
-运行环境，取值为development/production
-### version: string;
-
-框架版本号
-
-### options: InitOptions;
-
-框架初始化参数
-### container: Container;
-框架IOC容器
-### context: KoattyContext;
-Context 对象，每次请求会创建不同的Context 对象，可以使用 app.context操作
-### server: KoattyServer;
-框架server 对象，保存了服务启动实例
-### router: KoattyRouter;
-框架路由实例
-### appPath: string;
-应用物理路径
-### rootPath: string;
-项目根路径
-### thinkPath: string;
-框架物理路径
-### appDebug: boolean;
-是否运行在debug模式
-### init()
-
-框架定义的构造方法，用来代替constructor.
-
-### getMetaData(key) 
-
-读取应用缓存值并返回。应用缓存一般保存着应用运行时必要的一些数据，例如配置、全局参数等。
-
-* key 缓存key
-
-### setMetaData(key: string, value: any): any
-
-写入应用缓存。
-
-  * key 缓存key
-  * value  缓存值
-
-### use(fn)
-
-绑定运行koa中间件。
-
-* fn koa中间件函数
-
-### useExp(fn)
-
-绑定运行express中间件。
-
-* fn express中间件
-
-### config(name, type = "config")
-
-读取项目及应用配置。包括本地配置文件中的项目配置、中间件配置、路由配置等，还包括从apollo等配置中心中获取到的配置
-
-* name 配置key
-* type 配置类型，默认为 `config` 项目配置。如果是本地配置文件，文件名就是类型名；如果是配置中心，则可以自行定义，例如 apollo 中添加配置项 mongodb.host，类型为 mongodb
-
-### createContext(req: any, res: any, protocol?: string)
-
-根据服务协议(HTTP1/2、gRPC、WS)创建Context对象
+[API doc](https://github.com/Koatty/koatty_core/blob/main/docs/api/koatty_core.koatty.md)
 ## ctx
 
-Comesoon...
+[API doc](https://github.com/Koatty/koatty_core/blob/main/docs/api/koatty_core.koattycontext.md)
 
 ## IOCContainer
 
-### reg<T>(identifier: string, target: T, options?: ObjectDefinitionOptions): T;
-
-注册Bean到IOC容器。
-
-* target 类或者类的实例
-* identifier  别名，默认使用类名。如果自定义，从容器中获取也需要使用自定义别名
-* options Bean的配置，包含作用域、生命周期、类型等等
-
-### get(identifier: string, type?: CompomentType, args?: any[]): any;
-
-从容器中获取Bean。
-
-* identifier  别名，默认使用类名。如果自定义，从容器中获取也需要使用自定义别名
-* type 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。
-* args 构造方法入参，如果传入参数，获取的Bean默认生命周期为Prototype，否则为单例Singleton
-
-### getClass(identifier: string, type?: CompomentType): Function;
-
-从容器中获取类的原型。
-
-* identifier  别名，默认使用类名。如果自定义，从容器中获取也需要使用自定义别名
-* type 'COMPONENT' | 'CONTROLLER' | 'MIDDLEWARE' | 'SERVICE' 四种类型。
-
-### getInsByClass<T>(target: T, args?: any[]): T;
-
-根据class类获取容器中的实例
-
-* target 类
-* args 构造方法入参，如果传入参数，获取的Bean默认生命周期为Prototype，否则为单例Singleton
+[API doc](https://github.com/Koatty/koatty_container/blob/master/docs/api/koatty_container.container.md)
 
 ## 其他API
 
-[其他API](https://github.com/Koatty/koatty/blob/master/docs/api/koatty.md)
+[API doc](https://github.com/Koatty/koatty/blob/master/docs/api/koatty.md)
