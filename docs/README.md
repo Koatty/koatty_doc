@@ -682,7 +682,7 @@ config: { //中间件配置
 
 ## 控制器
 
-Koatty控制器类使用`@Controller()`装饰器声明，该装饰器的入参用于绑定控制器访问路由，参数默认值为`\/`。控制器类默认放在项目的`src/controller`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`BaseController`或`BaseController`的子类。
+Koatty控制器类使用`@Controller()`装饰器声明，该装饰器的入参用于绑定控制器访问路由，参数默认值为`\/`。控制器类默认放在项目的`src/controller`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`BaseController`或`BaseController`的派生类。
 
 > HTTP/S协议下的控制器需要继承`HttpController`；gRPC、WebSocket服务需要继承`BaseController`
 
@@ -761,7 +761,7 @@ init(){
 
 ### 控制器属性及方法
 
-控制器属性及方法请参考[HttpController API](##HttpController)以及 [BaseController API](##BaseController)
+控制器属性及方法请参考[HttpController API](https://github.com/Koatty/koatty/blob/master/docs/api/koatty.httpcontroller.md)以及 [BaseController API](https://github.com/Koatty/koatty/blob/master/docs/api/koatty.basecontroller.md)
 
 ## 服务层
 
@@ -1112,26 +1112,49 @@ FunctionValidator规则:
 
 ## 异常处理
 
-Koatty框架封装了一个Exception类，用于处理项目中需要抛出错误的场景，用于替代原有的Error。Exception类继承于Error类，Exception类解决了什么问题？
+Koatty框架封装了koatty_exception组件，用于处理项目中需要抛出错误的场景，用于替代原有的Error。并且支持用户定制化Exception类。
 
 * 规范项目中抛出错误的方式
 * 定制HTTP Status、业务错误码以及错误消息
 * 保存日志内错误栈
 
-示例: 
+### 自定义异常处理
+
+类似于springboot，koatty提供了一个装饰器 `@ExceptionHandler()`来注册全局的异常处理。首先我们定义一个异常处理类 `BussinessException.ts`，这个类需要继承 `Exception`基类:
+
+
+```js
+
+@ExceptionHandler() // 注册全局异常处理
+export class BussinessException extends Exception {
+    // 在handler内统一对异常进行处理
+    async handler(ctx: KoattyContext): Promise<any> {
+        // http协议下返回 ctx.res.end, 如果是gRPC协议可根据ctx.protocol进行判断处理
+        return ctx.res.end(this.message);
+    }
+}
+
+```
+在应用代码中，我们可以直接抛出 `BussinessException` 类型异常：
 
 ```js
 
 // res: {"code":1,"message":"error"}
-throw new Exception("error");
+throw new BussinessException("error");
 
 // res: {"code":1000,"message":"error"}
-throw new Exception("error", 1000);
-
-// res: {"code":1,"message":"error"} httpStatus=200
-throw new Exception("error", 1000, 200);
-
+throw new BussinessException("error", 1000);
 ```
+
+需要注意，在自定义异常处理中，需要根据框架运行的服务协议(http、websocket、gRPC)分别进行处理和返回。
+### 默认异常处理
+
+如果应用内并没有自定义异常处理，在程序运行时产生的异常，会被框架使用默认的拦截处理机制统一拦截处理。
+例如直接抛出了 `Error`，框架同样可以拦截。
+
+默认的异常处理，根据框架服务的协议不同，分别由`Exception`、`GrpcException`、`WsException`三个类进行拦截处理。
+
+
 ## gRPC
 
 Koatty从 3.4.x版本开始支持gRPC服务。
