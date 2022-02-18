@@ -311,7 +311,7 @@ const conf: any = this.app.config("test");
 ```js
 @Controller()
 export class AdminController {
-    @Value("test")
+    @Config("test")
     conf: any;
 }
 
@@ -326,7 +326,7 @@ const conf: any = this.app.config("test", "db");
 
 或者
 
-@Value("test", "db")
+@Config("test", "db")
 conf: any;
 
 ```
@@ -352,7 +352,7 @@ export default {
 读取 `db_host`的值：
 
 ```js
-@Value("database.db_host", "db")
+@Config("database.db_host", "db")
 dbHost: string;
 
 或者
@@ -1735,7 +1735,7 @@ export class TestAspect {
 | 装饰器名称                                                                                      | 参数                                                                                                                                                                                                                       | 说明                                                                 | 备注 |
 | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---- |
 | `@Autowired()` | `identifier` 注册到IOC容器的标识，默认值为类名 <br> `type` 注入bean的类型 <br> `constructArgs` 注入bean构造方法入参。如果传递该参数，则返回request作用域的实例 <br> `isDelay` 是否延迟加载。延迟加载主要是解决循环依赖问题 | 从IOC容器自动注入bean到当前类                                        ||
-| `@Value()`                                                            | `key` 配置项的key <br> `type` 配置项类型                                                                                                                                                                                   | 配置项类型自动根据配置项所在文件来定义，例如 "db" 代表在 db.ts文件内 ||
+| `@Config()`                                                            | `key` 配置项的key <br> `type` 配置项类型                                                                                                                                                                                   | 配置项类型自动根据配置项所在文件来定义，例如 "db" 代表在 db.ts文件内 ||
 
 
 
