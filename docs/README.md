@@ -415,7 +415,7 @@ export class App extends Koatty {
 | ---------------------- | ---------------------- | --------------------- | ------ |
 | appDebug               | true/false             | 调试模式              | 低     |
 | process.env.NODE_ENV   | development/production | Node.js运行时环境变量 | 中     |
-| process.env.KOATTY_ENV | 任意字符               | 框架运行时环境变量    | 高     |
+| process.env.KOATTY_ENV | development/production | 框架运行时环境变量    | 高     |
 
 
 这里的优先级指加载运行时相应配置文件的优先级，优先级高的配置会覆盖优先级低的配置。
