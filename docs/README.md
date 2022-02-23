@@ -1061,67 +1061,69 @@ ClassValidator.valid(SchemaClass, ins).catch(err => {
 ```
 ### 验证规则
 
-`koatty_validation`定义了一系列常用的验证规则:
+`koatty_validation`定义了一系列常用的[验证规则](https://github.com/Koatty/koatty_validation)
 
-装饰器规则:
-
-* @IsDefined
-* @IsCnName
-* @IsIdNumber
-* @IsZipCode
-* @IsMobile
-* @IsPlateNumber
-* @IsEmail
-* @IsIP
-* @IsPhoneNumber
-* @IsUrl
-* @IsHash
-* @IsNotEmpty
-* @Equals
-* @NotEquals
-* @Contains
-* @IsIn
-* @IsNotIn
-* @IsDate
-* @Min
-* @Max
-* @Length
-
-FunctionValidator规则:
-
-* FunctionValidator.IsCnName
-* FunctionValidator.IsIdNumber
-* FunctionValidator.IsZipCode
-* FunctionValidator.IsMobile
-* FunctionValidator.IsPlateNumber
-* FunctionValidator.IsEmail
-* FunctionValidator.IsIP
-* FunctionValidator.IsPhoneNumber
-* FunctionValidator.IsUrl
-* FunctionValidator.IsHash
-* FunctionValidator.IsNotEmpty
-* FunctionValidator.Equals
-* FunctionValidator.NotEquals
-* FunctionValidator.Contains
-* FunctionValidator.IsIn
-* FunctionValidator.IsNotIn
-* FunctionValidator.IsDate
-* FunctionValidator.Min
-* FunctionValidator.Max
-* FunctionValidator.Length
 
 ## 异常处理
 
-Koatty框架封装了koatty_exception组件，用于处理项目中需要抛出错误的场景，用于替代原有的Error。并且支持用户定制化Exception类。
+Koatty框架封装了koatty_exception组件，用于处理项目中需要抛出错误的场景，支持用户定制化Exception类来处理不同的业务异常。
 
 * 规范项目中抛出错误的方式
 * 定制HTTP Status、业务错误码以及错误消息
 * 保存日志内错误栈
 
+### 默认异常处理
+
+如果应用内并没有自定义异常处理，在程序运行时产生的异常，会被框架使用默认的拦截处理机制统一拦截处理。例如直接抛出了 `Error`，框架同样可以拦截。
+
+```js
+
+// res: {"code":1,"message":"error"}
+throw new Error("error");
+
+// res: {"code":1000,"message":"error"}
+throw new Exception("error", 1000);
+
+```
+
 ### 自定义异常处理
 
-类似于springboot，koatty提供了一个装饰器 `@ExceptionHandler()`来注册全局的异常处理。首先我们定义一个异常处理类 `BussinessException.ts`，这个类需要继承 `Exception`基类:
+我们可以自定义异常处理类，这个类需要继承 `Exception`基类:
 
+```js
+
+@ExceptionHandler() // 注册全局异常处理
+export class BussinessException1 extends Exception {
+    // 在handler内统一对异常进行处理
+    async handler(ctx: KoattyContext): Promise<any> {
+        // http协议下返回 ctx.res.end, 如果是gRPC协议可根据ctx.protocol进行判断处理
+        return ctx.res.end(this.message);
+    }
+}
+
+export class BussinessException2 extends Exception {
+    // 在handler内统一对异常进行处理
+    async handler(ctx: KoattyContext): Promise<any> {
+        // http协议下返回 ctx.res.end, 如果是gRPC协议可根据ctx.protocol进行判断处理
+        return ctx.res.end({code: this.code, message: this.message});
+    }
+}
+
+```
+在应用代码中，我们可以根据业务逻辑，抛出不同的异常：
+
+```js
+
+// res: {"code":1,"message":"error"}
+throw new BussinessException1("error");
+
+// res: {"code":1000,"message":"error"}
+throw new BussinessException2("error", 1000);
+```
+
+### 全局异常处理
+
+koatty提供了一个装饰器 `@ExceptionHandler()`来注册全局的异常处理。
 
 ```js
 
@@ -1135,26 +1137,181 @@ export class BussinessException extends Exception {
 }
 
 ```
-在应用代码中，我们可以直接抛出 `BussinessException` 类型异常：
+
+全局异常处理仅注册一次，多次注册自动覆盖。注册全局异常处理之后，除非主动抛出不同类型的异常，否则所有的异常均交给全局异常处理类拦截。
 
 ```js
-
-// res: {"code":1,"message":"error"}
-throw new BussinessException("error");
-
-// res: {"code":1000,"message":"error"}
-throw new BussinessException("error", 1000);
+...
+async index(type: string) {
+    if (type == '1') {
+      // 指定BussinessException2处理异常
+      // res: {"code":1000,"message":"error"}
+      throw new BussinessException2("error", 1000);
+    } else {
+      // 未明确指定, 交给全局异常处理
+      // res: error
+      throw new Error("error", 1000);
+    }
+}
+...
 ```
 
-需要注意，在自定义异常处理中，需要根据框架运行的服务协议(http、websocket、gRPC)分别进行处理和返回。
-### 默认异常处理
+## 缓存
 
-如果应用内并没有自定义异常处理，在程序运行时产生的异常，会被框架使用默认的拦截处理机制统一拦截处理。
-例如直接抛出了 `Error`，框架同样可以拦截。
+Koatty封装了一个缓存库 [koatty_cacheable](https://github.com/koatty/koatty_cacheable)，支持内存以及redis存储。 `koatty_cacheable` 提供了两个装饰器 CacheAble, CacheEvict。
 
-默认的异常处理，根据框架服务的协议不同，分别由`Exception`、`GrpcException`、`WsException`三个类进行拦截处理。
+### 缓存配置
+
+缓存配置保存在 `config/db.ts`内：
+
+```js
+export default {
+    ...
+
+    "CacheStore": {
+        type: "memory", // redis or memory, memory is default
+        // key_prefix: "koatty",
+        // host: '127.0.0.1',
+        // port: 6379,
+        // name: "",
+        // username: "",
+        // password: "",
+        // db: 0,
+        // timeout: 30,
+        // pool_size: 10,
+        // conn_timeout: 30
+    },
+
+    ...
+};
+
+```
+默认使用memory存储，如果需要使用redis，则需要补充redis 链接相关配置项。
+
+### 缓存使用
+
+* @CacheAble(cacheName: string, timeout = 3600)
+
+开启方法结果自动缓存。当执行该方法的时候，会先查找缓存，缓存结果存在直接返回结果，不存在则执行后返回并保持执行结果。
+
+* @CacheEvict(cacheName: string, eventTime: eventTimes = "Before")
+
+清除方法结果缓存，eventTimes表示清除的时机，分别为 Before=方法执行前， After=方法执行后
+
+* GetCacheStore(app: Koatty) 
+
+获取缓存实例，可以手动调用get、set等方法操作缓存
+
+示例：
+
+```js
+import { CacheAble, CacheEvict, GetCacheStore } from "koatty_cacheable";
+
+export class TestService {
+
+    @CacheAble("testCache") // 自动缓存结果,缓存key=testCache
+    getTest(){
+        //todo
+    }
+
+    @CacheEvict("testCache") // 执行setTest()之前,先清除缓存,缓存key=testCache
+    setTest(){
+        //todo
+    }
+
+    test(){
+        // 自行操作缓存实例
+        const store = GetCacheStore(this.app);
+        store.set(key, value);
+    }
+}
+
+```
+
+> 注意： @CacheAble以及@CacheEvict装饰器不能用于控制器类
 
 
+## 计划任务
+
+Koatty封装了一个计划任务库 [koatty_schedule](https://github.com/koatty/koatty_schedule)，支持cron表达式以及基于redis的分布式锁。
+
+### cron表达式
+
+cron表达式包含6位，分别代表 秒、分、小时、天、月、周：
+
+ * Seconds: 0-59
+ * Minutes: 0-59
+ * Hours: 0-23
+ * Day of Month: 1-31
+ * Months: 0-11 (Jan-Dec)
+ * Day of Week: 0-6 (Sun-Sat)
+
+### @Scheduled(cron: string)
+
+通过装饰器 @Scheduled 可以很方便的给方法增加任务执行计划:
+
+```js
+import { Scheduled, SchedulerLock } from "koatty_schedule";
+
+export class TestService {
+
+    @Scheduled("0 * * * * *")
+    Test(){
+        //todo
+    }
+}
+
+```
+
+### 任务执行锁
+
+在某些业务场景，计划任务是不能并发执行的，解决方案就是加锁。`koatty_cacheable`实现了一个基于redis的分布式锁。
+
+* @SchedulerLock(name?: string, lockTimeOut?: number, waitLockInterval?: number, waitLockTimeOut?: number)
+
+开启计划任务锁。 name锁唯一标识； lockTimeOut锁超时时长，防止死锁； number获取锁循环等待时间； waitLockTimeOut获取锁等待超时时长
+
+```js
+import { Scheduled, SchedulerLock } from "koatty_schedule";
+
+export class TestService {
+
+    @Scheduled("0 * * * * *")
+    @SchedulerLock("testCron") //locker
+    Test(){
+        //todo
+    }
+}
+
+```
+
+> 注意： @Scheduled及@SchedulerLock装饰器不能用于控制器类； 
+> 需要根据执行计划任务的时长来配置相应的参数，防止锁失效
+
+因为使用了redis，redis缓存配置保存在 `config/db.ts`内：
+
+```js
+export default {
+    ...
+
+    "SchedulerLock": {
+        type: "redis", // 必须使用redis
+        key_prefix: "koatty",
+        host: '127.0.0.1',
+        port: 6379,
+        name: "",
+        username: "",
+        password: "",
+        db: 0,
+        timeout: 30,
+        pool_size: 10,
+        conn_timeout: 30
+    },
+
+    ...
+};
+
+```
 ## gRPC
 
 Koatty从 3.4.x版本开始支持gRPC服务。
@@ -1344,163 +1501,6 @@ export default {
 ```
 
 OK，现在可以启动一个WebSocket服务器。
-
-## 缓存
-
-Koatty封装了一个缓存库 [koatty_cacheable](https://github.com/koatty/koatty_cacheable)，支持内存以及redis存储。 `koatty_cacheable` 提供了两个装饰器 CacheAble, CacheEvict。
-
-### 缓存配置
-
-缓存配置保存在 `config/db.ts`内：
-
-```js
-export default {
-    ...
-
-    "CacheStore": {
-        type: "memory", // redis or memory, memory is default
-        // key_prefix: "koatty",
-        // host: '127.0.0.1',
-        // port: 6379,
-        // name: "",
-        // username: "",
-        // password: "",
-        // db: 0,
-        // timeout: 30,
-        // pool_size: 10,
-        // conn_timeout: 30
-    },
-
-    ...
-};
-
-```
-默认使用memory存储，如果需要使用redis，则需要补充redis 链接相关配置项。
-
-### 缓存使用
-
-* @CacheAble(cacheName: string, timeout = 3600)
-
-开启方法结果自动缓存。当执行该方法的时候，会先查找缓存，缓存结果存在直接返回结果，不存在则执行后返回并保持执行结果。
-
-* @CacheEvict(cacheName: string, eventTime: eventTimes = "Before")
-
-清除方法结果缓存，eventTimes表示清除的时机，分别为 Before=方法执行前， After=方法执行后
-
-* GetCacheStore(app: Koatty) 
-
-获取缓存实例，可以手动调用get、set等方法操作缓存
-
-示例：
-
-```js
-import { CacheAble, CacheEvict, GetCacheStore } from "koatty_cacheable";
-
-export class TestService {
-
-    @CacheAble("testCache") // 自动缓存结果,缓存key=testCache
-    getTest(){
-        //todo
-    }
-
-    @CacheEvict("testCache") // 执行setTest()之前,先清除缓存,缓存key=testCache
-    setTest(){
-        //todo
-    }
-
-    test(){
-        // 自行操作缓存实例
-        const store = GetCacheStore(this.app);
-        store.set(key, value);
-    }
-}
-
-```
-
-> 注意： @CacheAble以及@CacheEvict装饰器不能用于控制器类
-
-
-## 计划任务
-
-Koatty封装了一个计划任务库 [koatty_schedule](https://github.com/koatty/koatty_schedule)，支持cron表达式以及基于redis的分布式锁。
-
-### cron表达式
-
-cron表达式包含6位，分别代表 秒、分、小时、天、月、周：
-
- * Seconds: 0-59
- * Minutes: 0-59
- * Hours: 0-23
- * Day of Month: 1-31
- * Months: 0-11 (Jan-Dec)
- * Day of Week: 0-6 (Sun-Sat)
-
-### @Scheduled(cron: string)
-
-通过装饰器 @Scheduled 可以很方便的给方法增加任务执行计划:
-
-```js
-import { Scheduled, SchedulerLock } from "koatty_schedule";
-
-export class TestService {
-
-    @Scheduled("0 * * * * *")
-    Test(){
-        //todo
-    }
-}
-
-```
-
-### 任务执行锁
-
-在某些业务场景，计划任务是不能并发执行的，解决方案就是加锁。`koatty_cacheable`实现了一个基于redis的分布式锁。
-
-* @SchedulerLock(name?: string, lockTimeOut?: number, waitLockInterval?: number, waitLockTimeOut?: number)
-
-开启计划任务锁。 name锁唯一标识； lockTimeOut锁超时时长，防止死锁； number获取锁循环等待时间； waitLockTimeOut获取锁等待超时时长
-
-```js
-import { Scheduled, SchedulerLock } from "koatty_schedule";
-
-export class TestService {
-
-    @Scheduled("0 * * * * *")
-    @SchedulerLock("testCron") //locker
-    Test(){
-        //todo
-    }
-}
-
-```
-
-> 注意： @Scheduled及@SchedulerLock装饰器不能用于控制器类； 
-> 需要根据执行计划任务的时长来配置相应的参数，防止锁失效
-
-因为使用了redis，redis缓存配置保存在 `config/db.ts`内：
-
-```js
-export default {
-    ...
-
-    "SchedulerLock": {
-        type: "redis", // 必须使用redis
-        key_prefix: "koatty",
-        host: '127.0.0.1',
-        port: 6379,
-        name: "",
-        username: "",
-        password: "",
-        db: 0,
-        timeout: 30,
-        pool_size: 10,
-        conn_timeout: 30
-    },
-
-    ...
-};
-
-```
 
 ## 事件机制(event)
 
