@@ -737,7 +737,7 @@ kt controller -t ws index
 
 
 ```bash
-think controller admin/index
+kt controller admin/index
 ```
 
 会自动创建 src/controller/Admin/IndexController.ts文件。
@@ -1371,7 +1371,7 @@ kt controller -t grpc hello
 
 
 ```bash
-think controller -t grpc admin/hello
+kt controller -t grpc admin/hello
 ```
 
 会自动创建 src/controller/Admin/HelloController.ts文件。
