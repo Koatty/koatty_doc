@@ -71,7 +71,36 @@ npm start
 }
 ```
 
-选择 `TS Program` 以debug模式启动.
+选择 `TS Program` 以debug模式启动, 访问 http://127.0.0.1:3000
+
+## 单元测试
+
+koatty目前仅支持jest测试框架编写测试用例
+
+
+```javascript
+import request from 'supertest';
+import { ExecBootStrap } from 'koatty';
+
+import { App } from '../src/App';
+
+describe('UT example', () => {
+
+  let server;
+  beforeAll(async () => {
+    const appInstance = await ExecBootStrap()(App);
+    server = appInstance.callback();
+  });
+
+  it('request', async (done) => {
+    const rsp = await request(server).get('/path/to/server');
+    expect(rsp.status).toBe(200);
+    done();
+  });
+});
+
+```
+
 
 # 基础功能
 
