@@ -1067,9 +1067,8 @@ export class SayHelloReplyDto {
 FunctionValidator:
 
 ```js
-if (!FunctionValidator.IsNotEmpty(data)) {
-    console.log('error');
-}
+FunctionValidator.IsNotEmpty(str, "cannot be empty");
+FunctionValidator.Contains(str, {message: "must contain s", value: "s"});
 ```
 ClassValidator:
 
@@ -1113,6 +1112,8 @@ throw new Error("error");
 // res: {"code":1000,"message":"error"}
 throw new Exception("error", 1000);
 
+// res: {"code":1000,"message":"error"}
+ctx.throw("error", 1000);
 ```
 
 ### 自定义异常处理
@@ -1684,11 +1685,13 @@ Koatty基于IOC容器实现了一套切面编程机制，利用装饰器以及�
 | 装饰器声明   | 依赖             | 不能             | 依赖             |   可用于所有类型的bean    |
 | 内置方法声明 | 不依赖           | 能               | 不依赖           |    只能用于CONTROLLER类型的bean   |
 
-依赖Aspect切面类： 需要创建对应的Aspect切面类才能使用
+> 依赖Aspect切面类： 需要创建对应的Aspect切面类才能使用
 
-能否使用类作用域： 能不能使用切点所在类的this指针
+> 能否使用类作用域： 能不能使用切点所在类的this指针
 
-入参依赖切点方法： 装饰器声明切点所在方法的入参同切面共享，内置方法声明的切点因为可以使用this，理论上能获取切点所在类的任何属性，更加灵活
+> 入参依赖切点方法： 装饰器声明切点所在方法的入参同切面共享，内置方法声明的切点因为可以使用this，理论上能获取切点所在类的任何属性，更加灵活
+
+<mark>注意: @BeforeEach和\_\_before、@AfterEach和\_\_after是互斥的,不能共存,如果同时申明,仅\_\_before或\_\_after有效 </mark>
 
 例如: 
 
