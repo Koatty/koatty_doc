@@ -1536,7 +1536,7 @@ Koatty框架在应用启动过程中，app对象除koa自身包含的事件之�
 
 ![时间轴](https://cdn.jsdelivr.net/gh/richenlin/ARTS@master/resource/时间轴.png)
 
-我们可以根据项目需要绑定到不同的事件。例如在服务注册发现场景，如果硬要宕机，可以在appStop事件上绑定处理服务注销处理。
+我们可以根据项目需要绑定到不同的事件。例如在服务注册发现场景，如果硬件宕机，可以在appStop事件上绑定处理服务注销处理。
 
 ```js
 
