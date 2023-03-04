@@ -1536,6 +1536,12 @@ Koatty框架在应用启动过程中，app对象除koa自身包含的事件之�
 
 ![时间轴](https://cdn.jsdelivr.net/gh/richenlin/ARTS@master/resource/时间轴.png)
 
+> 注意： 
+> 
+> 1、appBoot阶段, 加载插件在触发appBoot事件之后
+> 
+> 2、appStart阶段, 服务启动后才会触发appStart事件
+
 我们可以根据项目需要绑定到不同的事件。例如在服务注册发现场景，如果硬件宕机，可以在appStop事件上绑定处理服务注销处理。
 
 ```js
@@ -1565,15 +1571,15 @@ export class App extends Koatty {
 
 > 注意： 启动函数执行时机在框架执行`initialize`初始化之后，此时框架的相关路径属性(appPath、rootPath等)和process.env已经加载设置完成，但是配置及其他组件(插件、中间件、控制器等)并未加载，在定义启动函数的时候需要注意。
 
-### AppReadyHookFunc
+### AppBootHookFunc
 
-除了 `@Bootstrap`装饰器，我们还可以通过 `AppReadyHookFunc` 自定义装饰器用于启动类。
+除了 `@Bootstrap`装饰器，我们还可以通过 `AppBootHookFunc` 自定义装饰器用于启动类。
 
 ```js
 // src/TestBootstrap.ts:
 export function TestBootstrap(): ClassDecorator {
   return (target: any) => {
-    BindAppReadyHook((app: Koatty) => {
+    BindAppBootHook((app: Koatty) => {
         // todo
         return Promise.resolve();
     }, target)   
@@ -1592,7 +1598,7 @@ export class App extends Koatty {
 }
 ```
 
-> 注意：通过AppReadyHookFunc创建的自定义装饰器，其函数执行是由 appReady 事件触发，需要注意框架启动逻辑及相关上下文
+> 注意：通过AppBootHookFunc创建的自定义装饰器，其函数执行是由 appBoot 事件触发，需要注意框架启动逻辑及相关上下文
 
 
 ## 装载自定义
