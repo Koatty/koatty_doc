@@ -505,7 +505,7 @@ Koatty定义的项目根目录，在项目中任何地方均可使用。
 
 Koatty定义的项目应用目录(调试模式下启动，值为/`projectDIR`/src；在生产模式下启动，值为/`projectDIR`/dist)，在项目中任何地方均可使用。
 
-* process.env.THINK_PATH
+* process.env.KOATTY_PATH
 
 Koatty定义的框架根目录(/`projectDIR`/node_modules/koatty/)，在项目中任何地方均可使用。
 
@@ -1534,13 +1534,11 @@ OK，现在可以启动一个WebSocket服务器。
 
 Koatty框架在应用启动过程中，app对象除koa自身包含的事件之外，还定义了一系列事件:
 
-![时间轴](https://cdn.jsdelivr.net/gh/richenlin/ARTS@master/resource/时间轴.png)
+![时间轴](https://cdn.jsdelivr.net/gh/Koatty/koatty_doc@master/docs/assets/event.png)
 
 > 注意： 
 > 
-> 1、appBoot阶段, 加载插件在触发appBoot事件之后
-> 
-> 2、appStart阶段, 服务启动后才会触发appStart事件
+> appStart阶段, 服务启动后才会触发appStart事件
 
 我们可以根据项目需要绑定到不同的事件。例如在服务注册发现场景，如果硬件宕机，可以在appStop事件上绑定处理服务注销处理。
 
@@ -1571,15 +1569,15 @@ export class App extends Koatty {
 
 > 注意： 启动函数执行时机在框架执行`initialize`初始化之后，此时框架的相关路径属性(appPath、rootPath等)和process.env已经加载设置完成，但是配置及其他组件(插件、中间件、控制器等)并未加载，在定义启动函数的时候需要注意。
 
-### AppBootHookFunc
+### BindEventHook
 
-除了 `@Bootstrap`装饰器，我们还可以通过 `AppBootHookFunc` 自定义装饰器用于启动类。
+除了 `@Bootstrap`装饰器，我们还可以通过 `BindEventHook` 自定义装饰器用于启动类来绑定应用事件(appBoot、appReady、appStart、appStop)。
 
 ```js
 // src/TestBootstrap.ts:
 export function TestBootstrap(): ClassDecorator {
-  return (target: any) => {
-    BindAppBootHook((app: Koatty) => {
+  return (target: Function) => {
+    BindEventHook(AppEvent.appBoot, (app: Koatty) => {
         // todo
         return Promise.resolve();
     }, target)   
@@ -1598,7 +1596,7 @@ export class App extends Koatty {
 }
 ```
 
-> 注意：通过AppBootHookFunc创建的自定义装饰器，其函数执行是由 appBoot 事件触发，需要注意框架启动逻辑及相关上下文
+> 注意：通过BindEventHook创建的自定义装饰器，其函数执行是由 事件(appBoot、appReady、appStart、appStop)触发，需要注意框架启动逻辑及相关上下文
 
 
 ## 装载自定义
@@ -1695,9 +1693,10 @@ Koatty基于IOC容器实现了一套切面编程机制，利用装饰器以及�
 
 > 入参依赖切点方法： 装饰器声明切点所在方法的入参同切面共享，内置方法声明的切点因为可以使用this，理论上能获取切点所在类的任何属性，更加灵活
 
-<mark>注意: @BeforeEach和\_\_before、@AfterEach和\_\_after是互斥的,不能共存,如果同时申明,仅\_\_before或\_\_after有效 </mark>
+<mark>注意: 如果类使用了装饰器@BeforeEach，且这个类还包含\_\_before方法（不管是自身拥有还是继承自父类），那么\_\_before方法优先级高于装饰器，该类的装饰器@BeforeEach无效（@AfterEach和\_\_after也是一样） </mark>
 
 例如: 
+
 
 ```js
 @Controller('/')
@@ -1714,7 +1713,7 @@ export class TestController extends BaseController {
       console.log(this.ctx)
   }
 
-  @Before(TestAspect) //依赖TestAspect切面类, 能够获取path参数
+  @Before("TestAspect") //依赖TestAspect切面类, 能够获取path参数
   async test(path: string){
 
   }
@@ -1750,20 +1749,20 @@ export class TestAspect {
 
 ### 类装饰器
 
-| 装饰器名称            | 参数                                                                        | 说明                                                                                                                    | 备注                   |
-| --------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| `@Aspect()`           | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用                                               | 仅用于切面类           |
-| `@Bootstrap()`        | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。 | 声明当前类是一个启动类，为项目的入口文件。                                                                              | 仅用于应用启动类       |
-| `@ComponentScan()`    | `scanPath` 字符串或字符串数组                                               | 定义项目需要自动装载进容器的目录                                                                                        | 仅用于应用启动类       |
-| `@Component()`        | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类为一个组件类                                                                                                    | 第三方模块或引入类使用 |
-| `@ConfiguationScan()` | `scanPath` 字符串或字符串数组，配置文件的目录                               | 定义项目需要加载的配置文件的目录                                                                                        | 仅用于应用启动类       |
-| `@Controller()`       | `path` 绑定控制器访问路由                                                   | 定义该类是一个控制器类，并绑定路由。默认路由为"/"                                                                       | 仅用于控制器类         |
-| `@Service()`          | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个服务类                                                                                                    | 仅用于服务类           |
-| `@Middleware()`       | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个中间件类                                                                                                  | 仅用于中间件类         |
-| `@ExceptionHandler()` |                                                                             | 定义该类是一个全局异常处理类类                                                                                          | 仅用于异常处理类       |
-| `@BeforeEach()`       | `aopName` 切点执行的切面类名                                                | 为当前类声明一个切面，在当前类每一个方法("constructor", "init", "__before", "__after"除外)执行之前执行切面类的run方法。 |                        |
-| `@AfterEach()`        | `aopName` 切点执行的切面类名                                                | 为当前类声明一个切面，在当前每一个方法("constructor", "init", "__before", "__after"除外)执行之后执行切面类的run方法。   |                        |
-|                       |                                                                             |                                                                                                                         |                        |
+| 装饰器名称                     | 参数                                                                        | 说明                                                                                                                    | 备注                   |
+| ------------------------------ | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `@Aspect()`                    | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用                                               | 仅用于切面类           |
+| `@Bootstrap()`                 | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。 | 声明当前类是一个启动类，为项目的入口文件。                                                                              | 仅用于应用启动类       |
+| `@ComponentScan()`             | `scanPath` 字符串或字符串数组                                               | 定义项目需要自动装载进容器的目录                                                                                        | 仅用于应用启动类       |
+| `@Component()`                 | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类为一个组件类                                                                                                    | 第三方模块或引入类使用 |
+| `@ConfiguationScan()`          | `scanPath` 字符串或字符串数组，配置文件的目录                               | 定义项目需要加载的配置文件的目录                                                                                        | 仅用于应用启动类       |
+| `@Controller()`                | `path` 绑定控制器访问路由                                                   | 定义该类是一个控制器类，并绑定路由。默认路由为"/"                                                                       | 仅用于控制器类         |
+| `@Service()`                   | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个服务类                                                                                                    | 仅用于服务类           |
+| `@Middleware()`                | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个中间件类                                                                                                  | 仅用于中间件类         |
+| `@ExceptionHandler()`          |                                                                             | 定义该类是一个全局异常处理类类                                                                                          | 仅用于异常处理类       |
+| `@BeforeEach(aopName: string)` | `aopName` 切点执行的切面类名                                                | 为当前类声明一个切面，在当前类每一个方法("constructor", "init", "__before", "__after"除外)执行之前执行切面类的run方法。 |                        |
+| `@AfterEach(aopName: string)`  | `aopName` 切点执行的切面类名                                                | 为当前类声明一个切面，在当前每一个方法("constructor", "init", "__before", "__after"除外)执行之后执行切面类的run方法。   |                        |
+|                                |                                                                             |                                                                                                                         |                        |
 
 
 ### 属性装饰器
@@ -1781,7 +1780,7 @@ export class TestAspect {
 | 装饰器名称                 | 参数                                                                                                                                                                                                                      | 说明                                                                     | 备注                                          |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------- |
 | `@Before(aopName: string)` | `aopName` 切点执行的切面类名                                                                                                                                                                                              | 为当前方法声明一个切面，在当前方法执行之前执行切面类的run方法。          |                                               |
-| `@After()`                 | `aopName` 切点执行的切面类名                                                                                                                                                                                              | 为当前方法声明一个切面，在当前方法执行之后执行切面类的run方法。          |                                               |
+| `@After(aopName: string)`  | `aopName` 切点执行的切面类名                                                                                                                                                                                              | 为当前方法声明一个切面，在当前方法执行之后执行切面类的run方法。          |                                               |
 | `@RequestMapping()`        | `path` 绑定的路由 <br> `requestMethod` 绑定的HTTP请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定路由                                                   | 仅用于控制器方法                              |
 | `@GetMapping()`            | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Get路由                                                | 仅用于控制器方法                              |
 | `@PostMapping()`           | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Post路由                                               | 仅用于控制器方法                              |
