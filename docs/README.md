@@ -547,6 +547,24 @@ export class AdminController extends BaseController {
 方法路由的装饰器有 `@GetMapping`、`@PostMapping`、`@DeleteMapping`、`@PutMapping`、`@PatchMapping`、`@OptionsMapping`、`@HeadMapping`、`@RequestMapping`
 
 > 注意：在gRPC服务中，请使用 @PostMapping 或者 @RequestMapping进行绑定，并且@RequestMapping(path) 中的path必须同proto定义中的方法名一致；在WebSocket服务中，请使用 @GetMapping 或者 @RequestMapping进行绑定。
+
+### 参数绑定
+
+在方法路由中，有一种特殊的参数路由，可以方便实现RESTful API。
+
+```js
+@Controller("/admin")
+export class AdminController extends BaseController {
+    ...
+    @GetMapping("/test/:id") //在方法装饰器中，申明参数
+    test(@PathVariable("id") id: number){ // 使用PathVariable获取绑定的参数
+        ...
+    }
+    ...
+}
+```
+koatty的路由组件`koatty_router`基于`@koa/router`实现（gRPC除外），详细路由相关教程请参考 [@koa/router](https://github.com/koajs/router) 
+
 ### 路由配置
 
 在项目 src/config/router.ts存放着路由自定义配置，该配置用于初始化路由实例。
@@ -780,6 +798,141 @@ init(){
     this.data = {};
 }
 ```
+### 获取参数
+
+koatty解析和处理request参数后，在控制器中我们可以通过以下方法进行获取参数值：
+
+* QueryString参数
+
+通过@Get装饰器获取：
+
+```js
+...
+  @GetMapping("/get")
+  async get(@Get("id") id: number): Promise<any> {
+    console.log(id);
+  }
+...
+```
+通过@RequestParam装饰器获取：
+```js
+...
+  @GetMapping("/get")
+  async get(@RequestParam("id") id: number): Promise<any> {
+    console.log(id);
+  }
+...
+```
+
+通过ctx.query获取：
+
+```js
+...
+  @GetMapping("/get")
+  async get(): Promise<any> {
+    console.log(this.ctx.query["id"]);
+  }
+...
+```
+* RESTful API参数
+
+```js
+  ...
+  @GetMapping("/test/:id") //在方法装饰器中，申明参数
+  test(@PathVariable("id") id: number){ // 使用PathVariable获取绑定的参数
+      ...
+  }
+  ...
+```
+
+* Body参数
+
+通过@Post装饰器获取：
+```js
+...
+  @PostMapping("/get")
+  async get(@Post("id") id: number): Promise<any> {
+    console.log(id);
+  }
+...
+```
+
+通过@RequestParam装饰器获取：
+```js
+...
+  @PostMapping("/get")
+  async get(@RequestParam("id") id: number): Promise<any> {
+    console.log(id);
+  }
+...
+```
+> RequestParam装饰器既可以获取Body参数，又可以获取queryString参数。需要注意的是如果Body和queryString中有同名参数，会取Body传递的值
+
+通过@RequestBody装饰器获取：
+```js
+...
+  @PostMapping("/get")
+  async get(@RequestBody() body: any): Promise<any> {
+    console.log(body.post);
+  }
+...
+```
+> RequestBody装饰器获取的值包括Body以及上传的文件对象
+
+* 上传文件
+
+通过@File装饰器获取：
+```js
+...
+  @PostMapping("/get")
+  async get(@File("filename") fileObject: any): Promise<any> {
+    console.log(fileObject);
+  }
+...
+```
+
+通过@RequestBody装饰器获取：
+```js
+...
+  @PostMapping("/get")
+  async get(@RequestBody() body: any): Promise<any> {
+    console.log(body.file);
+  }
+...
+```
+
+* HTTP header
+
+通过@Header装饰器获取：
+```js
+...
+  @PostMapping("/get")
+  async get(@Header("x-access-token") token: string): Promise<any> {
+    console.log(token);
+  }
+...
+```
+
+通过ctx.get获取：
+```js
+...
+  @PostMapping("/get")
+  async get(ctx.get): Promise<any> {
+    const token = this.ctx.get("x-access-token");
+    console.log(token);
+  }
+...
+```
+通过ctx.header获取：
+```js
+...
+  @PostMapping("/get")
+  async get(ctx.get): Promise<any> {
+    console.log(this.ctx.header);
+  }
+...
+```
+
 ### 访问控制
 
 类之间的引用遵循Typescript的作用域 private | protected | public， 如果未显式声明，类方法的作用域为public。
@@ -1032,7 +1185,7 @@ index(@RequestBody() @Valid("IsEmail") body: string): Promise<any> {
 
 ```js
   @RequestMapping('/SayHello') 
-  @Validated() // 增加参数验证装饰器
+  @Validated() // DTO参数验证装饰器
   SayHello(@RequestBody() params: SayHelloRequestDto): Promise<SayHelloReplyDto> {
     const res = new SayHelloReplyDto();
     return Promise.resolve(res);
