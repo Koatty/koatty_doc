@@ -994,7 +994,7 @@ testService: TestService;
 通过IOC容器获取:
 
 ```js
-this.testService = this.app.Container.get("TestService", "SERVICE");
+this.testService = IOCContainer.get("TestService", "SERVICE");
 ```
 
 调用服务类方法：
