@@ -120,6 +120,8 @@ Koatty的命令行工具`koatty_cli`在创建项目的时候，默认会形成�
 │   │   ├── middleware.ts         # 中间件配置
 │   │   ├── plugin.ts             # 插件配置
 │   │   └── router.ts             # 路由配置
+│   ├── aspect                    # AOP切面类
+│   │   └── TestAspect.ts
 │   ├── controller                # 控制器
 │   │   └── TestController.ts
 │   ├── middleware                # 中间件
@@ -136,7 +138,7 @@ Koatty的命令行工具`koatty_cli`在创建项目的时候，默认会形成�
 │   ├── service                   # service逻辑层
 │   │   └── TestService.ts
 │   ├── utils                     # 工具函数
-│   │   └── index.ts
+│   │   └── tool.ts
 │   └── App.ts                    # 入口文件
 ├── static                        # 静态文件目录
 │   └── index.html
@@ -179,13 +181,11 @@ export class App extends Koatty {
 
 App类继承于Koatty类，而Koatty是对于Koa的继承和扩展。因此可以认为App类的实例就是koa类的实例(进行了扩展) app对象。
 
-Koatty通过`@Bootstrap()`装饰器来定义项目入口，`@Bootstrap()`可以接受函数作为参数，该函数在项目加载启动过程中，通过`appReady`事件触发执行。
+Koatty通过`@Bootstrap()`装饰器来定义项目入口。`@Bootstrap()`可以接受函数作为参数，该函数在项目加载时初始化环境参数后执行。
 
-如果修改了项目目录或者想排除某些目录Bean不自动进行加载，可以通过`@ComponentScan()`装饰器进行定制。
+Koatty通过`@ComponentScan()`装饰器来定义项目目录。如果修改了项目目录， 需要传入项目相对目录名；如果想排除某些目录Bean不自动进行加载，可以将不自动加载的文件放在项目目录之外。
 
-`@ConfiguationScan()`装饰器用于定制项目配置文件目录。
-
-`appDebug` 值为`true`时，nodeEnv环境在 `development` 模式。并且控制器打印详细的日志信息。
+Koatty通过`@ConfiguationScan()`装饰器用于定制项目配置文件目录。默认值`./config`，即项目目录下的config子目录。
 
 ## 基础对象
 
@@ -359,6 +359,7 @@ const conf: any = this.app.config("test", "db");
 conf: any;
 
 ```
+> 配置文件默认分类是 `config`，因此 config.ts文件内的配置项无需填写类型入参
 
 Koatty在读取配置时支持配置层级，例如配置文件db.ts：
 
@@ -391,7 +392,7 @@ const dbHost: string = this.app.config("database.db_host", "db");
 ```
 
 
-需要特别注意的是，层级配置仅支持直接访问到`二级`，更深的层级请赋值后再次获取:
+需要特别注意的是，层级配置仅支持直接访问到`二级`，更深的层级请赋值给变量后再次获取:
 
 ```js
 //config
@@ -447,7 +448,7 @@ export class App extends Koatty {
 | process.env.KOATTY_ENV | development/production | 框架运行时环境变量    | 高     |
 
 
-这里的优先级指加载运行时相应配置文件的优先级，优先级高的配置会覆盖优先级低的配置。
+> 这里的优先级指加载运行时相应配置文件的优先级，优先级高的配置会覆盖优先级低的配置。
 
 
 ```js
@@ -609,7 +610,7 @@ export default {
 
 Koatty是基于 Koa 实现的，所以 Koatty 的中间件形式和 Koa 的中间件形式是一样的，都是基于洋葱圈模型。每次我们编写一个中间件，就相当于在洋葱外面包了一层。
 
-Koatty框架默认加载了static、payload等中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
+Koatty框架默认加载了trace、payload等中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
 
 Koatty中间件类必须使用`@Middleware`来声明，该类必须要包含名为`run(options: any, app: App)`的方法。该方法在应用启动的时候会被调用执行，并且返回值是一个`function (ctx: any, next: any){}`，这个function是Koa中间件的格式。
 
