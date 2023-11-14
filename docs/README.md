@@ -616,21 +616,6 @@ Koatty中间件类必须使用`@Middleware`来声明，该类必须要包含名�
 
 ### 使用中间件
 
-中间件一般通过 npm 模块的方式进行复用：
-
-```bash
-npm i think_jwt --save
-```
-注意：我们建议通过 ^ 的方式引入依赖，并且强烈不建议锁定版本。
-
-```js
-{
-  "dependencies": {
-    "think_jwt": "^1.0.0"
-  }
-}
-```
-
 使用命令行工具koatty_cli，在命令行执行命令:
 
 ```bash
@@ -650,12 +635,12 @@ kt middleware jwt
 
 import { Middleware, Helper } from "koatty";
 import { App } from '../App';
-import jwt from "think_jwt";
 
 @Middleware()
 export class JwtMiddleware implements IMiddleware {
     run(options: any, app: App) {
-        return jwt(options, app);
+        // 在此实现中间件逻辑
+        ...
     }
 }
 ```
@@ -697,7 +682,7 @@ config: { //中间件配置
 
 Koatty支持使用koa的中间件（包括koa1.x及2.x的中间件）：
 
-src/middleware/Passport.ts
+src/middleware/PassportMiddleware.ts
 
 ```js
 const passport = require('koa-passport');
@@ -724,9 +709,14 @@ config: { //中间件配置
 }
 ```
 
+### 使用express中间件
+
+Koatty兼容支持express的中间件，用法同上文koa中间一样，框架会自动识别进行兼容转换。
+
+
 ### 非HTTP/S协议下的中间件
 
-如果项目使用的`protocol`协议为`grpc`、`ws`、`wss`等非HTTP/S协议，中间件需要注意的是，ctx的部分属性会失效，例如ctx.header在`grpc`下就会失效，具体可用属性会在gRPC和WebSocket章节说明。
+如果项目使用的`protocol`协议为`grpc`、`ws`、`wss`等非HTTP/S协议，中间件需要注意ctx的部分属性会不一致，例如ctx.header在`grpc`下不存在，具体可用属性会在gRPC和WebSocket章节说明。
 
 ## 控制器
 
@@ -938,7 +928,7 @@ koatty解析和处理request参数后，在控制器中我们可以通过以下�
 
 类之间的引用遵循Typescript的作用域 private | protected | public， 如果未显式声明，类方法的作用域为public。
 
-只要给控制器类方法绑定了路由(通过路由装饰器)，那么方法即可被url映射访问，而不管该方法是否是public。这是因为目前通过反射无法获取到方法的作用域关键字(有知道的请告诉我😁)。
+> 只要给控制器类方法绑定了路由，那么方法即可被url映射访问(即使该方法的作用域不是public)。这是因为目前通过反射无法获取到方法的作用域关键字(有知道的请告诉我😁)，暂时未实现URL访问作用域控制。
 
 ### 控制器属性及方法
 
