@@ -996,7 +996,10 @@ this.testService.test();
 
 ## 持久层
 
-通过使用`koatty_cli`工具，Koatty目前默认支持TypeORM。如需使用其他类型的ORM，例如sequelize、mongose等，需要自行实现，Koatty并不做限制。
+持久层负责将服务层中的业务对象持久化到数据库中，ORM封装对数据库的访问操作，直接把对象映射到数据库。Koatty目前默认支持TypeORM。如需使用其他类型的ORM，例如sequelize、mongose等，可以参考`koatty_typeorm`插件自行实现。
+
+> 持久层是一种业务逻辑分层，在框架中并不是必须的。
+> 持久层在框架IOC容器的类型是`COMPONENT`， 框架启动时会同插件一起加载。 在插件中，是可以引用持久层的。
 
 ### 创建数据实体
 
@@ -1008,21 +1011,35 @@ this.testService.test();
 kt model test
 ```
 
-该工具会自动创建实体类。除实体类以外，还会自动创建一个TypeORM的插件:
+该工具会自动创建实体类:
 
 ```js
-import { Koatty, Plugin, IPlugin } from "koatty";
-import typeorm from 'koatty_typeorm';
+import { Entity, PrimaryGeneratedColumn, CreateDateColumn, Column, UpdateDateColumn, BaseEntity } from "typeorm";
+import { Component } from 'koatty';
+import { App } from '../../App';
 
-@Plugin()
-export class TypeormPlugin implements IPlugin {
-  run(options: any, app: Koatty) {
-    return typeorm(options, app);
-  }
+@Component()
+@Entity('user') // 对应数据库表名
+export class UserModel extends BaseEntity {
+  app: App;
+
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @CreateDateColumn()
+  createdDate: Date;
+
+  @UpdateDateColumn()
+  updatedDate: Date;
 }
 ```
 
-### 数据库配置
+除实体类以外，还会在plugin目录自动引入`koatty_typeorm`插件，需要在插件列表中加载。
+
+### 配置
 
 在项目的plugin配置 config/plugin.ts 中，修改数据库相关配置项:
 
@@ -1100,6 +1117,7 @@ export default {
 
 综上所述，我们需要一套更加强大的机制，来管理、编排那些相对独立的业务逻辑。典型的应用场景就是注册中心注册、向配置中心拉取配置等。
 
+> 在框架IOC容器中，插件是一种特殊的`COMPONENT`类型。可以被其他的`COMPONENT`类型bean以及服务层引用
 
 ### 创建插件
 
