@@ -908,7 +908,7 @@ koatty解析和处理request参数后，在控制器中我们可以通过以下�
 ```js
 ...
   @PostMapping("/get")
-  async get(ctx.get): Promise<any> {
+  async get(): Promise<any> {
     const token = this.ctx.get("x-access-token");
     console.log(token);
   }
@@ -918,7 +918,7 @@ koatty解析和处理request参数后，在控制器中我们可以通过以下�
 ```js
 ...
   @PostMapping("/get")
-  async get(ctx.get): Promise<any> {
+  async get(): Promise<any> {
     console.log(this.ctx.header);
   }
 ...
