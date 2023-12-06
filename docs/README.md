@@ -996,32 +996,27 @@ this.testService.test();
 
 ## 持久层
 
-持久层负责将服务层中的业务对象持久化到数据库中，ORM封装对数据库的访问操作，直接把对象映射到数据库。Koatty目前默认支持TypeORM。如需使用其他类型的ORM，例如sequelize、mongose等，可以参考`koatty_typeorm`插件自行实现。
+持久层负责将服务层中的业务对象持久化到数据库中，ORM封装对数据库的访问操作，直接把对象映射到数据库。
 
 > 持久层是一种业务逻辑分层，在框架中并不是必须的。
-> 持久层在框架IOC容器的类型是`COMPONENT`， 框架启动时会同插件一起加载。 在插件中，是可以引用持久层的。
+> 持久层在框架IOC容器的类型是`COMPONENT`。
+> 框架启动时持久层会同插件一起加载。 在插件中，是可以引用持久层的。
+> Koatty目前默认支持TypeORM。如需使用其他类型的ORM，例如sequelize、mongose等，可以参考`koatty_typeorm`插件自行实现。
 
-### 创建数据实体
+### 创建模型类
 
-通过koatty_cli命令行工具创建数据实体:
+通过koatty_cli命令行工具创建数据模型以及实体:
 
 ```shell
-
-//typeorm
 kt model test
 ```
 
-该工具会自动创建实体类:
+该工具会自动创建实体类`UserEntity`以及模型类`UserModel`:
 
 ```js
-import { Entity, PrimaryGeneratedColumn, CreateDateColumn, Column, UpdateDateColumn, BaseEntity } from "typeorm";
-import { Component } from 'koatty';
-import { App } from '../../App';
-
 @Component()
 @Entity('user') // 对应数据库表名
-export class UserModel extends BaseEntity {
-  app: App;
+export class UserEntity extends BaseEntity {
 
   @PrimaryGeneratedColumn()
   id: number;
@@ -1036,8 +1031,31 @@ export class UserModel extends BaseEntity {
   updatedDate: Date;
 }
 ```
+模型类`UserModel`中已经自动生成了CURD常见的数据操作方法，甚至还有分页。
 
-除实体类以外，还会在plugin目录自动引入`koatty_typeorm`插件，需要在插件列表中加载。
+除此之以外，还会在plugin目录自动引入`koatty_typeorm`插件，需要在插件列表中加载。
+
+
+### 使用模型类
+
+在service类或其他组件中，可以通过装饰器注入:
+
+```js
+@Autowired()
+userModel: UserModel;
+```
+
+通过IOC容器获取:
+
+```js
+this.userModel = IOCContainer.get("UserModel", "COMPONENT");
+```
+
+调用模型类方法：
+
+```js
+this.userModel.Find();
+```
 
 ### 配置
 
