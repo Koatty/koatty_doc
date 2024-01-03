@@ -197,7 +197,7 @@ App 是全局应用对象，在一个应用中，只会实例化一个，它继�
 
 ```js
 @Controller()
-export class TestController extends BaseController {
+export class TestController {
     ...
 
     test() {
@@ -211,7 +211,7 @@ export class TestController extends BaseController {
 
 ```js
 @Middleware()
-export class TestMiddleware implements IMiddleware {
+export class TestMiddleware {
     run(options: any, app: Koatty) {
         ...
         //打印app对象
@@ -228,7 +228,7 @@ Ctx 是一个请求级别的对象，继承自 Koa.Context。在每一次收到�
 
 ```js
 @Controller()
-export class TestController extends BaseController {
+export class TestController {
     ...
 
     test() {
@@ -242,7 +242,7 @@ export class TestController extends BaseController {
 
 ```js
 @Middleware()
-export class TestMiddleware implements IMiddleware {
+export class TestMiddleware {
     run(options: any, app: Koatty) {
         ...
         
@@ -262,7 +262,7 @@ export class TestMiddleware implements IMiddleware {
 
 ```js
 @Service()
-export class RequestService extends BaseService {
+export class RequestService {
     app: App;
 
     Test(ctx: KoattyContext){
@@ -527,7 +527,7 @@ DeleteMaping、PutMaping、PostMaping等进行方法路由注册。
 例如：
 ```js
 @Controller("/admin")
-export class AdminController extends BaseController {
+export class AdminController {
     ...
     @GetMapping("/test")
     test(){
@@ -555,7 +555,7 @@ export class AdminController extends BaseController {
 
 ```js
 @Controller("/admin")
-export class AdminController extends BaseController {
+export class AdminController {
     ...
     @GetMapping("/test/:id") //在方法装饰器中，申明参数
     test(@PathVariable("id") id: number){ // 使用PathVariable获取绑定的参数
@@ -637,7 +637,7 @@ import { Middleware, Helper } from "koatty";
 import { App } from '../App';
 
 @Middleware()
-export class JwtMiddleware implements IMiddleware {
+export class JwtMiddleware {
     run(options: any, app: App) {
         // 在此实现中间件逻辑
         ...
@@ -689,7 +689,7 @@ const passport = require('koa-passport');
 
 
 @Middleware()
-export class PassportMiddleware implements IMiddleware {
+export class PassportMiddleware {
     run(options: any, app: App) {
         return passport.initialize();
     }
@@ -720,7 +720,7 @@ Koatty兼容支持express的中间件，用法同上文koa中间一样，框架�
 
 ## 控制器
 
-Koatty控制器类使用`@Controller()`装饰器声明，该装饰器的入参用于绑定控制器访问路由，参数默认值为`\/`。控制器类默认放在项目的`src/controller`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`BaseController`或`BaseController`的派生类。
+Koatty控制器类使用`@Controller()`装饰器声明，该装饰器的入参用于绑定控制器访问路由，参数默认值为`\/`。控制器类默认放在项目的`src/controller`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须实现接口`IController`。
 
 
 ### 创建控制器
@@ -753,20 +753,20 @@ kt controller admin/index
 控制器模板代码如下：
 
 ```js
-import { Controller, BaseController, GetMapping } from "koatty";
+import { Controller, GetMapping } from "koatty";
 import { App } from '../../App';
 
 @Controller("/")
-export class IndexController extends BaseController {
+export class IndexController {
     app: App;
     ctx: KoattyContext;
 
     /**
-     * Custom constructor
+     * constructor
      *
      */
-    init() {
-        //...
+    constructor(ctx: KoattyContext) {
+      this.ctx = ctx;
     }
 
     @GetMapping("/")
@@ -777,18 +777,22 @@ export class IndexController extends BaseController {
 ```
 ### 控制器特点
 
-控制器类必须继承于 BaseController 或 BaseController 的子类。
+* 控制器类必须实现接口 IController
 
-Koatty 使用`init()` 方法来替代`construct()` 构造方法(construct在使用super时有限制)。
-
-控制器里可以重写 `init` 方法如：
+* 控制器类构造方法第一个入参必须是`ctx: KoattyContext`, 且构造方法内需要给ctx属性赋值: 
 
 ```js
 
-init(){
-    this.data = {};
+constructor(ctx: KoattyContext) {
+  this.ctx = ctx;
 }
 ```
+
+* 根据软件分层架构, 控制器不能被其他控制器调用(确实需要调用的,将逻辑下沉到Service层进行代码复用), 
+  也不能被其他组件引用(反模式)
+
+
+
 ### 获取参数
 
 koatty解析和处理request参数后，在控制器中我们可以通过以下方法进行获取参数值：
@@ -942,7 +946,7 @@ koatty解析和处理request参数后，在控制器中我们可以通过以下�
 * 保持业务逻辑的独立性，抽象出来的 Service 可以被多个 Controller 重复调用。
 * 将逻辑和展现分离，更容易编写测试用例
 
-Koatty中服务类使用`@Service()`装饰器声明。服务类默认放在项目的`src/service`文件夹内，支持使用子文件夹进行归类。Koatty控制器类必须继承`BaseService`基类或`BaseService`的子类。
+Koatty中服务类使用`@Service()`装饰器声明。服务类默认放在项目的`src/service`文件夹内，支持使用子文件夹进行归类。Koatty服务类必须实现接口`IService`。
 
 ### 创建服务类
 
@@ -955,16 +959,12 @@ kt service test
 会自动创建src/service/test.js,生成的模板代码：
 
 ```js
-import { Service, BaseService, Autowired, Scheduled, Cacheable } from "koatty";
+import { Service, Autowired, Scheduled, Cacheable } from "koatty";
 import { App } from '../App';
 
 @Service()
-export class TestService extends BaseService  {
+export class TestService  {
     app: App;
-
-    init() {
-        //property
-    }
 
     //实现test方法
     test(name: string) {
@@ -1086,6 +1086,7 @@ export default {
 ```
 
 为了方便管理，我们也可以将数据库配置统一放到 config/db.ts内(需要删除 config/plugin.ts 中TypeormPlugin配置):
+
 ```js
 export default {
     /*database config*/
@@ -1137,7 +1138,7 @@ export default {
 
 > 在框架IOC容器中，插件是一种特殊的`COMPONENT`类型
 > 插件应尽量保持独立性，不和其他组件发生耦合
-> 在必要的情况下，插件可以调用持久层。但是不能调用服务层以及中间件和控制器，也不能被其他组件调用
+> 在必要的情况下，插件可以调用持久层。但是不能调用服务层、中间件以及控制器，也不能被其他组件调用
 
 ### 创建插件
 
@@ -1161,7 +1162,7 @@ import { App } from '../App';
 import { Apollo } from 'koatty_apollo';
 
 @Plugin()
-export class ApolloPlugin implements IPlugin {
+export class ApolloPlugin {
   run(options: any, app: App) {
     return Apollo(options, app);
   }
@@ -1247,8 +1248,14 @@ export class SayHelloRequestDto {
 FunctionValidator:
 
 ```js
+// 直接抛出错误
 FunctionValidator.IsNotEmpty(str, "cannot be empty");
 FunctionValidator.Contains(str, {message: "must contain s", value: "s"});
+
+// 返回 true or false
+if (ValidFuncs.IsEmail(str)) {
+  ....
+}
 ```
 ClassValidator:
 
@@ -1263,7 +1270,7 @@ class SchemaClass {
 
 const ins = new SchemaClass();
 ins.name = "";
-ClassValidator.valid(SchemaClass, ins).catch(err => {
+ClassValidator.valid(SchemaClass, ins, true).catch(err => {
     console.log(err);
 })
 ```
@@ -1417,6 +1424,7 @@ export default {
 ```js
 import { CacheAble, CacheEvict, GetCacheStore } from "koatty_cacheable";
 
+@Service()
 export class TestService {
 
     @CacheAble("testCache") // 自动缓存结果,缓存key=testCache
@@ -1561,13 +1569,13 @@ kt controller -t grpc admin/hello
 控制器模板代码如下：
 
 ```js
-import { KoattyContext, Controller, BaseController, Autowired, RequestMapping, RequestBody } from 'koatty';
+import { KoattyContext, Controller, Autowired, RequestMapping, RequestBody } from 'koatty';
 import { App } from '../App';
 import { SayHelloRequestDto } from '../dto/SayHelloRequestDto';
 import { SayHelloReplyDto } from '../dto/SayHelloReplyDto';
 
 @Controller('/Hello') // Consistent with proto.service name
-export class HelloController extends BaseController {
+export class HelloController {
   app: App;
   ctx: KoattyContext;
 
@@ -1575,8 +1583,8 @@ export class HelloController extends BaseController {
    * Custom constructor
    *
    */
-  init() {
-    //todo
+  constructor(ctx: KoattyContext) {
+    this.ctx = ctx;
   }
 
 
@@ -1661,12 +1669,12 @@ kt controller -t ws admin/requst
 控制器模板代码如下：
 
 ```js
-import { KoattyContext, Controller, BaseController, Autowired, GetMapping } from 'koatty';
+import { KoattyContext, Controller, Autowired, GetMapping } from 'koatty';
 import { App } from '../App';
 // import { TestService } from '../service/TestService';
 
 @Controller('/requst')
-export class RequstController extends BaseController {
+export class RequstController {
   app: App;
   ctx: KoattyContext;
 
@@ -1677,8 +1685,8 @@ export class RequstController extends BaseController {
    * Custom constructor
    *
    */
-  init() {
-    //todo
+  constructor(ctx: KoattyContext) {
+    this.ctx = ctx;
   }
 
   /**
@@ -1882,7 +1890,7 @@ Koatty基于IOC容器实现了一套切面编程机制，利用装饰器以及�
 
 ```js
 @Controller('/')
-export class TestController extends BaseController {
+export class TestController {
   app: App;
   ctx: KoattyContext;
 
