@@ -792,7 +792,6 @@ constructor(ctx: KoattyContext) {
   也不能被其他组件引用(反模式)
 
 
-
 ### 获取参数
 
 koatty解析和处理request参数后，在控制器中我们可以通过以下方法进行获取参数值：
@@ -831,6 +830,7 @@ koatty解析和处理request参数后，在控制器中我们可以通过以下�
 ```
 * RESTful API参数
 
+通过@PathVariable装饰器获取：
 ```js
   ...
   @GetMapping("/test/:id") //在方法装饰器中，申明参数
@@ -840,47 +840,57 @@ koatty解析和处理request参数后，在控制器中我们可以通过以下�
   ...
 ```
 
+通过ctx.requestParam获取:
+```js
+  ...
+  @GetMapping("/test/:id") //在方法装饰器中，申明参数
+  test(){ // 使用PathVariable获取绑定的参数
+      console.log(this.ctx.requestParam["id"]);...
+  }
+  ...
+```
+
 * Body参数
 
 通过@Post装饰器获取：
 ```js
 ...
-  @PostMapping("/get")
-  async get(@Post("id") id: number): Promise<any> {
+  @PostMapping("/post")
+  async post(@Post("id") id: number): Promise<any> {
     console.log(id);
   }
 ...
 ```
-
-通过@RequestParam装饰器获取：
-```js
-...
-  @PostMapping("/get")
-  async get(@RequestParam("id") id: number): Promise<any> {
-    console.log(id);
-  }
-...
-```
-> RequestParam装饰器既可以获取Body参数，又可以获取queryString参数。需要注意的是如果Body和queryString中有同名参数，会取Body传递的值
 
 通过@RequestBody装饰器获取：
 ```js
 ...
-  @PostMapping("/get")
-  async get(@RequestBody() body: any): Promise<any> {
+  @PostMapping("/post")
+  async post(@RequestBody() body: any): Promise<any> {
     console.log(body.post);
   }
 ...
 ```
-> RequestBody装饰器获取的值包括Body以及上传的文件对象
+
+通过ctx.requestBody获取:
+```js
+...
+  @PostMapping("/post")
+  async post(): Promise<any> {
+    console.log(ctx.requestBody.post);
+  }
+...
+```
+
+> RequestBody装饰器获取的值包括表单参数以及上传的文件对象
 
 * 上传文件
 
 通过@File装饰器获取：
 ```js
 ...
-  @PostMapping("/get")
-  async get(@File("filename") fileObject: any): Promise<any> {
+  @PostMapping("/post")
+  async post(@File("filename") fileObject: any): Promise<any> {
     console.log(fileObject);
   }
 ...
@@ -889,9 +899,19 @@ koatty解析和处理request参数后，在控制器中我们可以通过以下�
 通过@RequestBody装饰器获取：
 ```js
 ...
-  @PostMapping("/get")
-  async get(@RequestBody() body: any): Promise<any> {
+  @PostMapping("/post")
+  async post(@RequestBody() body: any): Promise<any> {
     console.log(body.file);
+  }
+...
+```
+
+通过ctx.requestBody获取:
+```js
+...
+  @PostMapping("/post")
+  async post(): Promise<any> {
+    console.log(ctx.requestBody.file);
   }
 ...
 ```
