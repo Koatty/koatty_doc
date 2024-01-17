@@ -1503,7 +1503,7 @@ export class TestService {
 
 ### 任务执行锁
 
-在某些业务场景，计划任务是不能并发执行的，解决方案就是加锁。`koatty_cacheable`实现了一个基于redis的分布式锁。
+在某些业务场景，计划任务是不能并发执行的，解决方案就是加锁。`koatty_schedule`实现了一个基于redis的分布式锁。
 
 * RedLock(name?: string, options?: RedLockOptions)
 
