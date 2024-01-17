@@ -1294,8 +1294,8 @@ ClassValidator.valid(SchemaClass, ins, true).catch(err => {
 除了内置规则，还可以自定义函数验证：
 
 * 配合 @Valid 装饰器使用自定义函数:
-```js
 
+```js
 @Controller('/api/login')
 export class LoginController {
   ...
@@ -1313,6 +1313,7 @@ export class LoginController {
 ```
 
 * 配合 @Validated 装饰器使用自定义函数:
+
 ```js
 
 @Controller('/api/login')
