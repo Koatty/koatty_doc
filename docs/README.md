@@ -1547,17 +1547,12 @@ export default {
     ...
 
     "RedLock": {
-        type: "redis", // 必须使用redis
-        key_prefix: "koatty",
         host: '127.0.0.1',
         port: 6379,
         name: "",
         username: "",
         password: "",
-        db: 0,
-        timeout: 30,
-        pool_size: 10,
-        conn_timeout: 30
+        db: 0
     },
 
     ...
