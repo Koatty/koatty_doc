@@ -1481,15 +1481,15 @@ cron表达式包含6位，分别代表 秒、分、小时、天、月、周：
  * Minutes: 0-59
  * Hours: 0-23
  * Day of Month: 1-31
- * Months: 0-11 (Jan-Dec)
- * Day of Week: 0-6 (Sun-Sat)
+ * Months: 1-12 (Jan-Dec)
+ * Day of Week: 1-7 (Sun-Sat)
 
 ### @Scheduled(cron: string)
 
 通过装饰器 @Scheduled 可以很方便的给方法增加任务执行计划:
 
 ```js
-import { Scheduled, SchedulerLock } from "koatty_schedule";
+import { Scheduled, RedLock } from "koatty_schedule";
 
 export class TestService {
 
@@ -1505,17 +1505,34 @@ export class TestService {
 
 在某些业务场景，计划任务是不能并发执行的，解决方案就是加锁。`koatty_cacheable`实现了一个基于redis的分布式锁。
 
-* @SchedulerLock(name?: string, lockTimeOut?: number, waitLockInterval?: number, waitLockTimeOut?: number)
+* RedLock(name?: string, options?: RedLockOptions)
 
-开启计划任务锁。 name锁唯一标识； lockTimeOut锁超时时长，防止死锁； number获取锁循环等待时间； waitLockTimeOut获取锁等待超时时长
+RedLockOptions:
+
+```
+  /**
+   * 锁超时时间ms, 默认 10000
+   */ 
+  lockTimeOut?: number;
+  /**
+   * 获取锁最大重试次数, 默认3次
+   */
+  retryCount?: number;
+  /**
+   * redis 配置, 支持Standalone、 Sentinel、 Cluster
+   */
+  RedisOptions: RedisOptions;
+```
+
+例子：
 
 ```js
-import { Scheduled, SchedulerLock } from "koatty_schedule";
+import { Scheduled, RedLock } from "koatty_schedule";
 
 export class TestService {
 
     @Scheduled("0 * * * * *")
-    @SchedulerLock("testCron") //locker
+    @RedLock("testCron") //locker
     Test(){
         //todo
     }
@@ -1523,16 +1540,13 @@ export class TestService {
 
 ```
 
-> 注意： @Scheduled及@SchedulerLock装饰器不能用于控制器类； 
-> 需要根据执行计划任务的时长来配置相应的参数，防止锁失效
-
 因为使用了redis，redis缓存配置保存在 `config/db.ts`内：
 
 ```js
 export default {
     ...
 
-    "SchedulerLock": {
+    "RedLock": {
         type: "redis", // 必须使用redis
         key_prefix: "koatty",
         host: '127.0.0.1',
@@ -1550,6 +1564,33 @@ export default {
 };
 
 ```
+
+也可以调用装饰器时传入配置:
+
+```js
+import { Scheduled, RedLock } from "koatty_schedule";
+
+export class TestService {
+    @Config("redisConf", "db")
+    private redisConf;
+
+    @Scheduled("0 * * * * *")
+    @RedLock("testCron", {
+      RedisOptions: redisConf
+    }) //locker
+    Test(){
+        //todo
+    }
+}
+
+```
+
+需要注意几个点：
+
+> @Scheduled及@RedLock装饰器不能用于控制器类； 
+> 需要根据执行计划任务的时长来配置相应的参数，防止锁失效
+> 当锁超时但业务逻辑未执行完时，锁会自动续期一次，续期时间到期后仍然未完成，锁会被释放
+
 ## gRPC
 
 Koatty从 3.4.x版本开始支持gRPC服务。
@@ -2001,7 +2042,7 @@ export class TestAspect {
 | `@HeadMapping()`           | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Head路由                                               | 仅用于控制器方法                              |
 | `@Scheduled()`             | `cron` 任务计划配置<br> * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 0-11 (Jan-Dec)<br>Day of Week: 0-6 (Sun-Sat)                                                        | 定义类的方法执行计划任务                                                 | 不能用于控制器方法，依赖`koatty_schedule`模块 |
 | `@Validated()`             |                                                                                                                                                                                                                           | 配合DTO类型进行参数验证                                                  | 方法入参没有DTO类型的不生效，仅用于控制器类   |
-| `@SchedulerLock()`         | `name` 锁的名称<br> `lockTimeOut` 锁自动超时时间<br> `waitLockInterval` 尝试循环获取锁时间间隔 <br>`waitLockTimeOut` 尝试循环获取锁最长等待时间<br> `redisOptions` redis服务器连接配置                                    | 定义方法执行时必须先获取分布式锁(基于Redis)，依赖`koatty_schedule`模块   |                                               |
+| `@RedLock()`               | `name` 锁的名称<br> `options` 锁配置，包含redis服务器连接配置                                                                                                                                                             | 定义方法执行时必须先获取分布式锁(基于Redis)，依赖`koatty_schedule`模块   |                                               |
 | `@CacheAble()`             | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `redisOptions` Redis服务器连接配置                                                                                        | 基于Redis的缓存，依赖`koatty_cacheable`模块                              | 不能用于控制器方法                            |
 | `@CacheEvict()`            | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `eventTime` 清除缓存的时点 <br>`redisOptions` Redis服务器连接配置                                                         | 同@Cacheable配合使用，用于方法执行时清理缓存，依赖`koatty_cacheable`模块 | 不能用于控制器方法                            |
 
