@@ -665,16 +665,7 @@ src/config/middleware.ts
 ```js
 list: [], //列表中没有PassportMiddleware，因此Passport中间件不会执行
 config: { //中间件配置 
-	'PassportMiddleware': false, // 中间件配置为false，中间件也不会执行
-}
-```
-
-对于Koatty默认执行的中间件，我们也可以禁止它们执行（一般不建议）:
-
-```js
-list: [], 
-config: { //中间件配置 
-	'StaticMiddleware': false //Static中间件被配置为不执行
+	'PassportMiddleware': {...}, 
 }
 ```
 
@@ -1157,7 +1148,9 @@ export default {
 综上所述，我们需要一套更加强大的机制，来管理、编排那些相对独立的业务逻辑。典型的应用场景就是注册中心注册、向配置中心拉取配置等。
 
 > 在框架IOC容器中，插件是一种特殊的`COMPONENT`类型
+> 
 > 插件应尽量保持独立性，不和其他组件发生耦合
+> 
 > 在必要的情况下，插件可以调用持久层。但是不能调用服务层、中间件以及控制器，也不能被其他组件调用
 
 ### 创建插件
@@ -1210,7 +1203,7 @@ src/config/plugin.ts
 list: [], //列表中没有ApolloPlugin，因此ApolloPlugin插件不会执行
 
 config: { //插件配置 
-	'ApolloPlugin': false,  // 插件配置为false，ApolloPlugin插件也不会执行
+	'ApolloPlugin': {...}, 
 }
 
 ```
@@ -1298,6 +1291,83 @@ ClassValidator.valid(SchemaClass, ins, true).catch(err => {
 
 `koatty_validation`定义了一系列常用的[验证规则](https://github.com/Koatty/koatty_validation)
 
+除了内置规则，还可以自定义函数验证：
+
+* 配合 @Valid 装饰器使用自定义函数:
+```js
+
+@Controller('/api/login')
+export class LoginController {
+  ...
+
+  async GetSignout(
+    @Header("X-User-Token") @Valid((value: unknown) => {
+    return value !== undefined && value !== null;
+  }, { message: "value值不能为null或undefined"}) token: string) {
+    // do something
+  }
+  ...
+
+}
+
+```
+
+* 配合 @Validated 装饰器使用自定义函数:
+```js
+
+@Controller('/api/login')
+export class LoginController {
+  ...
+
+  @Validated()
+  async GetSignout(@Post() someObj: ObjectDto) {
+    // do something
+  }
+  ...
+}
+
+// class ObjectDto
+export class ObjectDto {
+  ...
+  @CheckFunc((value: unknown)=> {
+    return value !== undefined && value !== null;
+  }, { message: "用户名不能为空" })
+  username: string;
+  ...
+}
+
+```
+
+* Dto类中自定义 ：
+
+```js
+@Controller('/api/login')
+export class LoginController {
+  ...
+
+  @Validated()
+  async GetSignout(@Post() someObj: ObjectDto) {
+    // call valid()
+    if (!someObj.validUserName()) {
+      throw new Exception("用户被禁用", 1004, 200);
+    }
+  }
+  ...
+}
+
+// class ObjectDto
+export class ObjectDto {
+  ...
+  @IsDefined()
+  username: string;
+
+  validUserName(): boolean {
+    return this.username === "test";
+  }
+  ...
+}
+
+```
 
 ## 异常处理
 
