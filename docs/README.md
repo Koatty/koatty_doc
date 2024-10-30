@@ -271,6 +271,12 @@ export class RequestService {
     }
 }
 ```
+
+> 注意 app.context 和 context.app 的区别:
+> app.context 是一个用于每次请求的上下文对象的原型。每次接收到请求时，Koa 会为该请求创建一个新的 context 对象，并将其赋给当前请求的 ctx 变量。尽管每个请求的 context 是基于 app.context 创建的，但这并不意味着 app.context 会被覆盖。app.context 实际上是一个模板，用于生成新的上下文实例。
+> context 中包含对 app 的引用, 尽管持有对 app 的引用，但它和 app 之间的关系是单向的（context 通过属性访问 app，而不反过来）
+
+
 ## 配置
 
 实际项目中，肯定需要各种配置，包括：框架需要的配置以及项目自定义的配置。Koatty 将所有的配置都统一管理，并根据不同的功能划分为不同的配置文件。
@@ -608,11 +614,13 @@ export default {
 
 ## 中间件
 
-Koatty是基于 Koa 实现的，所以 Koatty 的中间件形式和 Koa 的中间件形式是一样的，都是基于洋葱圈模型。每次我们编写一个中间件，就相当于在洋葱外面包了一层。
+Koatty是基于 Koa 实现的，所以 Koatty 的中间件形式和 Koa 的中间件形式本质上是一样的，都是基于洋葱圈模型。每次我们编写一个中间件，就相当于在洋葱外面包了一层。
 
 Koatty框架默认加载了trace、payload等中间件，能够满足大部分的Web应用场景。用户也可以自行增加中间件进行扩展。
 
-Koatty中间件类必须使用`@Middleware`来声明，该类必须要包含名为`run(options: any, app: App)`的方法。该方法在应用启动的时候会被调用执行，并且返回值是一个`function (ctx: any, next: any){}`，这个function是Koa中间件的格式。
+和Koa中间件不太一样的是，Koatty中间件使用了class的形式来书写，并且使用使用`@Middleware`来声明组件类型。
+
+中间件类必须要包含名为`run(options: any, app: App)`的方法。该方法在应用启动的时候会被调用执行，并且返回值是一个`function (ctx: any, next: any){}`，这个function才是Koa中间件的格式。
 
 ### 使用中间件
 
@@ -639,8 +647,12 @@ import { App } from '../App';
 @Middleware()
 export class JwtMiddleware {
     run(options: any, app: App) {
-        // 在此实现中间件逻辑
-        ...
+	// 返回中间件之前的逻辑, 例如读取配置等
+	...
+	return function (ctx: any, next: any){
+            // 在此实现中间件逻辑
+	    ...
+	}
     }
 }
 ```
