@@ -1510,13 +1510,13 @@ export default {
 
 ### 缓存使用
 
-* @CacheAble(cacheName: string, timeout = 3600)
+* @CacheAble(cacheName: string, {params: string[], timeout = 3600})
 
-开启方法结果自动缓存。当执行该方法的时候，会先查找缓存，缓存结果存在直接返回结果，不存在则执行后返回并保持执行结果。
+开启方法结果自动缓存。当执行该方法的时候，会先查找缓存，缓存结果存在直接返回结果，不存在则执行后返回并保持执行结果。params数组元素为参数名，会根据传入的参数名获取参数值，然后同缓存前缀一起拼接成缓存key。例如：`@CacheAble("getUser", {params: ["name"]})`, name入参值`tom`, 拼接的缓存key为 `getUser:name:tom`。
 
-* @CacheEvict(cacheName: string, eventTime: eventTimes = "Before")
+* @CacheEvict(cacheName: string, {params: string[], delayedDoubleDeletion = true})
 
-清除方法结果缓存，eventTimes表示清除的时机，分别为 Before=方法执行前， After=方法执行后
+清除方法结果缓存，params参数使用和CacheAble一致。delayedDoubleDeletion为true时开启延迟双删策略。
 
 * GetCacheStore(app: Koatty) 
 
