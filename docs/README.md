@@ -314,17 +314,12 @@ Koatty的配置文件必须是标准的ES6 Module格式进行导出,否则会无
 
 ```js
 export default {
-    /*database config*/
-    database: {
-        db_type: 'mysql', //support  postgresql,mysql...
-        db_host: '127.0.0.1',
-        db_port: 3306,
-        db_name: 'test',
-        db_user: 'test',
-        db_pwd: '',
-        db_prefix: '',
-        db_charset: 'utf8'
+    ...
+    aa: "bb",
+    cc: {
+      dd: ""
     }
+    ...
 }
 
 ```
@@ -333,39 +328,43 @@ export default {
 
 在项目中有两种方式可以很方便的读取配置：
 
-* 方式一(控制器、service等含有app属性的类中使用):
+* 方式一(使用app.config函数):
 
 ```js
 //
 ...
-const conf: any = this.app.config("test");
+const conf: Test = this.app.config("test");
 
 ```
+
 * 方式二(利用装饰器进行注入，推荐用法)
 
 ```js
 @Controller()
 export class AdminController {
     @Config("test")
-    conf: any;
+    conf: Test;
 }
 
 ```
+
+> 上述读取配置代码中的配置类型'Test'，是定义的配置类。当然也可以使用Object或者any类型 
+
 ### 配置分类及层级
 
 Koatty在启动扫描配置文件目录时，会按照文件名对配置进行分类。例如：db.ts加载完成后，读取该文件内的配置项需要增加类型
 
 ```js
-// config函数的第二个参数为类型
-const conf: any = this.app.config("test", "db");
+// config函数的第二个参数为配置类型
+const conf: Test = this.app.config("test", "db");
 
 或者
 
 @Config("test", "db")
-conf: any;
+conf: Test;
 
 ```
-> 配置文件默认分类是 `config`，因此 config.ts文件内的配置项无需填写类型入参
+> 配置默认分类是 `config`，因此 config.ts文件内的配置项无需填写类型参数
 
 Koatty在读取配置时支持配置层级，例如配置文件db.ts：
 
@@ -416,7 +415,7 @@ const cc: number = conf.bb.cc;
 
 ### 运行环境配置
 
-Koatty可以自动识别当前运行环境，并且根据运行环境自动加载相应配置（如果存在）。
+Koatty可以自动识别当前运行环境，并且根据运行环境自动加载相应配置（如果有相关配置）。
 
 运行环境由三个属性来进行定义：
 
@@ -449,19 +448,22 @@ export class App extends Koatty {
 
 | 变量                   | 取值                   | 说明                  | 优先级 |
 | ---------------------- | ---------------------- | --------------------- | ------ |
-| appDebug               | true/false             | 调试模式              | 低     |
-| process.env.NODE_ENV   | development/production | Node.js运行时环境变量 | 中     |
-| process.env.KOATTY_ENV | development/production | 框架运行时环境变量    | 高     |
+| appDebug               | true/false             | 调试模式              | 高     |
+| process.env.KOATTY_ENV | development/production | 框架运行时环境变量    | 中     |
+| process.env.NODE_ENV   | development/production | Node.js运行时环境变量 | 低     |
 
 
 > 这里的优先级指加载运行时相应配置文件的优先级，优先级高的配置会覆盖优先级低的配置。
 
 
 ```js
-const env = process.env.KOATTY_ENV || process.env.NODE_ENV || (appDebug == true ? "development" : "production");
+app.env = process.env.KOATTY_ENV || process.env.NODE_ENV;
+if (app.appDebug) {
+  app.env = 'development';
+}
 ```
 
-如果 `env = production`, koatty_config 会自动加载以 `_pro.ts` 或 `_production.ts` 后缀的配置文件。
+如果 `app.env = production`, koatty_config 会自动加载以 `_pro.ts` 或 `_production.ts` 后缀的配置文件。`app.env = development`, 则会自动加载以 `_dev.ts` 或 `_development.ts` 后缀的配置文件。
 
 例如:
 
@@ -497,7 +499,7 @@ export default {
 ```
 
 ```sh
-// 自动填充ff的值
+// 自动填充ff_value的值
 NODE_ENV=dev ff_value=999 ts-node "test/test.ts"
 
 ```
@@ -2130,17 +2132,17 @@ export class TestAspect {
 
 ### 参数装饰器
 
-| 装饰器名称        | 参数                                                                                   | 说明                                    | 备注                     |
-| ----------------- | -------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------ |
-| `@File()`         | `name` 文件名                                                                          | 获取上传的文件对象                      | 仅用于HTTP控制器方法参数 |
-| `@Get()`          | `name` 参数名                                                                          | 获取querystring参数(获取路由绑定的参数) | 仅用于HTTP控制器方法参数 |
-| `@Header()`       | `name` 参数名                                                                          | 获取Header内容                          | 仅用于HTTP控制器方法参数 |
-| `@PathVariable()` | `name` 参数名                                                                          | 获取路由绑定的参数 /user/:id            | 仅用于HTTP控制器方法参数 |
-| `@Post()`         | `name` 参数名                                                                          | 获取Post参数                            | 仅用于HTTP控制器方法参数 |
-| `@RequestBody()`  |                                                                                        | 获取ctx.body                            | 仅用于控制器方法参数     |
-| `@RequestParam()` | `name` 参数名                                                                          | 获取Get或Post参数，Post优先             | 仅用于控制器方法参数     |
-| `@Valid()`        | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证                        | 仅用于控制器类           |
-| `@Inject()`    | `paramName` 构造方法入参名(形参)  <br> `cType` 注入bean的类型 | 该装饰器使用类构造方法入参来注入依赖, 如果和 `@Autowired()` 同时使用, 可能会覆盖autowired注入的相同属性 | 仅用于构造方法(constructor)的入参 |
+| 装饰器名称        | 参数                                                                                   | 说明                                                                                                    | 备注                              |
+| ----------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `@File()`         | `name` 文件名                                                                          | 获取上传的文件对象                                                                                      | 仅用于HTTP控制器方法参数          |
+| `@Get()`          | `name` 参数名                                                                          | 获取querystring参数(获取路由绑定的参数)                                                                 | 仅用于HTTP控制器方法参数          |
+| `@Header()`       | `name` 参数名                                                                          | 获取Header内容                                                                                          | 仅用于HTTP控制器方法参数          |
+| `@PathVariable()` | `name` 参数名                                                                          | 获取路由绑定的参数 /user/:id                                                                            | 仅用于HTTP控制器方法参数          |
+| `@Post()`         | `name` 参数名                                                                          | 获取Post参数                                                                                            | 仅用于HTTP控制器方法参数          |
+| `@RequestBody()`  |                                                                                        | 获取ctx.body                                                                                            | 仅用于控制器方法参数              |
+| `@RequestParam()` | `name` 参数名                                                                          | 获取Get或Post参数，Post优先                                                                             | 仅用于控制器方法参数              |
+| `@Valid()`        | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证                                                                                        | 仅用于控制器类                    |
+| `@Inject()`       | `paramName` 构造方法入参名(形参)  <br> `cType` 注入bean的类型                          | 该装饰器使用类构造方法入参来注入依赖, 如果和 `@Autowired()` 同时使用, 可能会覆盖autowired注入的相同属性 | 仅用于构造方法(constructor)的入参 |
 
 # 编程规范和约定
 
