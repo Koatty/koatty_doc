@@ -131,9 +131,9 @@ Koatty的命令行工具`koatty_cli`在创建项目的时候，默认会形成�
 │   │   └── TestModel.ts
 │   ├── plugin                    # 插件
 │   │   └── TestPlugin.ts
-│   ├── proto                     # pb协议
-│   │   └── test.proto
 │   ├── resource                  # 用于存放静态数据或白名单等
+│   │   └── proto                     # pb协议
+│   │     └── test.proto
 │   │   └── data.json
 │   ├── service                   # service逻辑层
 │   │   └── TestService.ts
@@ -600,6 +600,7 @@ export default {
     }
 };
 ```
+
 
 ### 路由特点
 
@@ -1685,7 +1686,7 @@ Koatty从 3.4.x版本开始支持gRPC服务。
 kt proto hello
 ```
 
-会自动创建 src/proto/Hello.proto文件。根据实际情况进行修改
+会自动创建 src/resource/proto/Hello.proto文件。根据实际情况进行修改
 
 ### gRPC协议控制器
 
@@ -1773,7 +1774,7 @@ export default {
      *  Other extended configuration
      */
     ext: {
-        protoFile: process.env.APP_PATH + "proto/Hello.proto", // gRPC proto file
+        protoFile: process.env.APP_PATH + "resource/proto/Hello.proto", // gRPC proto file
     }
 
   ...
