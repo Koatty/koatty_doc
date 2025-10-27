@@ -1,5 +1,7 @@
 # Koatty 🚀
 
+> **语言切换**: [English](README-en.md) | 简体中文
+
 Koa + TypeScript + IOC = Koatty. **Koatty** 是一个渐进式 Node.js 框架，用于构建高效、可扩展的服务端应用程序。非常适合使用 TypeScript 构建企业级 API、微服务和全栈应用。
 
 [![Version npm](https://img.shields.io/npm/v/koatty.svg?style=flat-square)](https://www.npmjs.com/package/koatty)[![npm Downloads](https://img.shields.io/npm/dm/koatty.svg?style=flat-square)](https://npmcharts.com/compare/koatty?minimal=true)

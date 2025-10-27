@@ -1,5 +1,7 @@
 # Koatty 🚀
 
+> **Language**: English | [简体中文](README.md)
+
 [![npm version](https://img.shields.io/npm/v/koatty)](https://www.npmjs.com/package/koatty)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
