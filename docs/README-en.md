@@ -1,46 +1,74 @@
-# Koatty
+# Koatty 🚀
 
-Koatty is an agile development framework based on Koa2, featuring automatic dependency injection (IoC) and Aspect-Oriented Programming (AOP) using TypeScript decorators, similar to SpringBoot.
+[![npm version](https://img.shields.io/npm/v/koatty)](https://www.npmjs.com/package/koatty)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
+Koa + TypeScript + IOC = Koatty. **Koatty** is a progressive Node.js framework for building efficient and scalable server-side applications. It's perfect for crafting enterprise-level APIs, microservices, and full-stack applications with TypeScript excellence.
+
+## Why Koatty? 💡
+
+- 🚄 **High Performance**: Built on top of Koa with optimized architecture
+- 🧩 **Full-Featured**: Supports gRPC, HTTP, WebSocket, GraphQL, scheduled tasks, and more
+- 🧠 **TypeScript First**: Native TypeScript support with elegant OOP design
+- 🌀 **Spring-like IOC Container**: Powerful dependency injection system with autowiring
+- ✂️ **AOP Support**: Aspect-oriented programming with decorator-based interceptors
+- 🔌 **Extensible Architecture**: Plugin system with dependency injection
+- 📦 **Modern Tooling**: CLI scaffolding, testing utilities, and production-ready configurations
+- 🌐 **Protocol Agnostic**: Write once, deploy as HTTP/gRPC/WebSocket/GraphQL services
+
+## ✨ Latest Features
+
+- ✅ **Multi-Protocol Architecture** - Run HTTP, HTTPS, HTTP/2, HTTP/3, gRPC, WebSocket, and GraphQL simultaneously
+- ✅ **Intelligent Metadata Cache** - LRU caching with preloading for 70%+ performance boost
+- ✅ **Protocol-Specific Middleware** - Bind middleware to specific protocols with `@Middleware({ protocol: [...] })`
+- ✅ **Graceful Shutdown** - Enhanced connection pool management and cleanup handlers
+- ✅ **Enhanced gRPC Support** - Timeout detection, duplicate call protection, streaming improvements
+- ✅ **Application Lifecycle Hooks** - Custom decorators with `BindEventHook` API for boot/ready/stop events
+- ✅ **Version Conflict Detection** - Automatic detection and resolution of dependency conflicts
+- ✅ **GraphQL over HTTP/2** - Automatic HTTP/2 upgrade with SSL for multiplexing and compression
+- ✅ **Global Exception Handling** - `@ExceptionHandler()` decorator for centralized error management
+- ✅ **OpenTelemetry Tracing** - Full-stack observability with distributed tracing
+- 💪 **Swagger/OpenAPI 3.0** - Automatic API documentation generation
+
+## 📚 Documentation
+
+- [Getting Started Guide](#quick-start)
+- [API Reference](https://koatty.org/#/?id=api)
+- [Example Projects](https://github.com/Koatty/koatty_demo)
 
 ## Quick Start
 
-### First Application
+### 1. Install CLI Tool
 
-1. **Install the Command Line Tool**
-   
-   ```bash
-   npm i -g koatty_cli
-   ```
-   
-   The version of the command line tool corresponds to the version of the Koatty framework. For example, `koatty_cli@1.11.x` supports the new features of `koatty@1.11.x`.
+```bash
+npm install -g koatty_cli
+```
 
-2. **Create a New Project**
-   
-   ```bash
-   kt new projectName
-   cd ./projectName
-   yarn install
-   ```
+The CLI tool version corresponds to the Koatty framework version. For example, `koatty_cli@1.11.x` supports new features in `koatty@1.11.x`.
 
-3. **Start the Service**
-   
-   - **Development Mode**
-     
-     ```bash
-     npm run dev
-     ```
-   
-   - **Production Mode**
-     
-     ```bash
-     npm start
-     ```
-     
-     Access the application in your browser at `http://localhost:3000`.
+### 2. Create a New Project
 
-### Debugging Mode
+```bash
+kt new projectName
+cd ./projectName
+yarn install
+```
 
-It is highly recommended to use Visual Studio Code (VSCode) for development. Edit the `.vscode/launch.json` file in the project directory (you can also open it by clicking on Debug > Add Configuration):
+### 3. Start the Service
+
+```bash
+# Development mode
+npm run dev
+
+# Production mode
+npm start
+```
+
+Visit `http://localhost:3000/` in your browser.
+
+## Debugging Mode
+
+We strongly recommend using Visual Studio Code (VSCode) for development. Edit the `.vscode/launch.json` file in the project directory:
 
 ```json
 {
@@ -69,9 +97,9 @@ It is highly recommended to use Visual Studio Code (VSCode) for development. Edi
 
 Select `TS Program` to start in debug mode and access `http://127.0.0.1:3000`.
 
-### Unit Testing
+## Unit Testing
 
-Koatty currently only supports Jest for writing test cases.
+Koatty currently only supports Jest for writing test cases:
 
 ```javascript
 import request from 'supertest';
@@ -93,16 +121,16 @@ describe('UT example', () => {
 });
 ```
 
-## Basic Features
+# Core Features
 
-### Project Structure
+## Project Structure
 
-The Koatty CLI `koatty_cli` creates the following directory structure by default when creating a project:
+The Koatty CLI tool `koatty_cli` creates the following directory structure by default:
 
-```
+```bash
 <projectName>
 ├── .vscode                       # VSCode configuration
-│   └── launch.json               # Node local debugging script
+│   └── launch.json               # Node debugging script
 ├── dist                          # Compiled directory
 ├── src                           # Project source code
 │   ├── config
@@ -122,11 +150,11 @@ The Koatty CLI `koatty_cli` creates the following directory structure by default
 │   │   └── TestModel.ts
 │   ├── plugin                    # Plugins
 │   │   └── TestPlugin.ts
-│   ├── proto                     # Protocol Buffers
-│   │   └── test.proto
-│   ├── resource                  # Static data or whitelist
+│   ├── resource                  # Static data or resources
+│   │   ├── proto                 # Protocol Buffers
+│   │   │   └── test.proto
 │   │   └── data.json
-│   ├── service                   # Service logic
+│   ├── service                   # Service logic layer
 │   │   └── TestService.ts
 │   ├── utils                     # Utility functions
 │   │   └── tool.ts
@@ -142,15 +170,14 @@ The Koatty CLI `koatty_cli` creates the following directory structure by default
 └── tsconfig.json
 ```
 
-However, Koatty supports flexible customization of the project structure. Except for the configuration directory (which can be customized through `@ConfigurationScan()`), and the static resources directory (which requires modifying the default configuration of the Static middleware), other directory names and structures can be customized.
+Koatty supports flexible project structure customization. Except for the configuration directory (customizable through `@ConfigurationScan()`) and static resources directory (requires modifying the Static middleware default configuration), other directory names and structures can be customized.
 
-### Entry File
+## Entry File
 
-The default entry file for Koatty is `App.ts`, which looks like this:
+The default entry file for Koatty is `App.ts`:
 
 ```typescript
 import { Koatty, Bootstrap } from "koatty";
-// import * as path from "path";
 
 @Bootstrap(
   // bootstrap function
@@ -165,29 +192,32 @@ import { Koatty, Bootstrap } from "koatty";
 // @ConfigurationScan('./config')
 export class App extends Koatty {
   public init() {
-    // this.appDebug = true; // Set debug mode to false in production environment
+    // this.appDebug = true; // Set debug mode to false in production
   }
 }
 ```
 
-The `App` class inherits from `Koa.Application`. Therefore, an instance of `App` is an extended instance of `koa` (extended). Koatty defines the project entry through the `@Bootstrap()` decorator. The `@Bootstrap()` decorator can accept a function as a parameter, which is executed after initializing environmental parameters when the project is loaded.
+The `App` class inherits from `Koatty`, which extends `Koa.Application`. Therefore, an `App` instance is an extended Koa instance.
 
-Koatty uses the `@ComponentScan()` decorator to define the project directory. If the project directory is modified, the relative directory name of the project needs to be passed; if certain directories are excluded from automatic loading of beans, the files that should not be automatically loaded can be placed outside the project directory.
+Koatty defines the project entry through the `@Bootstrap()` decorator, which can accept a function as a parameter. This function is executed after environment parameters are initialized when the project loads.
+
+Koatty uses the `@ComponentScan()` decorator to define the project directory. If the project directory is modified, pass the relative directory name; to exclude certain directories from automatic bean loading, place files outside the project directory.
 
 Koatty uses the `@ConfigurationScan()` decorator to customize the project configuration directory. The default value is `./config`, which is the `config` subdirectory under the project directory.
 
-## Basic Objects
+## Core Objects
 
 ### App
 
-`App` is a global application object. Only one instance will be instantiated in an application, inheriting from `Koa.Application`. We can mount some global methods and objects on the `App` object. It is easy to extend the `App` object in plugins or applications.
+`App` is a global application object. Only one instance is created per application, inheriting from `Koa.Application`. We can mount global methods and objects on the `App` object, making it easy to extend in plugins or applications.
 
-In `CONTROLLER`, `SERVICE`, `COMPONENT` type beans, the `App` object is injected by default and can be used directly:
+In `CONTROLLER`, `SERVICE`, and `COMPONENT` type beans, the `App` object is injected by default and can be used directly:
 
 ```typescript
 @Controller()
 export class TestController {
-  ...
+  app: App;
+  
   test() {
     // Print app object
     console.log(this.app);
@@ -201,23 +231,27 @@ In `MIDDLEWARE` type beans, the `App` object is passed as a function argument:
 @Middleware()
 export class TestMiddleware {
   run(options: any, app: Koatty) {
-    ...
     // Print app object
     console.log(app);
+    
+    return async (ctx: any, next: any) => {
+      await next();
+    };
   }
 }
 ```
 
 ### Ctx
 
-`Ctx` is a request-level object, inheriting from `Koa.Context`. Every time a user request is received, the framework instantiates a `Ctx` object, which encapsulates the information of this user request and provides many convenient methods to get request parameters or set response information.
+`Ctx` is a request-level object, inheriting from `Koa.Context`. Each time a user request is received, the framework instantiates a `Ctx` object, which encapsulates the request information and provides many convenient methods to get request parameters or set response information.
 
 In `CONTROLLER` type beans, the `Ctx` object is a member property and can be used directly:
 
 ```typescript
 @Controller()
 export class TestController {
-  ...
+  ctx: KoattyContext;
+  
   test() {
     // Print ctx object
     console.log(this.ctx);
@@ -231,22 +265,22 @@ In `MIDDLEWARE` type beans, the `Ctx` object is passed as an argument to the mid
 @Middleware()
 export class TestMiddleware {
   run(options: any, app: Koatty) {
-    ...
-    return async function (ctx: any, next: any) {
+    return async (ctx: KoattyContext, next: any) => {
       // Print ctx object
       console.log(ctx);
-      return next();
+      await next();
     };
   }
 }
 ```
 
-In `SERVICE`, `COMPONENT` type beans, the `Ctx` object needs to be passed manually:
+In `SERVICE` and `COMPONENT` type beans, the `Ctx` object needs to be passed manually:
 
 ```typescript
 @Service()
 export class RequestService {
   app: App;
+  
   Test(ctx: KoattyContext) {
     // Print ctx object
     console.log(ctx);
@@ -254,62 +288,136 @@ export class RequestService {
 }
 ```
 
-Note the difference between `app.context` and `context.app`: `app.context` is a prototype for the context object created for each request. Each time a request is received, Koa creates a new context object for that request and assigns it to the current `ctx` variable. Although each request's context is based on `app.context`, this does not mean that `app.context` will be overwritten. `app.context` is actually a template for generating new context instances. The context contains a reference to `app`, but the relationship between them is unidirectional (the context accesses `app` through properties, but not vice versa).
+> Note the difference between `app.context` and `context.app`:
+> `app.context` is a prototype for the context object created for each request. Each time a request is received, Koa creates a new context object and assigns it to the current `ctx` variable. Although each request's context is based on `app.context`, this does not mean `app.context` will be overwritten. `app.context` is actually a template for generating new context instances.
+> The context contains a reference to `app`, but the relationship is unidirectional (context accesses `app` through properties, but not vice versa).
 
 ## Configuration
 
-In actual projects, various configurations are definitely needed, including framework-required configurations and project-customized configurations. Koatty manages all configurations uniformly and divides them into different configuration files according to different functions.
+In actual projects, various configurations are needed, including framework-required configurations and project-customized configurations. Koatty manages all configurations uniformly and divides them into different configuration files according to different functions.
 
-### Common Configurations
+**Configuration Files**:
 
-- `config.ts`: General configurations
-- `db.ts`: Database configurations
-- `router.ts`: Router configurations
-- `middleware.ts`: Middleware configurations
-- `plugin.ts`: Plugin configurations
+- `config.ts` - General configurations (including server protocol configuration)
+- `db.ts` - Database configurations
+- `router.ts` - Router configurations (including protocol-specific extension configuration)
+- `middleware.ts` - Middleware configurations
+- `plugin.ts` - Plugin configurations
 
 In addition to the common configuration files mentioned above, Koatty also supports custom configuration file naming.
 
-### Custom Configuration Scan Path
+### Multi-Protocol Server Configuration
 
-Configuration files are placed in the `src/config/` directory by default. You can also customize the configuration scan path in the entry file `App.ts`:
+Starting from version 3.14.x, Koatty supports running multiple protocols simultaneously. Configure protocols in `config/config.ts`:
 
 ```typescript
-@ConfigurationScan('./myconfig')
-export class App extends Koatty {
-  public init() {
-    ...
+// Single protocol mode (backward compatible)
+export default {
+  server: {
+    hostname: '127.0.0.1',
+    port: 3000,
+    protocol: "http", // Single protocol
+  }
+}
+
+// Multi-protocol mode
+export default {
+  server: {
+    hostname: '127.0.0.1',
+    port: 3000,
+    protocol: ["http", "grpc"], // Multiple protocols: 'http' | 'https' | 'http2' | 'http3' | 'grpc' | 'ws' | 'wss' | 'graphql'
+    trace: false, // Enable tracing
   }
 }
 ```
 
-When Koatty starts, it will automatically scan all `.ts` files in the project `src/myconfig` directory and load them as configurations according to the filename.
+**How It Works**:
+- `koatty_serve` automatically creates server instances for each protocol
+- `koatty_router` creates dedicated router instances for each protocol
+- Controllers are automatically registered to appropriate routers based on their decorators
+- HTTP controllers (`@Controller`) work with HTTP/HTTPS/HTTP2
+- gRPC controllers (`@GrpcController`) work with gRPC
+- GraphQL controllers (`@GraphQLController`) work with GraphQL (over HTTP/HTTPS)
+- WebSocket controllers (`@WsController`) work with WebSocket
+
+**Important Notes**:
+
+- **GraphQL Protocol**: GraphQL is an application-layer protocol that runs over HTTP/HTTP2, not a separate transport protocol. When you specify `protocol: "graphql"`, Koatty automatically:
+  - Uses **HTTP** as transport by default
+  - Uses **HTTP/2** when SSL certificates are configured (recommended for production)
+  
+- **GraphQL over HTTP/2** (Recommended): HTTP/2 provides significant benefits for GraphQL:
+  - **Multiplexing**: Handle multiple queries over a single connection
+  - **Header Compression**: Reduce bandwidth for large queries
+  - **Server Push**: Prefetch related resources
+  - **HTTP/1.1 Fallback**: Automatic downgrade for compatibility
+  
+  To enable HTTP/2 for GraphQL, configure in `config/config.ts`:
+  ```typescript
+  export default {
+    server: {
+      protocol: "graphql",
+      ssl: {
+        mode: 'auto',
+        key: './ssl/server.key',
+        cert: './ssl/server.crt'
+      },
+      ext: {
+        maxConcurrentStreams: 100  // Optional: HTTP/2 config
+      }
+    }
+  }
+  ```
+  
+  Then configure GraphQL schema in `config/router.ts`:
+  ```typescript
+  export default {
+    ext: {
+      schemaFile: "./resource/graphql/schema.graphql"
+    }
+  }
+  ```
+
+### Custom Configuration Scan Path
+
+Configuration files are placed in the `src/config/` directory by default. You can customize the configuration scan path in the entry file `App.ts`:
+
+```typescript
+// App.ts
+@ConfigurationScan('./myconfig')
+export class App extends Koatty {
+  public init() {
+    // ...
+  }
+}
+```
+
+Koatty will automatically scan all `.ts` files in the project `src/myconfig` directory and load them as configurations according to filenames.
 
 ### Configuration File Format
 
-Koatty's configuration files must be exported in standard ES6 Module format, otherwise they will not be loaded. The format is as follows:
+Koatty configuration files must be exported in standard ES6 Module format:
 
-```javascript
+```typescript
 export default {
-  ...
   aa: "bb",
   cc: {
     dd: ""
   }
-  ...
 }
 ```
 
 ### Reading Configurations
 
-There are two ways to read configurations conveniently in the project: Method One (using `app.config` function):
+There are two ways to read configurations in the project:
+
+**Method 1** (using `app.config` function):
 
 ```typescript
-...
 const conf: Test = this.app.config("test");
 ```
 
-Method Two (using decorator injection, recommended usage):
+**Method 2** (using decorator injection, recommended):
 
 ```typescript
 @Controller()
@@ -319,33 +427,30 @@ export class AdminController {
 }
 ```
 
-The configuration type `Test` in the above configuration reading code is a defined configuration class. Of course, you can also use `Object` or `any` types.
+> The configuration type `Test` in the above code is a defined configuration class. You can also use `Object` or `any` types.
 
 ### Configuration Classification and Hierarchy
 
-When Koatty scans the configuration file directory at startup, it classifies configurations according to filenames. For example, after loading `db.ts`, the configuration items in the file need to have a type added:
+When Koatty scans the configuration file directory at startup, it classifies configurations according to filenames. For example, after loading `db.ts`, reading configuration items in the file requires adding a type:
 
 ```typescript
 // The second parameter of the config function is the configuration type
 const conf: Test = this.app.config("test", "db");
-```
 
-Or
-
-```typescript
+// Or
 @Config("test", "db")
 conf: Test;
 ```
 
-The default classification of configurations is `config`, so configuration items in `config.ts` do not need to fill in the type parameter.
+> The default classification for configurations is `config`, so configuration items in `config.ts` do not need to fill in the type parameter.
 
 Koatty supports configuration hierarchy when reading configurations. For example, in the configuration file `db.ts`:
 
-```javascript
+```typescript
 export default {
   /* database config */
   database: {
-    db_type: 'mysql', // support postgresql, mysql...
+    db_type: 'mysql',
     db_host: '127.0.0.1',
     db_port: 3306,
     db_name: 'test',
@@ -362,17 +467,14 @@ To read the value of `db_host`:
 ```typescript
 @Config("database.db_host", "db")
 dbHost: string;
-```
 
-Or
-
-```typescript
+// Or
 const dbHost: string = this.app.config("database.db_host", "db");
 ```
 
-It should be noted that hierarchical configurations only support direct access to the second level. For deeper levels, assign the value to a variable and retrieve it again:
+Note that hierarchical configurations only support direct access to the **second level**. For deeper levels, assign the value to a variable and retrieve again:
 
-```javascript
+```typescript
 // config
 export default {
   test: {
@@ -381,6 +483,7 @@ export default {
     }
   }
 }
+
 const conf: any = this.app.config("test");
 const cc: number = conf.bb.cc;
 ```
@@ -391,33 +494,47 @@ Koatty can automatically recognize the current runtime environment and load corr
 
 The runtime environment is defined by three properties:
 
-- `appDebug`: Defined in the constructor method (`init`) of the project entry file.
-  
-  ```typescript
-  @Bootstrap()
-  export class App extends Koatty {
-    public init() {
-      // appDebug is true for development mode
-      // appDebug is false for production mode
-      this.appDebug = false;
-    }
+**appDebug**
+
+Defined in the constructor method (`init`) of the project entry file:
+
+```typescript
+// App.ts
+@Bootstrap()
+export class App extends Koatty {
+  public init() {
+    // appDebug is true for development mode
+    // appDebug is false for production mode
+    this.appDebug = false;
   }
-  ```
+}
+```
 
-- `process.env.NODE_ENV`: The runtime environment variable of Node.js, which can be defined in the system environment or in the startup function of the project entry file.
+**process.env.NODE_ENV**
 
-- `process.env.KOATTY_ENV`: The runtime environment variable of the Koatty framework.
+Node.js runtime environment variable, which can be defined in the system environment or in the startup function of the project entry file.
 
-The relationship and difference between the three variables:
+**process.env.KOATTY_ENV**
+
+Koatty framework runtime environment variable.
+
+**Relationship and Differences**:
+
 | Variable | Value | Description | Priority |
 |----------|-------|-------------|----------|
 | `appDebug` | `true/false` | Debug mode | High |
 | `process.env.KOATTY_ENV` | `development/production` | Framework runtime environment variable | Medium |
 | `process.env.NODE_ENV` | `development/production` | Node.js runtime environment variable | Low |
 
-The priority here refers to the priority of loading runtime configurations. Higher priority configurations will override lower priority configurations.
+> The priority here refers to the priority of loading runtime configurations. Higher priority configurations will override lower priority configurations.
 
-`app.env = process.env.KOATTY_ENV || process.env.NODE_ENV;`
+```typescript
+app.env = process.env.KOATTY_ENV || process.env.NODE_ENV;
+if (app.appDebug) {
+  app.env = 'development';
+}
+```
+
 If `app.env = production`, `koatty_config` will automatically load configuration files with `_pro.ts` or `_production.ts` suffixes. If `app.env = development`, it will automatically load configuration files with `_dev.ts` or `_development.ts` suffixes.
 
 For example:
@@ -431,7 +548,7 @@ Through flexible configuration of these three variables, diverse runtime environ
 
 ### Command Line Arguments
 
-Koatty can automatically recognize command line arguments and automatically fill them into corresponding configuration items:
+Koatty can automatically recognize command line arguments and fill them into corresponding configuration items:
 
 ```bash
 # Automatically fills the value of config.cc.dd.ee
@@ -440,24 +557,26 @@ NODE_ENV=dev ts-node "test/test.ts" --config.cc.dd.ee=77
 
 ### Placeholder Variable Replacement
 
-Koatty can automatically replace configuration items in configuration files identified by `${}` placeholders with values of the same name in `process.env`:
+Koatty can automatically replace configuration items identified by `${}` placeholders in configuration files with values of the same name in `process.env`:
 
 ```typescript
-// Automatically fills the value of ff_value
+// config.ts
 export default {
-  ...
   ff: "${ff_value}"
-  ...
 }
+```
+
+```bash
+# Automatically fills the value of ff_value
 NODE_ENV=dev ff_value=999 ts-node "test/test.ts"
 ```
 
 ### Common Environment Variables
 
-- `process.env.ROOT_PATH`: The root directory defined by Koatty. Can be used anywhere in the project.
-- `process.env.APP_PATH`: The application directory defined by Koatty (in debug mode, it is `/projectDIR/src`; in production mode, it is `/projectDIR/dist`). Can be used anywhere in the project.
-- `process.env.KOATTY_PATH`: The root directory of the Koatty framework (`/projectDIR/node_modules/koatty/`). Can be used anywhere in the project.
-- `process.env.LOGS_PATH`: The directory for saving logs (default is `/projectDIR/logs`, which can be modified in the configuration). Can be used anywhere in the project.
+- **process.env.ROOT_PATH**: The root directory defined by Koatty. Can be used anywhere in the project.
+- **process.env.APP_PATH**: The application directory defined by Koatty (in debug mode, it is `/projectDIR/src`; in production mode, it is `/projectDIR/dist`). Can be used anywhere in the project.
+- **process.env.KOATTY_PATH**: The root directory of the Koatty framework (`/projectDIR/node_modules/koatty/`). Can be used anywhere in the project.
+- **process.env.LOGS_PATH**: The directory for saving logs (default is `/projectDIR/logs`, which can be modified in the configuration). Can be used anywhere in the project.
 
 ## Routing
 
@@ -472,70 +591,112 @@ For example:
 ```typescript
 @Controller("/admin")
 export class AdminController {
-  ...
   @GetMapping("/test")
   test() {
-    ...
+    // ...
   }
-  ...
 }
 ```
 
 The above code registers the route `/admin/test` to `AdminController.test()`.
 
-Note: In gRPC services, the route bound by `@Controller` must match the `serviceName` defined in the proto.
-
-For example, `@Controller("/Book")` binds to the service `Book` in the proto.
+> Note: In gRPC services, the route bound by `@Controller` must match the `serviceName` defined in the proto. For example, `@Controller("/Book")` binds to the service `Book` in the proto.
 
 ### Method Routing
 
-Used to bind routes to controller methods. Refer to the decorator section for details.
+Method routing decorators include `@GetMapping`, `@PostMapping`, `@DeleteMapping`, `@PutMapping`, `@PatchMapping`, `@OptionsMapping`, `@HeadMapping`, `@RequestMapping`.
 
-The method routing decorators are `@GetMapping`, `@PostMapping`, `@DeleteMapping`, `@PutMapping`, `@PatchMapping`, `@OptionsMapping`, `@HeadMapping`, `@RequestMapping`.
-
-Note: In gRPC services, please use `@PostMapping` or `@RequestMapping` for binding, and the `path` in `@RequestMapping` must match the method name defined in the proto; in WebSocket services, please use `@GetMapping` or `@RequestMapping` for binding.
+> Note: In gRPC services, please use `@PostMapping` or `@RequestMapping` for binding, and the path in `@RequestMapping` must match the method name defined in the proto; in WebSocket services, please use `@GetMapping` or `@RequestMapping` for binding.
 
 ### Parameter Binding
 
-In method routing, there is a special parameter route that can easily implement RESTful APIs.
+In method routing, there is a special parameter route that can easily implement RESTful APIs:
 
 ```typescript
 @Controller("/admin")
 export class AdminController {
-  ...
   @GetMapping("/test/:id") // Declare parameters in the method decorator
   test(@PathVariable("id") id: number) { // Use PathVariable to get the bound parameter
-    ...
+    // ...
   }
-  ...
 }
 ```
 
-Koatty's routing component `koatty_router` is based on `@koa/router` (except for gRPC), and detailed routing tutorials can be found in `@koa/router`.
+Koatty's routing component `koatty_router` is based on `@koa/router` (except for gRPC). For detailed routing tutorials, please refer to [@koa/router](https://github.com/koajs/router).
 
 ### Route Configuration
 
-The custom route configuration is stored in `src/config/router.ts`, which initializes the routing instance.
+The custom route configuration is stored in `src/config/router.ts`, which initializes the routing instance:
 
 ```typescript
 export default {
-  prefix: string;
-  methods?: string[];
-  routerPath?: string;
-  sensitive?: boolean;
-  strict?: boolean;
+  prefix: string;           // Route prefix
+  methods?: string[];       // Supported HTTP methods
+  routerPath?: string;      // Route path
+  sensitive?: boolean;      // Case sensitive
+  strict?: boolean;         // Strict matching
+  
+  ext?: {                   // Protocol-specific extension configuration
+    // HTTP protocol config (optional)
+    
+    // gRPC protocol config (optional)
+    protoFile?: string;           // gRPC proto file path
+    poolSize?: number;            // Connection pool size
+    streamConfig?: {              // Stream configuration
+      maxConcurrentStreams?: number;    // Max concurrent streams
+      streamTimeout?: number;           // Stream timeout (ms)
+    }
+    
+    // WebSocket protocol config (optional)
+    maxFrameSize?: number;        // Max frame size (bytes)
+    heartbeatInterval?: number;   // Heartbeat interval (ms)
+    maxConnections?: number;      // Max connections
+    
+    // GraphQL protocol config (optional)
+    schemaFile?: string;          // GraphQL Schema file path
+    playground?: boolean;         // Enable GraphQL Playground
+    introspection?: boolean;      // Enable introspection query
+  }
 };
+```
 
-// If the project protocol is grpc, the proto file path needs to be defined:
+**Protocol-Specific Extension Configuration Examples**:
+
+#### gRPC Configuration
+```typescript
 export default {
-  // prefix: string;
-  // methods?: string[];
-  // routerPath?: string;
-  // sensitive?: boolean;
-  // strict?: boolean;
   ext: {
-    protoFile: "", // gRPC proto file
-  };
+    protoFile: "./resource/proto/Hello.proto",  // gRPC proto file
+    poolSize: 10,                               // Connection pool size
+    streamConfig: {
+      maxConcurrentStreams: 50,               // Max concurrent streams
+      streamTimeout: 60000                    // Stream timeout (ms)
+    }
+  }
+};
+```
+
+#### WebSocket Configuration
+```typescript
+export default {
+  ext: {
+    maxFrameSize: 1024 * 1024,     // Max frame size 1MB
+    heartbeatInterval: 15000,       // Heartbeat interval 15s
+    maxConnections: 1000            // Max connections
+  }
+};
+```
+
+#### GraphQL Configuration
+```typescript
+export default {
+  ext: {
+    schemaFile: "./resource/graphql/schema.graphql",  // GraphQL Schema file
+    playground: true,                                 // Enable GraphQL Playground
+    introspection: true,                              // Enable introspection
+    depthLimit: 10,                                   // Query depth limit
+    complexityLimit: 1000                             // Query complexity limit
+  }
 };
 ```
 
@@ -544,12 +705,11 @@ export default {
 - The `@Controller()` decorator has two roles: declaring the type of the bean as a controller and binding the controller route. If no path is specified when using the `@Controller()` decorator (no parameters), the default value is `/`.
 - Method routing decorators can be added multiple times to the same method. However, the `@Controller()` decorator can only be used once per class.
 - If duplicate routes are bound, the first loaded route rule takes effect according to the loading order of the controller class in the IOC container. This issue needs attention. In future versions, priority features may be added to control this.
+- Routes support regular expressions and parameter binding (not available in gRPC services). For detailed routing tutorials, please refer to [@koa/router](https://github.com/koajs/router).
 
-Routes support regular expressions and parameter binding (not available in gRPC services). Detailed routing tutorials can be found in `@koa/router`.
+## Middleware
 
-## ## Middleware
-
-Koatty is built on top of Koa, so the form of middleware in Koatty is essentially the same as in Koa, which is based on the onion model. Every time we write a middleware, it is like wrapping another layer around the onion.
+Koatty is built on top of Koa, so the form of middleware in Koatty is essentially the same as in Koa, based on the onion model. Every time we write a middleware, it's like wrapping another layer around the onion.
 
 Koatty's framework defaults to loading middleware such as trace and payload, which can meet most web application scenarios. Users can also add their own middleware for extension.
 
@@ -559,31 +719,31 @@ Middleware classes must contain a method named `run(options: any, app: App)`. Th
 
 ### Using Middleware
 
-Use the command line tool `koatty_cli` to execute commands in the command line:
+Use the command line tool `koatty_cli` to execute commands:
 
 ```bash
-# Create a custom middleware named jwt
+# jwt is the custom middleware name
 kt middleware jwt
 ```
 
-This will automatically generate a file `src/middleware/JwtMiddleware.ts` in the project directory with the generated middleware code template:
+This will automatically generate a file `src/middleware/JwtMiddleware.ts` with the middleware code template:
 
 ```typescript
 /**
-* Middleware
-* @return
-*/
-import { Middleware, Helper } from "koatty";
+ * Middleware
+ * @return
+ */
+import { Middleware } from "koatty";
 import { App } from '../App';
 
 @Middleware()
 export class JwtMiddleware {
   run(options: any, app: App) {
-    // Logic before returning middleware, e.g., reading configuration, etc.
-    ...
-    return function (ctx: any, next: any) {
+    // Logic before returning middleware, e.g., reading configuration
+    
+    return async (ctx: any, next: any) => {
       // Implement middleware logic here
-      ...
+      await next();
     }
   }
 }
@@ -592,10 +752,59 @@ export class JwtMiddleware {
 Modify the project middleware configuration in `src/config/middleware.ts`:
 
 ```typescript
-list: ['JwtMiddleware'], // List of loaded middleware
-config: { // Middleware configuration
-  JwtMiddleware: {
-    // Middleware configuration items
+export default {
+  list: ['JwtMiddleware'], // List of loaded middleware
+  config: { // Middleware configuration
+    JwtMiddleware: {
+      // Middleware configuration items
+    }
+  }
+}
+```
+
+### Protocol-Specific Middleware
+
+Starting from version 3.14.x, middleware can be bound to specific protocols and only execute in requests of the specified protocols:
+
+```typescript
+// Middleware that only executes in HTTP/HTTPS protocols
+@Middleware({ protocol: ["http", "https"] })
+export class HttpOnlyMiddleware {
+  run(options: any, app: App) {
+    return async (ctx: KoattyContext, next: Function) => {
+      // This middleware only runs for HTTP/HTTPS protocols
+      console.log('HTTP request:', ctx.url);
+      await next();
+    };
+  }
+}
+
+// Middleware that executes in multiple protocols
+@Middleware({ protocol: ["http", "grpc", "ws"] })
+export class MultiProtocolMiddleware {
+  run(options: any, app: App) {
+    return async (ctx: KoattyContext, next: Function) => {
+      // Execute different logic based on protocol type
+      if (ctx.protocol === 'grpc') {
+        // gRPC specific logic
+      } else if (ctx.protocol === 'websocket') {
+        // WebSocket specific logic
+      } else {
+        // HTTP specific logic
+      }
+      await next();
+    };
+  }
+}
+
+// Middleware that executes in all protocols (default behavior)
+@Middleware()
+export class UniversalMiddleware {
+  run(options: any, app: App) {
+    return async (ctx: KoattyContext, next: Function) => {
+      // This middleware runs in all protocols
+      await next();
+    };
   }
 }
 ```
@@ -605,9 +814,12 @@ config: { // Middleware configuration
 To disable middleware developed by the project, simply modify the middleware configuration file:
 
 ```typescript
-list: [], // If PassportMiddleware is not in the list, the Passport middleware will not execute
-config: { // Middleware configuration
-  'PassportMiddleware': {...},
+// src/config/middleware.ts
+export default {
+  list: [], // If PassportMiddleware is not in the list, the Passport middleware will not execute
+  config: {
+    'PassportMiddleware': {...},
+  }
 }
 ```
 
@@ -629,17 +841,19 @@ export class PassportMiddleware {
 Mount and configure usage:
 
 ```typescript
-list: ['PassportMiddleware'], // List of loaded middleware
-config: { // Middleware configuration
-  'PassportMiddleware': {
-    // Middleware configuration items
+export default {
+  list: ['PassportMiddleware'], // List of loaded middleware
+  config: {
+    'PassportMiddleware': {
+      // Middleware configuration items
+    }
   }
 }
 ```
 
 ### Using Express Middleware
 
-Koatty is compatible with Express middleware, and the usage is the same as Koa middleware. The framework will automatically recognize and convert for compatibility.
+Koatty is compatible with Express middleware. Usage is the same as Koa middleware, and the framework will automatically recognize and convert for compatibility.
 
 ### Middleware for Non-HTTP/S Protocols
 
@@ -647,32 +861,44 @@ If the project uses protocols such as `grpc`, `ws`, `wss`, etc., middleware need
 
 ## Controller
 
-Koatty controller classes use the `@Controller()` decorator to declare them, and the parameter of this decorator is used to bind the controller's access route, with the default value being `/`. Controller classes are placed in the project's `src/controller` folder by default and support subfolders for classification. Koatty controller classes must implement the `IController` interface.
+Koatty supports multi-protocol controllers, with different decorators for each protocol. Controller classes are placed in the project's `src/controller` folder by default and support subfolders for classification. Koatty controller classes must implement the `IController` interface.
+
+### Multi-Protocol Controller Decorators
+
+Koatty provides dedicated controller decorators for different protocols:
+
+- `@Controller()` - HTTP/HTTPS/HTTP2 protocol controller
+- `@GrpcController()` - gRPC protocol controller
+- `@GraphQLController()` - GraphQL protocol controller (based on HTTP/HTTPS)
+- `@WsController()` - WebSocket protocol controller
 
 ### Creating Controllers
 
 Use the `koatty_cli` command line tool:
 
-- Single module mode:
-  
-  ```bash
-  kt controller index # Default http protocol
-  kt controller -t http index
-  kt controller -t grpc index
-  kt controller -t ws index
-  ```
-  
-  This will automatically create `src/controller/IndexController.ts`.
+**Single module mode:**
 
-- Multi-module mode:
-  
-  ```bash
-  kt controller admin/index
-  ```
-  
-  This will automatically create `src/controller/Admin/IndexController.ts`.
+```bash
+kt controller index # Default http protocol
 
-The template code for the controller is as follows:
+# Or specify protocol
+kt controller -t http index
+kt controller -t grpc index
+kt controller -t ws index
+kt controller -t graphql index
+```
+
+This will automatically create `src/controller/IndexController.ts`.
+
+**Multi-module mode:**
+
+```bash
+kt controller admin/index
+```
+
+This will automatically create `src/controller/Admin/IndexController.ts`.
+
+### HTTP Controller Template
 
 ```typescript
 import { Controller, GetMapping } from "koatty";
@@ -683,10 +909,6 @@ export class IndexController {
   app: App;
   ctx: KoattyContext;
 
-  /**
-  * constructor
-  *
-  */
   constructor(ctx: KoattyContext) {
     this.ctx = ctx;
   }
@@ -698,10 +920,87 @@ export class IndexController {
 }
 ```
 
+### gRPC Controller Template
+
+```typescript
+import { GrpcController, PostMapping, RequestBody, Validated } from "koatty";
+import { App } from '../App';
+
+@GrpcController('/Hello') // Must match the service name in proto
+export class HelloController {
+  app: App;
+  ctx: KoattyContext;
+
+  constructor(ctx: KoattyContext) {
+    this.ctx = ctx;
+  }
+
+  @PostMapping('/SayHello') // Must match the method name in proto
+  @Validated() // Parameter validation
+  async sayHello(@RequestBody() params: SayHelloRequestDto): Promise<SayHelloReplyDto> {
+    const res = new SayHelloReplyDto();
+    res.message = `Hello, ${params.name}!`;
+    return res;
+  }
+}
+```
+
+### GraphQL Controller Template
+
+```typescript
+import { GraphQLController, GetMapping, PostMapping, RequestParam } from "koatty";
+import { App } from '../App';
+
+@GraphQLController('/graphql')
+export class UserController {
+  app: App;
+  ctx: KoattyContext;
+
+  constructor(ctx: KoattyContext) {
+    this.ctx = ctx;
+  }
+
+  // Query operation
+  @GetMapping()
+  async getUser(@RequestParam() id: string): Promise<User> {
+    return { id, name: 'GraphQL User' };
+  }
+
+  // Mutation operation
+  @PostMapping()
+  async createUser(@RequestParam() input: UserInput): Promise<User> {
+    return { id: input.id, name: input.name };
+  }
+}
+```
+
+### WebSocket Controller Template
+
+```typescript
+import { WsController, GetMapping, RequestBody } from "koatty";
+import { App } from '../App';
+
+@WsController('/ws')
+export class ChatController {
+  app: App;
+  ctx: KoattyContext;
+
+  constructor(ctx: KoattyContext) {
+    this.ctx = ctx;
+  }
+
+  @GetMapping("/")
+  async message(@RequestBody() data: any) {
+    // WebSocket message handling
+    return { type: 'response', data: data };
+  }
+}
+```
+
 ### Controller Features
 
-Controller classes must implement the `IController` interface.
-The constructor method of the controller class must have `ctx: KoattyContext` as the first parameter and assign it to the `ctx` property in the constructor method:
+- Controller classes must implement the `IController` interface.
+- The constructor method of the controller class must have `ctx: KoattyContext` as the first parameter and assign it to the `ctx` property in the constructor method:
 
 ```typescript
 constructor(ctx: KoattyContext) {
@@ -709,192 +1008,163 @@ constructor(ctx: KoattyContext) {
 }
 ```
 
-According to the software layered architecture, controllers should not be called by other controllers (if indeed needed, move the logic to the Service layer for code reuse), nor should they be referenced by other components (anti-pattern).
+- According to software layered architecture, controllers should not be called by other controllers (if needed, move the logic to the Service layer for code reuse), nor should they be referenced by other components (anti-pattern).
 
 ### Getting Parameters
 
-Koatty parses and processes request parameters, and in the controller, we can obtain parameter values through the following methods:
+Koatty parses and processes request parameters. In the controller, we can obtain parameter values through the following methods:
 
 #### Query String Parameters
 
-- Using `@Get` decorator:
-  
-  ```typescript
-  ...
-  @GetMapping("/get")
-  async get(@Get("id") id: number): Promise<any> {
-    console.log(id);
-  }
-  ...
-  ```
+Using `@Get` decorator:
 
-- Using `@RequestParam` decorator:
-  
-  ```typescript
-  ...
-  @GetMapping("/get")
-  async get(@RequestParam("id") id: number): Promise<any> {
-    console.log(id);
-  }
-  ...
-  ```
+```typescript
+@GetMapping("/get")
+async get(@Get("id") id: number): Promise<any> {
+  console.log(id);
+}
+```
 
-- Using `ctx.query`:
-  
-  ```typescript
-  ...
-  @GetMapping("/get")
-  async get(): Promise<any> {
-    console.log(this.ctx.query["id"]);
-  }
-  ...
-  ```
+Using `@RequestParam` decorator:
+
+```typescript
+@GetMapping("/get")
+async get(@RequestParam("id") id: number): Promise<any> {
+  console.log(id);
+}
+```
+
+Using `ctx.query`:
+
+```typescript
+@GetMapping("/get")
+async get(): Promise<any> {
+  console.log(this.ctx.query["id"]);
+}
+```
 
 #### RESTful API Parameters
 
-- Using `@PathVariable` decorator:
-  
-  ```typescript
-  ...
-  @GetMapping("/test/:id") // Declare parameters in the method decorator
-  test(@PathVariable("id") id: number) { // Use PathVariable to get the bound parameter
-    ...
-  }
-  ...
-  ```
+Using `@PathVariable` decorator:
 
-- Using `ctx.requestParam`:
-  
-  ```typescript
-  ...
-  @GetMapping("/test/:id") // Declare parameters in the method decorator
-  test() { // Use PathVariable to get the bound parameter
-    console.log(this.ctx.requestParam["id"]);
-  }
-  ...
-  ```
+```typescript
+@GetMapping("/test/:id") // Declare parameters in the method decorator
+test(@PathVariable("id") id: number) { // Use PathVariable to get the bound parameter
+  // ...
+}
+```
+
+Using `ctx.requestParam`:
+
+```typescript
+@GetMapping("/test/:id") // Declare parameters in the method decorator
+test() {
+  console.log(this.ctx.requestParam["id"]);
+}
+```
 
 #### Body Parameters
 
-- Using `@Post` decorator:
-  
-  ```typescript
-  ...
-  @PostMapping("/post")
-  async post(@Post("id") id: number): Promise<any> {
-    console.log(id);
-  }
-  ...
-  ```
+Using `@Post` decorator:
 
-- Using `@RequestBody` decorator:
-  
-  ```typescript
-  ...
-  @PostMapping("/post")
-  async post(@RequestBody() body: any): Promise<any> {
-    console.log(body.post);
-  }
-  ...
-  ```
+```typescript
+@PostMapping("/post")
+async post(@Post("id") id: number): Promise<any> {
+  console.log(id);
+}
+```
 
-- Using `ctx.requestBody`:
-  
-  ```typescript
-  ...
-  @PostMapping("/post")
-  async post(): Promise<any> {
-    console.log(ctx.requestBody.post);
-  }
-  ...
-  ```
+Using `@RequestBody` decorator:
+
+```typescript
+@PostMapping("/post")
+async post(@RequestBody() body: any): Promise<any> {
+  console.log(body.post);
+}
+```
+
+Using `ctx.requestBody`:
+
+```typescript
+@PostMapping("/post")
+async post(): Promise<any> {
+  console.log(this.ctx.requestBody.post);
+}
+```
+
+> The `RequestBody` decorator gets values including form parameters and uploaded file objects.
 
 #### File Upload
 
-- Using `@File` decorator:
-  
-  ```typescript
-  ...
-  @PostMapping("/post")
-  async post(@File("filename") fileObject: any): Promise<any> {
-    console.log(fileObject);
-  }
-  ...
-  ```
+Using `@File` decorator:
 
-- Using `@RequestBody` decorator:
-  
-  ```typescript
-  ...
-  @PostMapping("/post")
-  async post(@RequestBody() body: any): Promise<any> {
-    console.log(body.file);
-  }
-  ...
-  ```
+```typescript
+@PostMapping("/post")
+async post(@File("filename") fileObject: any): Promise<any> {
+  console.log(fileObject);
+}
+```
 
-- Using `ctx.requestBody`:
-  
-  ```typescript
-  ...
-  @PostMapping("/post")
-  async post(): Promise<any> {
-    console.log(ctx.requestBody.file);
-  }
-  ...
-  ```
+Using `@RequestBody` decorator:
+
+```typescript
+@PostMapping("/post")
+async post(@RequestBody() body: any): Promise<any> {
+  console.log(body.file);
+}
+```
+
+Using `ctx.requestBody`:
+
+```typescript
+@PostMapping("/post")
+async post(): Promise<any> {
+  console.log(this.ctx.requestBody.file);
+}
+```
 
 #### HTTP Header
 
-- Using `@Header` decorator:
-  
-  ```typescript
-  ...
-  @PostMapping("/get")
-  async get(@Header("x-access-token") token: string): Promise<any> {
-    console.log(token);
-  }
-  ...
-  ```
+Using `@Header` decorator:
 
-- Using `ctx.get`:
-  
-  ```typescript
-  ...
-  @PostMapping("/get")
-  async get(): Promise<any> {
-    const token = this.ctx.get("x-access-token");
-    console.log(token);
-  }
-  ...
-  ```
+```typescript
+@PostMapping("/get")
+async get(@Header("x-access-token") token: string): Promise<any> {
+  console.log(token);
+}
+```
 
-- Using `ctx.header`:
-  
-  ```typescript
-  ...
-  @PostMapping("/get")
-  async get(): Promise<any> {
-    console.log(this.ctx.header);
-  }
-  ...
-  ```
+Using `ctx.get`:
+
+```typescript
+@PostMapping("/get")
+async get(): Promise<any> {
+  const token = this.ctx.get("x-access-token");
+  console.log(token);
+}
+```
+
+Using `ctx.header`:
+
+```typescript
+@PostMapping("/get")
+async get(): Promise<any> {
+  console.log(this.ctx.header);
+}
+```
 
 ### Access Control
 
 Class references follow TypeScript's scope `private | protected | public`. If not explicitly declared, the scope of class methods is `public`.
-As long as a controller class method is bound to a route, the method can be accessed via URL mapping (even if the method's scope is not `public`). This is because currently, it is not possible to obtain the method's scope keyword through reflection (if you know how, please let me know), and URL access scope control has not been implemented.
 
-### Controller Properties and Methods
-
-Refer to the `BaseController API` for controller properties and methods.
+> As long as a controller class method is bound to a route, the method can be accessed via URL mapping (even if the method's scope is not `public`). This is because currently, it is not possible to obtain the method's scope keyword through reflection, and URL access scope control has not been implemented.
 
 ## Service Layer
 
 In simple terms, a Service is an abstraction layer used for encapsulating business logic in complex business scenarios. The benefits of providing this abstraction are:
 
 - Keeping the logic in the Controller simpler.
-- Maintaining the independence of business logic, abstracted Services can be called repeatedly by multiple Controllers.
+- Maintaining the independence of business logic; abstracted Services can be called repeatedly by multiple Controllers.
 - Separating logic from presentation, making it easier to write test cases.
 
 Koatty service classes use the `@Service()` decorator to declare them. Service classes are placed in the project's `src/service` folder by default and support subfolders for classification. Koatty service classes must implement the `IService` interface.
@@ -907,15 +1177,16 @@ Use the `koatty_cli` command line tool:
 kt service test
 ```
 
-This will automatically create `src/service/test.js`, with the generated template code:
+This will automatically create `src/service/TestService.ts` with the generated template code:
 
 ```typescript
-import { Service, Autowired, Scheduled, Cacheable } from "koatty";
+import { Service } from "koatty";
 import { App } from '../App';
 
 @Service()
 export class TestService {
   app: App;
+
   // Implement test method
   test(name: string) {
     return name;
@@ -948,9 +1219,10 @@ this.testService.test();
 
 The persistence layer is responsible for persisting business objects from the service layer into the database. ORM encapsulates database access operations, directly mapping objects to the database.
 
-The persistence layer is a type of business logic layering and is not mandatory in the framework. The persistence layer is of type `COMPONENT` in the framework's IOC container. It is loaded together with plugins when the framework starts. Plugins can reference the persistence layer.
-
-Koatty currently supports TypeORM by default. If you need to use other types of ORMs, such as Sequelize or Mongoose, you can refer to the `koatty_typeorm` plugin to implement it yourself.
+> The persistence layer is a type of business logic layering and is not mandatory in the framework.
+> The persistence layer is of type `COMPONENT` in the framework's IOC container.
+> It is loaded together with plugins when the framework starts. Plugins can reference the persistence layer.
+> Koatty currently supports TypeORM by default. If you need to use other types of ORMs, such as Sequelize or Mongoose, you can refer to the `koatty_typeorm` plugin to implement it yourself.
 
 ### Creating Model Classes
 
@@ -968,21 +1240,25 @@ This tool will automatically create an entity class `UserEntity` and a model cla
 export class UserEntity extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
+
   @Column()
   name: string;
+
   @CreateDateColumn()
   createdDate: Date;
+
   @UpdateDateColumn()
   updatedDate: Date;
 }
 ```
 
 The model class `UserModel` has already generated common CURD data operation methods, including pagination.
+
 In addition, the `koatty_typeorm` plugin will be automatically introduced in the `plugin` directory, which needs to be loaded in the plugin list.
 
 ### Using Model Classes
 
-Inject through decorators:
+Inject through decorators in service classes or other components:
 
 ```typescript
 @Autowired()
@@ -1003,22 +1279,22 @@ this.userModel.Find();
 
 ### Configuration
 
-Modify the database-related configuration items in the project's `plugin` configuration `config/plugin.ts`:
+Modify the database-related configuration items in the project's plugin configuration `config/plugin.ts`:
 
 ```typescript
 // src/config/plugin.ts
 export default {
-  list: ['TypeormPlugin'], // List of loaded plugins, execution order according to array element order
+  list: ['TypeormPlugin'], // List of loaded plugins
   config: { // Plugin configuration
     TypeormPlugin: {
       // Default configuration items
-      "type": "mysql", // mysql, mariadb, postgres, sqlite, mssql, oracle, mongodb,
+      "type": "mysql", // mysql, mariadb, postgres, sqlite, mssql, oracle, mongodb
       host: "127.0.0.1",
       port: 3306,
       username: "test",
       password: "test",
       database: "test",
-      "synchronize": false, // true means entities will synchronize with the database every time the application runs
+      "synchronize": false, // true means entities will synchronize with the database every time
       "logging": true,
       "entities": [`${process.env.APP_PATH}/model/*`],
       "entityPrefix": ""
@@ -1032,19 +1308,19 @@ For easier management, we can also unify the database configuration to `config/d
 ```typescript
 export default {
   /* database config */
-  "DataBase": { // used koatty_typeorm
-    // Default configuration items
-    "type": "mysql", // mysql, mariadb, postgres, sqlite, mssql, oracle, mongodb,
+  "DataBase": { // used by koatty_typeorm
+    "type": "mysql",
     host: "${mysql_host}",
     port: "${mysql_port}",
     username: "${mysql_user}",
     password: "${mysql_pass}",
     database: "${mysql_database}",
-    "synchronize": false, // true means entities will synchronize with the database every time the application runs
+    "synchronize": false,
     "logging": true,
     "entities": [`${process.env.APP_PATH}/model/*`],
     "entityPrefix": ""
   },
+  
   "CacheStore": {
     type: "memory", // redis or memory
     // key_prefix: "koatty",
@@ -1063,7 +1339,7 @@ export default {
 
 ## Plugins
 
-The plugin mechanism is to manage and orchestrate relatively independent business logic on the premise of ensuring that the core of the framework is sufficiently lean and stable.
+The plugin mechanism is to manage and orchestrate relatively independent business logic while ensuring that the core of the framework is sufficiently lean and stable.
 
 ### Why Do We Need Plugins?
 
@@ -1074,10 +1350,9 @@ In the process of using middleware, we found some problems:
 
 In summary, we need a more powerful mechanism to manage and orchestrate those relatively independent business logics. Typical application scenarios include service registration discovery, pulling configurations from the configuration center, etc.
 
-In the framework's IOC container, plugins are a special type of `COMPONENT`.
-
-Plugins should try to maintain independence and not couple with other components.
-If necessary, plugins can call the persistence layer (operate databases and caches, etc.). However, they cannot call the service layer, middleware, or controllers, nor can they be called by other components.
+> In the framework's IOC container, plugins are a special type of `COMPONENT`.
+> Plugins should try to maintain independence and not couple with other components.
+> If necessary, plugins can call the persistence layer (operate databases and caches, etc.). However, they cannot call the service layer, middleware, or controllers, nor can they be called by other components.
 
 ### Creating Plugins
 
@@ -1096,7 +1371,7 @@ kt plugin apollo
 This will generate the plugin code template:
 
 ```typescript
-import { Plugin, IPlugin } from 'koatty';
+import { Plugin } from 'koatty';
 import { App } from '../App';
 import { Apollo } from 'koatty_apollo';
 
@@ -1111,10 +1386,12 @@ export class ApolloPlugin {
 Then declare it in the application's `config/plugin.ts`:
 
 ```typescript
-list: ['ApolloPlugin'], // List of loaded plugins
-config: { // Plugin configuration
-  'ApolloPlugin': {
-    // Plugin configuration items
+export default {
+  list: ['ApolloPlugin'], // List of loaded plugins
+  config: {
+    'ApolloPlugin': {
+      // Plugin configuration items
+    }
   }
 }
 ```
@@ -1124,40 +1401,43 @@ config: { // Plugin configuration
 To disable a plugin in the project, simply modify the plugin configuration file:
 
 ```typescript
-list: [], // If ApolloPlugin is not in the list, the ApolloPlugin plugin will not execute
-config: { // Plugin configuration
-  'ApolloPlugin': {...},
+// src/config/plugin.ts
+export default {
+  list: [], // If ApolloPlugin is not in the list, the plugin will not execute
+  config: {
+    'ApolloPlugin': {...},
+  }
 }
 ```
 
-## Advanced Applications
+# Advanced Features
 
-### Parameter Validation
+## Parameter Validation
 
-Parameter validation is a very common function in projects, and Koatty has specially encapsulated a library `koatty_validation`, which can be easily used in projects. Koatty provides two schemes for parameter validation, suitable for different scenarios:
+Parameter validation is a very common function in projects. Koatty has specially encapsulated a library `koatty_validation`, which can be easily used in projects. Koatty provides two schemes for parameter validation, suitable for different scenarios:
 
-#### Scheme One: Decorators `@Valid` and `@Validated`
+### Scheme One: Decorators `@Valid` and `@Validated`
 
-- `@Valid` and `@Validated` decorators are only applicable to controller classes.
-  
-  ```typescript
-  @RequestMapping('/')
-  // Check if the input parameter is an email
-  index(@RequestBody() @Valid("IsEmail") body: string): Promise<any> {
-    return this.ok('Hi Koatty');
-  }
-  ```
+`@Valid` and `@Validated` decorators are only applicable to controller classes.
 
-- The `@Validated` decorator needs to be used with a DTO class:
-  
-  ```typescript
-  @RequestMapping('/SayHello')
-  @Validated() // DTO parameter validation decorator
-  SayHello(@RequestBody() params: SayHelloRequestDto): Promise<SayHelloReplyDto> {
-    const res = new SayHelloReplyDto();
-    return Promise.resolve(res);
-  }
-  ```
+```typescript
+@RequestMapping('/')
+// Check if the input parameter is an email
+index(@RequestBody() @Valid("IsEmail") body: string): Promise<any> {
+  return this.ok('Hi Koatty');
+}
+```
+
+The `@Validated` decorator needs to be used with a DTO class:
+
+```typescript
+@RequestMapping('/SayHello')
+@Validated() // DTO parameter validation decorator
+SayHello(@RequestBody() params: SayHelloRequestDto): Promise<SayHelloReplyDto> {
+  const res = new SayHelloReplyDto();
+  return Promise.resolve(res);
+}
+```
 
 Use the cli tool to create a DTO class:
 
@@ -1172,116 +1452,120 @@ Add validation rules to the DTO class:
 export class SayHelloRequestDto {
   @IsNotEmpty({ message: "Phone number cannot be empty" })
   phoneNum: string;
-  ...
+  
+  // ...
 }
 ```
 
-#### Scheme Two: `FunctionValidator` and `ClassValidator`
+### Scheme Two: `FunctionValidator` and `ClassValidator`
 
 For bean parameter validation in non-controller types, we can use `FunctionValidator` and `ClassValidator`.
 
-- `FunctionValidator`:
-  
-  ```typescript
-  // Throw an error directly
-  FunctionValidator.IsNotEmpty(str, "cannot be empty");
-  FunctionValidator.Contains(str, {message: "must contain s", value: "s"});
-  // Return true or false
-  if (ValidFuncs.IsEmail(str)) {
-    ...
-  }
-  ```
+**FunctionValidator:**
 
-- `ClassValidator`:
+```typescript
+// Throw an error directly
+FunctionValidator.IsNotEmpty(str, "cannot be empty");
+FunctionValidator.Contains(str, {message: "must contain s", value: "s"});
+
+// Return true or false
+if (ValidFuncs.IsEmail(str)) {
+  // ...
+}
+```
+
+**ClassValidator:**
+
+```typescript
+class SchemaClass {
+  @IsDefined
+  id: number;
   
-  ```typescript
-  class SchemaClass {
-    @IsDefined
-    id: number;
-    @IsNotEmpty
-    name: string;
-  }
-  const ins = new SchemaClass();
-  ins.name = "";
-  ClassValidator.valid(SchemaClass, ins, true).catch(err => {
-    console.log(err);
-  })
-  ```
+  @IsNotEmpty
+  name: string;
+}
+
+const ins = new SchemaClass();
+ins.name = "";
+ClassValidator.valid(SchemaClass, ins, true).catch(err => {
+  console.log(err);
+})
+```
 
 ### Validation Rules
 
-`koatty_validation` defines a series of common validation rules.
+`koatty_validation` defines a series of common [validation rules](https://github.com/Koatty/koatty_validation).
+
 In addition to built-in rules, custom function validation can also be defined:
 
-Use custom functions with the `@Valid` decorator:
-
-
-
+**Use custom functions with the `@Valid` decorator:**
 
 ```typescript
 @Controller('/api/login')
 export class LoginController {
-  ...
+  async GetSignout(
+    @Header("X-User-Token") @Valid((value: unknown) => {
+      return value !== undefined && value !== null;
+    }, { message: "Value cannot be null or undefined"}) token: string
+  ) {
+    // do something
+  }
+}
+```
+
+**Use custom functions with the `@Validated` decorator:**
+
+```typescript
+@Controller('/api/login')
+export class LoginController {
   @Validated()
   async GetSignout(@Post() someObj: ObjectDto) {
     // do something
   }
-  ...
 }
-```
 
-  // class ObjectDto
-
-```typescript
+// class ObjectDto
 export class ObjectDto {
-  ...
-  @CheckFunc((value: unknown) => {
+  @CheckFunc((value: unknown)=> {
     return value !== undefined && value !== null;
   }, { message: "Username cannot be empty" })
   username: string;
-  ...
 }
 ```
 
-- Custom validation in DTO classes:
-  
-  ```typescript
-  @Controller('/api/login')
-  export class LoginController {
-    ...
-    @Validated()
-    async GetSignout(@Post() someObj: ObjectDto) {
-      // Call valid()
-      if (!someObj.validUserName()) {
-        throw new Exception("User is disabled", 1004, 200);
-      }
+**Custom validation in DTO classes:**
+
+```typescript
+@Controller('/api/login')
+export class LoginController {
+  @Validated()
+  async GetSignout(@Post() someObj: ObjectDto) {
+    // Call valid()
+    if (!someObj.validUserName()) {
+      throw new Exception("User is disabled", 1004, 200);
     }
-    ...
   }
-  ```
-  
-  // class ObjectDto
-  
-  ```typescript
-  export class ObjectDto {
-    ...
-    @IsDefined()
-    username: string;
-    validUserName(): boolean {
-      return this.username === "test";
-    }
-    ...
+}
+
+// class ObjectDto
+export class ObjectDto {
+  @IsDefined()
+  username: string;
+
+  validUserName(): boolean {
+    return this.username === "test";
   }
-  ```
+}
+```
 
 ## Exception Handling
 
 Koatty framework encapsulates the `koatty_exception` component for handling errors that need to be thrown in the project, supporting the customization of exception classes to handle different business exceptions.
 
-### Standardizing Error Throwing
-
-Customize HTTP status, business error codes, and error messages.
-Save the error stack in logs.
+**Features:**
+- Standardize error throwing in the project
+- Customize HTTP status, business error codes, and error messages
+- Save error stack in logs
 
 ### Default Exception Handling
 
@@ -1290,8 +1574,10 @@ If no custom exception handling is defined in the application, exceptions thrown
 ```typescript
 // res: {"code":1,"message":"error"}
 throw new Error("error");
+
 // res: {"code":1000,"message":"error"}
 throw new Exception("error", 1000);
+
 // res: {"code":1000,"message":"error"}
 ctx.throw("error", 1000);
 ```
@@ -1305,7 +1591,8 @@ We can customize exception handling classes, which need to inherit from the `Exc
 export class BusinessException1 extends Exception {
   // Handle exceptions uniformly in the handler
   async handler(ctx: KoattyContext): Promise<any> {
-    // Return ctx.res.end for http protocol, handle based on ctx.protocol for gRPC protocol
+    // Return ctx.res.end for http protocol
+    // Handle based on ctx.protocol for gRPC protocol
     return ctx.res.end(this.message);
   }
 }
@@ -1313,7 +1600,6 @@ export class BusinessException1 extends Exception {
 export class BusinessException2 extends Exception {
   // Handle exceptions uniformly in the handler
   async handler(ctx: KoattyContext): Promise<any> {
-    // Return ctx.res.end for http protocol, handle based on ctx.protocol for gRPC protocol
     return ctx.res.end({code: this.code, message: this.message});
   }
 }
@@ -1324,28 +1610,28 @@ In the application code, we can throw different exceptions according to business
 ```typescript
 // res: {"code":1,"message":"error"}
 throw new BusinessException1("error");
+
 // res: {"code":1000,"message":"error"}
 throw new BusinessException2("error", 1000);
 ```
 
 ### Global Exception Handling
 
-Koatty provides a decorator `@ExceptionHandler()` to register global exception handling.
+Koatty provides a decorator `@ExceptionHandler()` to register global exception handling:
 
 ```typescript
 @ExceptionHandler() // Register global exception handling
 export class BusinessException extends Exception {
   // Handle exceptions uniformly in the handler
   async handler(ctx: KoattyContext): Promise<any> {
-    // Return ctx.res.end for http protocol, handle based on ctx.protocol for gRPC protocol
+    // Return ctx.res.end for http protocol
+    // Handle based on ctx.protocol for gRPC protocol
     return ctx.res.end(this.message);
   }
 }
 ```
 
 Global exception handling is registered only once, and multiple registrations will overwrite each other. After registering global exception handling, unless a different type of exception is explicitly thrown, all exceptions will be intercepted by the global exception handling class.
-
-...
 
 ```typescript
 async index(type: string) {
@@ -1356,15 +1642,14 @@ async index(type: string) {
   } else {
     // Not explicitly specified, handled by global exception handling
     // res: error
-    throw new Error("error", 1000);
+    throw new Error("error");
   }
 }
-...
 ```
 
 ## Caching
 
-Koatty encapsulates a caching library `koatty_cacheable`, which supports memory and Redis storage. `koatty_cacheable` provides two decorators `CacheAble` and `CacheEvict`.
+Koatty encapsulates a caching library [koatty_cacheable](https://github.com/koatty/koatty_cacheable), which supports memory and Redis storage. `koatty_cacheable` provides two decorators `CacheAble` and `CacheEvict`.
 
 ### Cache Configuration
 
@@ -1372,7 +1657,6 @@ Cache configuration is saved in `config/db.ts`:
 
 ```typescript
 export default {
-  ...
   "CacheStore": {
     type: "memory", // redis or memory, memory is default
     // key_prefix: "koatty",
@@ -1386,26 +1670,30 @@ export default {
     // pool_size: 10,
     // conn_timeout: 30
   },
-  ...
 };
 ```
 
-The default uses memory storage, and if Redis is needed, Redis connection-related configuration items need to be supplemented.
+The default uses memory storage. If Redis is needed, Redis connection-related configuration items need to be supplemented.
 
 ### Cache Usage
 
-`@CacheAble(cacheName: string, {params: string[], timeout = 3600})`
+- **`@CacheAble(cacheName: string, {params: string[], timeout = 3600})`**
+
 Enables automatic caching of method results. When this method is executed, it first checks the cache. If the cached result exists, it returns the result directly; otherwise, it executes and then returns and stores the result. The elements of the `params` array are parameter names, which will be used to get the parameter values, and then concatenated with the cache prefix to form the cache key. For example: `@CacheAble("getUser", {params:["name"]})`, if the `name` parameter value is `tom`, the concatenated cache key is `getUser:name:tom`.
 
-`@CacheEvict(cacheName: string, {params: string[], delayedDoubleDeletion = true})`
+- **`@CacheEvict(cacheName: string, {params: string[], delayedDoubleDeletion = true})`**
+
 Clears the method result cache. The `params` parameter is used the same as `CacheAble`. `delayedDoubleDeletion` is `true` to enable delayed double deletion strategy.
 
-`GetCacheStore(app: Koatty)`
+- **`GetCacheStore(app: Koatty)`**
+
 Gets the cache instance, which can manually call `get`, `set`, and other methods to operate the cache.
-Example:
+
+**Example:**
 
 ```typescript
 import { CacheAble, CacheEvict, GetCacheStore } from "koatty_cacheable";
+
 @Service()
 export class TestService {
   @CacheAble("testCache") // Automatically caches the result, cache key=testCache
@@ -1426,11 +1714,11 @@ export class TestService {
 }
 ```
 
-Note: Decorators `@CacheAble` and `@CacheEvict` cannot be used for controller classes.
+> Note: Decorators `@CacheAble` and `@CacheEvict` cannot be used for controller classes.
 
-## Scheduling Tasks
+## Scheduled Tasks
 
-Koatty encapsulates a scheduling task library `koatty_schedule`, which supports cron expressions and distributed locks based on Redis.
+Koatty encapsulates a scheduling task library [koatty_schedule](https://github.com/koatty/koatty_schedule), which supports cron expressions and distributed locks based on Redis.
 
 ### Cron Expressions
 
@@ -1443,11 +1731,13 @@ Cron expressions consist of 6 fields, representing seconds, minutes, hours, day 
 - Months: 1-12 (Jan-Dec)
 - Day of Week: 1-7 (Mon-Sun)
 
-`@Scheduled(cron: string)`
+### `@Scheduled(cron: string)`
+
 Easily add task execution plans to methods through the `@Scheduled` decorator:
 
 ```typescript
 import { Scheduled, RedLock } from "koatty_schedule";
+
 export class TestService {
   @Scheduled("0 * * * * *")
   Test() {
@@ -1459,7 +1749,8 @@ export class TestService {
 ### Task Execution Lock
 
 In some business scenarios, scheduled tasks cannot be executed concurrently, and the solution is to add a lock. `koatty_schedule` implements a distributed lock based on Redis.
-`RedLock(name?: string, options?: RedLockOptions)`
+
+**`RedLock(name?: string, options?: RedLockOptions)`**
 
 `RedLockOptions`:
 
@@ -1467,10 +1758,11 @@ In some business scenarios, scheduled tasks cannot be executed concurrently, and
 - `retryCount?`: Maximum retry count, default 3
 - `RedisOptions`: Redis configuration, supports Standalone, Sentinel, Cluster
 
-Example:
+**Example:**
 
 ```typescript
 import { Scheduled, RedLock } from "koatty_schedule";
+
 export class TestService {
   @Scheduled("0 * * * * *")
   @RedLock("testCron") // locker
@@ -1484,7 +1776,6 @@ Because Redis is used, Redis cache configuration is saved in `config/db.ts`:
 
 ```typescript
 export default {
-  ...
   "RedLock": {
     host: '127.0.0.1',
     port: 6379,
@@ -1493,7 +1784,6 @@ export default {
     password: "",
     db: 0
   },
-  ...
 };
 ```
 
@@ -1501,12 +1791,14 @@ You can also pass in the configuration when calling the decorator:
 
 ```typescript
 import { Scheduled, RedLock } from "koatty_schedule";
+
 export class TestService {
   @Config("redisConf", "db")
   private redisConf;
+
   @Scheduled("0 * * * * *")
   @RedLock("testCron", {
-    RedisOptions: redisConf
+    RedisOptions: this.redisConf
   }) // locker
   Test() {
     // todo
@@ -1514,11 +1806,128 @@ export class TestService {
 }
 ```
 
-Several points to note:
+**Several points to note:**
 
-- Decorators `@Scheduled` and `@RedLock` cannot be used for controller classes;
+- Decorators `@Scheduled` and `@RedLock` cannot be used for controller classes.
 - Configure corresponding parameters according to the duration of the scheduled task to prevent lock expiration.
 - When the lock expires but the business logic has not been completed, the lock will automatically extend for one time. If the extension time expires and the business logic is still not completed, the lock will be released.
+
+## Distributed Tracing and Performance Monitoring
+
+Koatty starting from version 3.14.x integrates OpenTelemetry full-link tracing and Prometheus metrics export features.
+
+### OpenTelemetry Tracing
+
+Enable tracing configuration (in `config/config.ts` or middleware configuration):
+
+```typescript
+import { Trace } from 'koatty_trace';
+
+app.use(Trace({
+  enableTrace: true,
+  timeout: 10000,
+  requestIdHeaderName: 'X-Request-Id',
+  
+  // OpenTelemetry configuration
+  opentelemetryConf: {
+    endpoint: "http://localhost:4318/v1/traces", // OTLP endpoint
+    enableTopology: false,            // Enable topology analysis
+    headers: {},                      // OTLP request headers
+    resourceAttributes: {             // Resource attributes
+      'service.name': 'my-service',
+      'service.version': '1.0.0'
+    },
+    samplingRate: 1.0,               // Sampling rate
+    timeout: 10000,                  // Export timeout
+    spanTimeout: 30000,              // Span timeout
+    maxActiveSpans: 1000,            // Max active spans
+  }
+}, app));
+```
+
+### Prometheus Metrics Export
+
+Enable multi-protocol metrics collection and export:
+
+```typescript
+import { Trace } from 'koatty_trace';
+
+app.use(Trace({
+  enableTrace: true,
+  
+  // Prometheus metrics configuration
+  metricsConf: {
+    metricsEndpoint: '/metrics',    // Metrics endpoint path
+    metricsPort: 9464,             // Metrics service port
+    reportInterval: 5000,          // Report interval (ms)
+    defaultAttributes: {           // Default labels
+      service: 'my-service',
+      version: '1.0.0',
+      environment: 'production'
+    }
+  }
+}, app));
+```
+
+**Automatically Collected Metrics:**
+
+#### 1. Total Requests (`requests_total`)
+- **Type**: Counter
+- **Description**: Total request statistics across all protocols
+- **Labels**:
+  - `method`: Request method (GET, POST, PUT, DELETE, etc.)
+  - `status`: Status code (HTTP status code or gRPC status code)
+  - `path`: Normalized request path (e.g., `/users/:id`)
+  - `protocol`: Protocol type (`http`, `websocket`, `grpc`)
+  - `compression`: Compression type (WebSocket: `deflate`/`none`, gRPC: `gzip`/`brotli`/`none`)
+  - `grpc_service`: gRPC service name (gRPC protocol only)
+
+#### 2. Total Errors (`errors_total`)
+- **Type**: Counter
+- **Description**: Error request statistics across all protocols
+- **Labels**: Same as above, with additional `error_type`
+  - HTTP/WebSocket: `client_error` (4xx), `server_error` (5xx)
+  - gRPC: `grpc_error` (non-zero status code)
+
+#### 3. Response Time (`response_time_seconds`)
+- **Type**: Histogram
+- **Description**: Request response time distribution across all protocols
+- **Unit**: Seconds
+- **Buckets**: [0.1, 0.5, 1, 2.5, 5, 10]
+
+#### 4. WebSocket Connections (`websocket_connections_total`)
+- **Type**: Counter
+- **Description**: WebSocket connection statistics
+
+**Access Metrics:**
+```bash
+curl http://localhost:9464/metrics
+```
+
+**Prometheus Configuration Example** (`prometheus.yml`):
+```yaml
+scrape_configs:
+  - job_name: 'koatty-app'
+    static_configs:
+      - targets: ['localhost:9464']
+    scrape_interval: 15s
+    metrics_path: /metrics
+```
+
+**Grafana Query Examples:**
+```promql
+# Request QPS
+rate(requests_total[5m])
+
+# Error rate
+rate(errors_total[5m]) / rate(requests_total[5m])
+
+# Average response time
+rate(response_time_seconds_sum[5m]) / rate(response_time_seconds_count[5m])
+
+# P95 response time
+histogram_quantile(0.95, rate(response_time_seconds_bucket[5m]))
+```
 
 ## gRPC
 
@@ -1532,60 +1941,54 @@ Use the `koatty_cli` command line tool (>=3.4.6):
 kt proto hello
 ```
 
-This will automatically create `src/proto/Hello.proto`. Modify according to the actual situation.
+This will automatically create `src/resource/proto/Hello.proto`. Modify according to actual situation.
 
 ### gRPC Protocol Controller
 
 Use the `koatty_cli` command line tool (>=3.4.6):
 
-- Single module mode:
-  
-  ```bash
-  kt controller -t grpc hello
-  ```
-  
-  This will automatically create `src/controller/HelloController.ts`.
+**Single module mode:**
 
-- Multi-module mode:
-  
-  ```bash
-  kt controller -t grpc admin/hello
-  ```
-  
-  This will automatically create `src/controller/Admin/HelloController.ts`.
+```bash
+kt controller -t grpc hello
+```
+
+This will automatically create `src/controller/HelloController.ts`.
+
+**Multi-module mode:**
+
+```bash
+kt controller -t grpc admin/hello
+```
+
+This will automatically create `src/controller/Admin/HelloController.ts`.
 
 The controller template code is as follows:
 
 ```typescript
-import { KoattyContext, Controller, Autowired, RequestMapping, RequestBody } from 'ko';
+import { KoattyContext, GrpcController, Autowired, PostMapping, RequestBody, Validated } from 'koatty';
 import { App } from '../App';
 import { SayHelloRequestDto } from '../dto/SayHelloRequestDto';
 import { SayHelloReplyDto } from '../dto/SayHelloReplyDto';
 
-@Controller('/Hello') // Consistent with proto.service name
+@GrpcController('/Hello') // Consistent with proto.service name
 export class HelloController {
   app: App;
   ctx: KoattyContext;
 
-  /**
-  * Custom constructor
-  *
-  */
   constructor(ctx: KoattyContext) {
     this.ctx = ctx;
   }
 
   /**
-  * SayHello interface
-  * Access path: grpc://127.0.0.1/Hello/SayHello
-  *
-  * @param {SayHelloRequestDto} data
-  * @returns
-  */
-  @RequestMapping('/SayHello') // Consistent with proto.service.method name
+   * SayHello interface
+   * Access path: grpc://127.0.0.1/Hello/SayHello
+   */
+  @PostMapping('/SayHello') // Consistent with proto.service.method name
   @Validated() // Parameter validation
   SayHello(@RequestBody() params: SayHelloRequestDto): Promise<SayHelloReplyDto> {
     const res = new SayHelloReplyDto();
+    res.message = `Hello, ${params.name}!`;
     return Promise.resolve(res);
   }
 }
@@ -1599,9 +2002,9 @@ Modify `config/config.ts`:
 
 ```typescript
 export default {
-  ...
-  protocol: "grpc", // Server protocol 'http' | 'https' | 'http2' | 'grpc' | 'ws' |
-  ...
+  server: {
+    protocol: "grpc", // Server protocol
+  }
 }
 ```
 
@@ -1609,14 +2012,9 @@ Modify `config/router.ts`:
 
 ```typescript
 export default {
-  ...
-  /**
-  * Other extended configuration
-  */
   ext: {
-    protoFile: process.env.APP_PATH + "proto/Hello.proto", // gRPC proto file
+    protoFile: process.env.APP_PATH + "resource/proto/Hello.proto", // gRPC proto file
   }
-  ...
 }
 ```
 
@@ -1630,52 +2028,42 @@ Koatty supports WebSocket services starting from version 3.4.x.
 
 Use the `koatty_cli` command line tool (>=3.4.6):
 
-- Single module mode:
-  
-  ```bash
-  kt controller -t ws requst
-  ```
-  
-  This will automatically create `src/controller/RequstController.ts`.
+**Single module mode:**
 
-- Multi-module mode:
-  
-  ```bash
-  kt controller -t ws admin/requst
-  ```
-  
-  This will automatically create `src/controller/Admin/RequstController.ts`.
+```bash
+kt controller -t ws request
+```
+
+This will automatically create `src/controller/RequestController.ts`.
+
+**Multi-module mode:**
+
+```bash
+kt controller -t ws admin/request
+```
+
+This will automatically create `src/controller/Admin/RequestController.ts`.
 
 The controller template code is as follows:
 
 ```typescript
-import { KoattyContext, Controller, Autowired, GetMapping } from 'koatty';
+import { KoattyContext, WsController, GetMapping, RequestBody, Valid } from 'koatty';
 import { App } from '../App';
-// import { TestService } from '../service/TestService';
-...
 
-@Controller('/requst')
-export class RequstController {
+@WsController('/request')
+export class RequestController {
   app: App;
   ctx: KoattyContext;
-  // @Autowired()
-  // protected TestService: TestService;
-  /**
-  * Custom constructor
-  *
-  */
+
   constructor(ctx: KoattyContext) {
     this.ctx = ctx;
   }
 
   /**
-  * index interface
-  * Access path: ws://127.0.0.1/requst
-  *
-  * @returns
-  * @memberof RequstController
-  */
-  @RequestMapping('/')
+   * index interface
+   * Access path: ws://127.0.0.1/request
+   */
+  @GetMapping('/')
   index(@RequestBody() @Valid("IsEmail") body: string): Promise<any> {
     return this.ok('Hi Koatty');
   }
@@ -1688,32 +2076,32 @@ Modify `config/config.ts`:
 
 ```typescript
 export default {
-  ...
-  protocol: "ws", // Server protocol 'http' | 'https' | 'http2' | 'grpc' | 'ws' |
-  ...
+  server: {
+    protocol: "ws", // Server protocol: 'ws' | 'wss'
+  }
 }
 ```
 
 OK, now you can start a WebSocket server.
 
-## Event Mechanism (Event)
+## Event Mechanism
 
 During the application startup process, the `app` object in the Koatty framework defines a series of events in addition to the events inherent in Koa itself:
 
+![Event Timeline](https://cdn.jsdelivr.net/gh/Koatty/koatty_doc@master/docs/assets/event.png)
 
-![](https://cdn.jsdelivr.net/gh/Koatty/koatty_doc@master/docs/assets/event.png)Note:
+> Note: The `appStart` event is triggered after the service starts.
 
-- The `appStart` event is triggered after the service starts.
-  We can bind to different events according to project needs. For example, in the scenario of service registration discovery, if hardware failure occurs, you can bind to the `appStop` event to handle service deregistration.
+We can bind to different events according to project needs. For example, in the scenario of service registration discovery, if hardware failure occurs, you can bind to the `appStop` event to handle service deregistration.
 
 ```typescript
 app.once("appStop", () => {
   // Deregister service
-  ...
+  // ...
 })
 ```
 
-### BootFunc
+### bootFunc
 
 The role of the `@Bootstrap` decorator is to declare the project entry class, which supports passing a function as a parameter. This function will be executed first when the project starts.
 
@@ -1725,12 +2113,13 @@ The role of the `@Bootstrap` decorator is to declare the project entry class, wh
   }
 )
 export class App extends Koatty {
-  ...
+  // ...
 }
 ```
 
 Common application scenarios are to handle some runtime environment settings before startup, such as `NODE_ENV`. The startup function supports asynchronous execution.
-Note: The startup function is executed after the framework's `initialize` initialization, at which point the framework's related path attributes (`appPath`, `rootPath`, etc.) and `process.env` have been loaded and set, but other components (plugins, middleware, controllers, etc.) have not been loaded. Be aware when defining the startup function.
+
+> Note: The startup function is executed after the framework's `initialize` initialization, at which point the framework's related path attributes (`appPath`, `rootPath`, etc.) and `process.env` have been loaded and set, but other components (plugins, middleware, controllers, etc.) have not been loaded. Be aware when defining the startup function.
 
 ### BindEventHook
 
@@ -1754,28 +2143,29 @@ Use on the project startup class:
 @Bootstrap()
 @TestBootstrap()
 export class App extends Koatty {
-  ...
+  // ...
 }
 ```
 
-Note: The function execution of the custom decorator created by `BindEventHook` is triggered by the event (`appBoot`, `appReady`, `appStart`, `appStop`), and attention should be paid to the framework startup logic and related context.
+> Note: The function execution of the custom decorator created by `BindEventHook` is triggered by the event (`appBoot`, `appReady`, `appStart`, `appStop`), and attention should be paid to the framework startup logic and related context.
 
-### Loading Customizations
+## Loading Customizations
 
-The entry class of the project can also set two other decorators, which are:
+The entry class of the project can also set two other decorators:
 
-- `@ComponentScan('./')`: Declares the directory of project components, default is the project `src` directory, containing all types of components.
-- `@ConfigurationScan('./config')`: Declares the directory of project configuration files, default is `src/config` directory.
+- **`@ComponentScan('./')`**: Declares the directory of project components, default is the project `src` directory, containing all types of components.
+- **`@ConfigurationScan('./config')`**: Declares the directory of project configuration files, default is `src/config` directory.
 
 ## IOC Container
 
-IoC stands for Inversion of Control, which translates to control inversion in English. In ES6 Class-style programming, simply creating instances and holding them reveals the following disadvantages:
+IoC stands for Inversion of Control. In ES6 Class-style programming, simply creating instances through `new` reveals the following disadvantages:
 
 - To instantiate a component, you must first instantiate dependent components, leading to tight coupling.
 - Each component needs to instantiate a dependent component, without reuse.
 - Many components need to be destroyed to release resources, such as DataSource. However, if the component is shared by multiple components, how to ensure that all users have been destroyed.
 - As more components are introduced, it becomes more difficult to write shared components, and the dependency relationships between them become more complex.
-  If a system has a large number of components, if the lifecycle and interdependent relationships of these components are maintained by the components themselves, it not only greatly increases the complexity of the system but also leads to extremely tight coupling between components, which brings great difficulties to testing and maintenance.
+
+If a system has a large number of components, if the lifecycle and interdependent relationships of these components are maintained by the components themselves, it not only greatly increases the complexity of the system but also leads to extremely tight coupling between components, which brings great difficulties to testing and maintenance.
 
 Therefore, the core issues are:
 
@@ -1785,14 +2175,36 @@ Therefore, the core issues are:
 
 The core solution to this problem is IoC. Referring to the implementation mechanism of Spring IoC, Koatty implements an IOC container (`koatty_container`), which automatically classifies and loads components at startup and injects corresponding dependencies according to dependency relationships. Therefore, IoC is also known as Dependency Injection (DI: Dependency Injection), which solves one of the main problems: separating the creation and configuration of components from their use, and managing the lifecycle of components by the IoC container.
 
+### Performance Optimization Features (3.14.x New)
+
+**Intelligent Metadata Cache:**
+- ✅ **LRU Cache Mechanism** - Significantly improves performance, reduces reflection operations by 70%+
+- ✅ **Metadata Preloading** - Preload at startup, optimize component registration
+- ✅ **Version Conflict Detection** - Automatically detect and resolve dependency version conflicts
+- ✅ **Circular Dependency Detection** - Circular dependency detection and resolution suggestions
+
+```typescript
+// In Loader.ts - Metadata is now preloaded for optimal performance
+IOC.preloadMetadata(); // Preload all metadata to populate cache
+
+// Intelligent caching reduces reflect operations by 70%+
+// Cache hits: ~95% in typical applications
+```
+
+**Performance Improvements:**
+- Reflection operations reduced by 70%+
+- Metadata access cache hit rate ~95%
+- Startup performance improvement 40%+
+- Runtime performance improvement 30%+
+
 ### Component Classification
 
 According to different application scenarios of components, Koatty divides Beans into four types: `COMPONENT`, `CONTROLLER`, `MIDDLEWARE`, `SERVICE`.
 
-- `COMPONENT`: Extension classes, third-party classes belong to this type, such as Plugins, ORM persistence layers, etc.
-
-- `MIDDLEWARE`: Middleware classes
-- `SERVICE`: Service classes
+- **COMPONENT**: Extension classes, third-party classes belong to this type, such as Plugins, ORM persistence layers, etc.
+- **CONTROLLER**: Controller classes
+- **MIDDLEWARE**: Middleware classes
+- **SERVICE**: Service classes
 
 ### Component Loading
 
@@ -1808,7 +2220,7 @@ app.emit("appReady");
 
 Note: Although lazy loading can solve most scenarios of circular dependencies, it may still fail to assemble in extreme cases. Solutions:
 
-1. Try to avoid circular dependencies, introduce new third-party common classes to decouple mutually dependent classes.
+1. Try to avoid circular dependencies; introduce new third-party common classes to decouple mutually dependent classes.
 2. Use the IOC container to get the prototype of the class (`getClass`) and instantiate it manually.
 
 ## AOP Aspects
@@ -1817,34 +2229,24 @@ Koatty implements an aspect-oriented programming mechanism based on the IOC cont
 
 ### Pointcut Declaration Types
 
-- Decorator declaration: Use `@Before`, `@After`, `@BeforeEach`, `@AfterEach` decorators to declare pointcuts.
-- Built-in method declaration: Use `__before`, `__after` built-in hidden methods to declare pointcuts.
+**Decorator Declaration:**
+Use `@Before`, `@After`, `@BeforeEach`, `@AfterEach` decorators to declare pointcuts.
+
+**Built-in Method Declaration:**
+Use `__before`, `__after` built-in hidden methods to declare pointcuts.
 
 ### Differences Between Declaration Methods
 
-- Declaration method
-  - Dependency on Aspect Aspect Class
-  - Ability to use class scope
-  - Parameter dependency of pointcut method
-  - Priority
-  - Usage restrictions
+| Declaration Method | Dependency on Aspect Class | Can Use Class Scope | Parameter Dependency | Priority | Usage Restrictions |
+|--------------------|---------------------------|---------------------|---------------------|----------|-------------------|
+| Decorator Declaration | Depends | No | Yes | Low | Can be used for all types of beans |
+| Built-in Method Declaration | Does not depend | Yes | No | High | Only usable for CONTROLLER type beans |
 
-**Decorator Declaration**
+> Dependency on Aspect Class: Requires the creation of a corresponding Aspect aspect class to use.
+> Can Use Class Scope: Can or cannot use the `this` pointer of the class where the pointcut is located.
+> Parameter Dependency: Decorator declaration pointcuts share parameters with the method; built-in method declaration pointcuts can use `this` to access any property of the class, more flexible.
 
-- Dependency: Requires the creation of a corresponding Aspect aspect class to use.
-- Ability to use class scope: No
-- Parameter dependency of pointcut method: Yes, low
-- Priority: Low
-- Usable for all types of beans
-
-**Built-in Method Declaration**
-
-- Dependency: Does not depend on the Aspect aspect class.
-- Ability to use class scope: Yes
-- Parameter dependency of pointcut method: No, high
-- Only usable for `CONTROLLER` type beans, as it depends on the `this` pointer of the class.
-
-Note: If a class uses the decorator `@BeforeEach` and this class also contains the `__before` method (whether it is its own or inherited from the parent class), then the `__before` method has higher priority than the decorator, and the class's decorator `@BeforeEach` is invalid (`@AfterEach` and `__after` are the same).
+**Note:** If a class uses the decorator `@BeforeEach` and this class also contains the `__before` method (whether it is its own or inherited from the parent class), then the `__before` method has higher priority than the decorator, and the class's decorator `@BeforeEach` is invalid (`@AfterEach` and `__after` are the same).
 
 For example:
 
@@ -1853,16 +2255,21 @@ For example:
 export class TestController {
   app: App;
   ctx: KoattyContext;
+
   @Autowired()
   protected TestService: TestService;
+
   // Does not depend on the Aspect aspect class
-  async __before(): Promise<any> { // Does not depend on the specific method's parameters, obtain through this pointer
-    console.log(this.app);  // Can use class scope, obtain the current class attribute through this pointer
-    console.log(this.ctx)
+  async __before(): Promise<any> {
+    // Does not depend on specific method parameters
+    // Can use class scope through this pointer
+    console.log(this.app);
+    console.log(this.ctx);
   }
-  @Before("TestAspect") // Depends on TestAspect aspect class, able to get path parameter
+
+  @Before("TestAspect") // Depends on TestAspect aspect class
   async test(path: string) {
-    ...
+    // ...
   }
 }
 ```
@@ -1884,322 +2291,114 @@ import { App } from '../App';
 @Aspect()
 export class TestAspect {
   app: App;
+
   run() {
     console.log('TestAspect');
   }
 }
 ```
 
-### Decorators
-
-#### Class Decorators
-
-- Name
-  - Parameter
-  - Description
-  - Remarks
-
-**@Aspect()**
-
-- Identifier: Registered in the IOC container, default is the class name.
-  - Declare the current class as an aspect class. The aspect class is executed at the pointcut, and the aspect class must implement the `run` method for the pointcut to call.
-  - Only for aspect classes
-
-**@Bootstrap()**
-
-- bootFunc: Function to execute before application startup. The specific execution timing is when the `app.on("appReady")` event is triggered.
-  - Declare the current class as a startup class, which is the entry file of the project.
-  - Only for startup classes
-
-**@ComponentScan()**
-
-- scanPath: String or string array
-  - Define the directory that the project needs to automatically load into the container.
-  - Only for application startup classes
-
-**@Component()**
-
-- identifier: Registered in the IOC container, default is the class name.
-  - Define the class as a component class.
-  - Used for third-party modules or imported classes
-
-**@ConfigurationScan()**
-
-- scanPath: String or string array, configuration file directory
-  - Define the directory of project configuration files.
-  - Only for application startup classes
-
-**@Controller()**
-
-- path: Binding controller access route
-  - Define the class as a controller class and bind the route. The default route is `/`.
-  - Only for controller classes
-
-**@Service()**
-
-- identifier: Registered in the IOC container, default is the class name.
-  - Define the class as a service class.
-  - Only for service classes
-
-**@Middleware()**
-
-- identifier: Registered in the IOC container, default is the class name.
-  - Define the class as a middleware class.
-  - Only for middleware classes
-
-**@ExceptionHandler()**
-
-- Define the class as a global exception handling class.
-  - Only for exception handling classes
-
-**@BeforeEach(aopName:string)**
-
-- aopName: Name of the aspect class executing the pointcut
-  - Declare an aspect for the current class, which will execute the aspect class's `run` method before each method ("constructor", "init", "__before", "__after" excepted) of the current class.
-  - Only for controller classes
-
-**@AfterEach(aopName:string)**
-
-- aopName: Name of the aspect class executing the pointcut
-  - Declare an aspect for the current class, which will execute the aspect class's `run` method after each method ("constructor", "init", "__before", "__after" excepted) of the current class.
-  - Only for controller classes
-
-#### Property Decorators
-
-- Name
-  - Parameter
-  - Description
-  - Remarks
-
-**@Autowired()**
-
-- identifier: Registered in the IOC container, default is the class name.
-  - type: Type of bean to inject
-  - constructArgs: Constructor method arguments of the injected bean. If passed, return an instance of the bean automatically injected from the IOC container to the current class.
-  - isDelay: Whether to delay loading. Delayed loading is mainly to solve circular dependency issues.
-  - Only for constructor arguments (constructor)
-
-**@Config()**
-
-- key: Key of the configuration item
-  - type: Type of the configuration item. The type of the configuration item is automatically defined according to the file where the configuration item is located, e.g., "db" represents the file `db.ts`.
-  - Only for configuration items
-
-**@Values()**
-
-- val: Value of the attribute, can be a function, the attribute value is the result of the function operation.
-  - defaultValue: Default value, when val is `Null`, `undefined`, `NaN`, take the default value.
-  - Used to dynamically modify the attribute value of the class instance.
-  - Only for class attributes
-
-#### Method Decorators
-
-- Name
-  - Parameter
-  - Description
-  - Remarks
-
-**@Before(aopName:string)**
-
-- aopName: Name of the aspect class executing the pointcut
-  - Declare an aspect for the current method, which will execute the aspect class's `run` method before the current method.
-  - Only for controller methods
-
-**@After(aopName:string)**
-
-- aopName: Name of the aspect class executing the pointcut
-  - Declare an aspect for the current method, which will execute the aspect class's `run` method after the current method.
-  - Only for controller methods
-
-**@RequestMapping()**
-
-- path: Bound route
-  - requestMethod: Bound HTTP request method. Use `RequestMethod` enum data for assignment, e.g., `RequestMethod.GET`.
-  - If set to `RequestMethod.ALL`, it means support all request methods
-  - routerOptions: Configuration items of `koa/_router`
-  - Used for binding routes to controller methods
-  - Only for controller methods
-
-**@GetMapping()**
-
-- path: Bound route
-  - routerOptions: Configuration items of `koa/_router`
-  - Used for binding Get routes to controller methods
-  - Only for controller methods
-
-**@PostMapping()**
-
-- path: Bound route
-  - routerOptions: Configuration items of `koa/_router`
-  - Used for binding Post routes to controller methods
-  - Only for controller methods
-
-**@DeleteMapping()**
-
-- path: Bound route
-  - routerOptions: Configuration items of `koa/_router`
-  - Used for binding Delete routes to controller methods
-  - Only for controller methods
-
-**@PutMapping()**
-
-- path: Bound route
-  - routerOptions: Configuration items of `koa/_router`
-  - Used for binding Put routes to controller methods
-  - Only for controller methods
-
-**@PatchMapping()**
-
-- path: Bound route
-  - routerOptions: Configuration items of `koa/_router`
-  - Used for binding Patch routes to controller methods
-  - Only for controller methods
-
-**@OptionsMapping()**
-
-- path: Bound route
-  - routerOptions: Configuration items of `koa/_router`
-  - Used for binding Options routes to controller methods
-  - Only for controller methods
-
-**@HeadMapping()**
-
-- path: Bound route
-  - routerOptions: Configuration items of `koa/_router`
-  - Used for binding Head routes to controller methods
-  - Only for controller methods
-
-**@Scheduled()**
-
-- cron: Task scheduling configuration
-  - * * * * *
-    
-    Seconds: 0-59
-    Minutes: 0-59
-    Hours: 0-23
-    Day of Month: 1-31
-    Months: 1-12 (Jan-Dec)
-    Day of Week: 1-7 (Mon-Sun)
-  - Define the execution plan task of the class method.
-  - Cannot be used for controller methods, dependent on the `koatty_schedule` module.
-
-**@Validated()**
-
-- Used in conjunction with DTO types for parameter validation
-  - Method parameters without DTO types are not effective, only for controller classes
-
-**@RedLock()**
-
-- name: Name of the lock
-  - options: Lock configuration, including Redis server connection configuration
-  - Define that the method must first obtain a distributed lock (based on Redis) before execution.
-  - Dependent on the `koatty_schedule` module
-
-**@CacheAble()**
-
-- cacheName: Cache name
-  - paramKey: Based on method input parameters as cache key, value is the position of the method input parameter, starting from 0
-  - redisOptions: Redis server connection configuration
-  - Dependent on the `koatty_cacheable` module
-  - Cannot be used for controller methods
-
-**@CacheEvict()**
-
-- cacheName: Cache name
-  - paramKey: Based on method input parameters as cache key, value is the position of the method input parameter, starting from 0
-  - eventTime: Time point for clearing the cache
-  - redisOptions: Redis server connection configuration
-  - Used together with `@Cacheable`, for clearing the cache when the method is executed
-  - Dependent on the `koatty_cacheable` module
-  - Cannot be used for controller methods
-
-#### Parameter Decorators
-
-- Name
-  - Parameter
-  - Description
-  - Remarks
-
-**@File()**
-
-- name: File name
-  - Get the uploaded file object
-  - Only for HTTP controller method parameters
-
-**@Get()**
-
-- name: Parameter name
-  - Get querystring parameters (get route-bound parameters)
-  - Only for HTTP controller method parameters
-
-**@Header()**
-
-- name: Parameter name
-  - Get Header content
-  - Only for HTTP controller method parameters
-
-**@PathVariable()**
-
-- name: Parameter name
-  - Get route-bound parameters `/user/:id`
-  - Only for HTTP controller method parameters
-
-**@Post()**
-
-- name: Parameter name
-  - Get Post parameters
-  - Only for HTTP controller method parameters
-
-**@RequestBody()**
-
-- Get `ctx.body`
-- Only for controller method parameters
-
-**@RequestParam()**
-
-- name: Parameter name
-  - Get Get or Post parameters, Post takes precedence
-  - Only for controller method parameters
-
-**@Valid()**
-
-- rule: Validation rule, supports built-in rules or custom functions
-  - message: Error message when the rule does not match
-  - Used for parameter format validation
-  - Only for controller classes
-
-**@Inject()**
-
-- paramName: Constructor method argument name (formal parameter)
-  - cType: Type of bean to inject
-  - This decorator uses the class constructor method argument to inject dependencies. If used together with `@Autowired()`, it may overwrite the same property injected by `autowired`.
-  - Only for constructor arguments (constructor)
-
-## Programming Standards and Conventions
+## Decorators
+
+### Class Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+|----------------|------------|-------------|---------|
+| `@Aspect()` | `identifier` - Identifier registered in IOC container, default is class name | Declare the current class as an aspect class. The aspect class is executed at the pointcut, and the aspect class must implement the run method for the pointcut to call | Only for aspect classes |
+| `@Bootstrap()` | `bootFunc` - Function to execute before application startup. Executed when `app.on("appReady")` event is triggered | Declare the current class as a startup class, which is the entry file of the project | Only for application startup classes |
+| `@ComponentScan()` | `scanPath` - String or string array | Define the directory that the project needs to automatically load into the container | Only for application startup classes |
+| `@Component()` | `identifier` - Identifier registered in IOC container, default is class name | Define the class as a component class | Used for third-party modules or imported classes |
+| `@ConfigurationScan()` | `scanPath` - String or string array, configuration file directory | Define the directory of project configuration files | Only for application startup classes |
+| `@Controller()` | `path` - Binding controller access route | Define the class as an HTTP/HTTPS/HTTP2 controller class and bind the route. Default route is "/" | Only for HTTP controller classes |
+| `@GrpcController()` | `path` - Binding controller access route, must match the service name in proto | Define the class as a gRPC controller class and bind the route | Only for gRPC controller classes |
+| `@GraphQLController()` | `path` - Binding controller access route | Define the class as a GraphQL controller class and bind the route. GraphQL runs over HTTP/HTTPS | Only for GraphQL controller classes |
+| `@WsController()` | `path` - Binding controller access route | Define the class as a WebSocket controller class and bind the route | Only for WebSocket controller classes |
+| `@Service()` | `identifier` - Identifier registered in IOC container, default is class name | Define the class as a service class | Only for service classes |
+| `@Middleware()` | `options?: { protocol?: string[] }` - Optional protocol list | Define the class as a middleware class. Can specify `protocol` parameter to bind to specific protocols | Only for middleware classes |
+| `@ExceptionHandler()` | - | Define the class as a global exception handling class | Only for exception handling classes |
+| `@BeforeEach(aopName: string)` | `aopName` - Name of the aspect class executing the pointcut | Declare an aspect for the current class, which will execute the aspect class's `run` method before each method ("constructor", "init", "__before", "__after" excepted) | - |
+| `@AfterEach(aopName: string)` | `aopName` - Name of the aspect class executing the pointcut | Declare an aspect for the current class, which will execute the aspect class's `run` method after each method ("constructor", "init", "__before", "__after" excepted) | - |
+
+### Property Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+|----------------|------------|-------------|---------|
+| `@Autowired()` | `identifier` - Identifier registered in IOC container, default is class name<br>`type` - Type of bean to inject<br>`constructArgs` - Constructor arguments of injected bean. If passed, returns a request-scoped instance<br>`isDelay` - Whether to delay loading. Delayed loading is mainly to solve circular dependency issues | Automatically inject bean from IOC container to the current class | - |
+| `@Config()` | `key` - Key of the configuration item<br>`type` - Type of the configuration item | The type of the configuration item is automatically defined according to the file where the configuration item is located, e.g., "db" represents the file `db.ts` | - |
+| `@Values()` | `val` - Value of the attribute, can be a function, the attribute value is the result of the function operation<br>`defaultValue` - Default value, when val is `Null`, `undefined`, `NaN`, take the default value | Used to dynamically modify the attribute value of the class instance | - |
+
+### Method Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+|----------------|------------|-------------|---------|
+| `@Before(aopName: string)` | `aopName` - Name of the aspect class executing the pointcut | Declare an aspect for the current method, which will execute the aspect class's `run` method before the current method | - |
+| `@After(aopName: string)` | `aopName` - Name of the aspect class executing the pointcut | Declare an aspect for the current method, which will execute the aspect class's `run` method after the current method | - |
+| `@RequestMapping()` | `path` - Bound route<br>`requestMethod` - Bound HTTP request method. Use `RequestMethod` enum for assignment, e.g., `RequestMethod.GET`. If set to `RequestMethod.ALL`, it means support all request methods<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding routes to controller methods | Only for controller methods |
+| `@GetMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Get routes to controller methods | Only for controller methods |
+| `@PostMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Post routes to controller methods | Only for controller methods |
+| `@DeleteMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Delete routes to controller methods | Only for controller methods |
+| `@PutMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Put routes to controller methods | Only for controller methods |
+| `@PatchMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Patch routes to controller methods | Only for controller methods |
+| `@OptionsMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Options routes to controller methods | Only for controller methods |
+| `@HeadMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Head routes to controller methods | Only for controller methods |
+| `@Scheduled()` | `cron` - Task scheduling configuration<br>`* * * * *`<br>Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 1-12 (Jan-Dec)<br>Day of Week: 1-7 (Mon-Sun) | Define the execution plan task of the class method | Cannot be used for controller methods, dependent on the `koatty_schedule` module |
+| `@Validated()` | - | Used in conjunction with DTO types for parameter validation | Method parameters without DTO types are not effective, only for controller classes |
+| `@RedLock()` | `name` - Name of the lock<br>`options` - Lock configuration, including Redis server connection configuration | Define that the method must first obtain a distributed lock (based on Redis) before execution | Dependent on the `koatty_schedule` module |
+| `@CacheAble()` | `cacheName` - Cache name<br>`paramKey` - Based on method input parameters as cache key, value is the position of the method input parameter, starting from 0<br>`redisOptions` - Redis server connection configuration | Dependent on the `koatty_cacheable` module | Cannot be used for controller methods |
+| `@CacheEvict()` | `cacheName` - Cache name<br>`paramKey` - Based on method input parameters as cache key, value is the position of the method input parameter, starting from 0<br>`eventTime` - Time point for clearing the cache<br>`redisOptions` - Redis server connection configuration | Used together with `@Cacheable`, for clearing the cache when the method is executed | Cannot be used for controller methods |
+
+### Parameter Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+|----------------|------------|-------------|---------|
+| `@File()` | `name` - File name | Get the uploaded file object | Only for HTTP controller method parameters |
+| `@Get()` | `name` - Parameter name | Get querystring parameters (get route-bound parameters) | Only for HTTP controller method parameters |
+| `@Header()` | `name` - Parameter name | Get Header content | Only for HTTP controller method parameters |
+| `@PathVariable()` | `name` - Parameter name | Get route-bound parameters `/user/:id` | Only for HTTP controller method parameters |
+| `@Post()` | `name` - Parameter name | Get Post parameters | Only for HTTP controller method parameters |
+| `@RequestBody()` | - | Get `ctx.body` | Only for controller method parameters |
+| `@RequestParam()` | `name` - Parameter name | Get Get or Post parameters, Post takes precedence | Only for controller method parameters |
+| `@Valid()` | `rule` - Validation rule, supports built-in rules or custom functions<br>`message` - Error message when the rule does not match | Used for parameter format validation | Only for controller classes |
+| `@Inject()` | `paramName` - Constructor method argument name (formal parameter)<br>`cType` - Type of bean to inject | This decorator uses the class constructor method argument to inject dependencies. If used together with `@Autowired()`, it may overwrite the same property injected by `autowired` | Only for constructor arguments (constructor) |
+
+# Programming Standards and Conventions
 
 Koatty follows the principle that conventions are more important than configuration. To standardize project code and improve robustness, some default standards and conventions have been made.
 
-### Koatty Framework and Peripheral Component Version Definition
+## Koatty Framework and Peripheral Component Version Definition
 
-- Minor version: e.g., `1.1.1 => 1.1.2` (minor feature additions, bug fixes, etc., downward compatible with 1.1.x)
-- Middle version: e.g., `1.1.0 => 1.2.0` (larger feature additions, partial module refactoring, etc. Mainly downward compatible, may have a small number of features incompatible)
-- Major version: e.g., `1.0.0 => 2.0.0` (overall design, refactoring, etc. of the framework, not downward compatible)
-- Stable version: Even-numbered versions at the end are stable versions, odd-numbered versions are unstable versions.
+- **Minor version**: e.g., `1.1.1 => 1.1.2` (minor feature additions, bug fixes, etc., downward compatible with 1.1.x)
+- **Middle version**: e.g., `1.1.0 => 1.2.0` (larger feature additions, partial module refactoring, etc. Mainly downward compatible, may have a small number of features incompatible)
+- **Major version**: e.g., `1.0.0 => 2.0.0` (overall design, refactoring, etc. of the framework, not downward compatible)
+- **Stable version**: Even-numbered versions at the end are stable versions, odd-numbered versions are unstable versions.
 
-### Programming Style
+## Programming Style
 
-Use Class-style programming including Controller, Service, Model, etc., use `Class` instead of `function` to organize code. Excludes configurations, tools, function libraries, third-party libraries, etc.
-Single file only exports one class
+**Use Class-Style Programming**
+
+Including Controller, Service, Model, etc., use `Class` instead of `function` to organize code. Excludes configurations, tools, function libraries, third-party libraries, etc.
+
+**Single File Only Exports One Class**
+
 In the project, a single `.ts` file only exports once and exports a `Class`. Excludes configurations, tools, function libraries, third-party libraries, etc.
-Class names must be the same as file names
+
+**Class Names Must Be the Same as File Names**
+
 People familiar with JAVA will not be unfamiliar with this. The class name must be the same as the file name to maintain uniqueness in the IOC container and prevent class overwriting.
-No duplicate classes of the same type are allowed
+
+**No Duplicate Classes of the Same Type Are Allowed**
+
 Koatty divides Beans in the IOC container into four types: `COMPONENT`, `CONTROLLER`, `MIDDLEWARE`, `SERVICE`.
+
 Beans of the same type cannot have the same class name, otherwise loading will fail.
+
 For example: `src/Controller/IndexController.ts` and `src/Controller/Test/IndexController.ts` are duplicate classes.
+
 It should be noted that the type of Bean is determined by the decorator, not the filename or directory name. If `IndexController.ts` is decorated with `@Service()`, then its type is `SERVICE`.
 
-For Koatty official components, we recommend using `^` for dependency introduction, and strongly advise against locking versions.
+**For Koatty Official Components**
+
+We recommend using `^` for dependency introduction, and strongly advise against locking versions.
 
 ```json
 {
@@ -2209,24 +2408,24 @@ For Koatty official components, we recommend using `^` for dependency introducti
 }
 ```
 
-## Q & A
+# Q & A
 
-Comesoon...
+Coming soon...
 
-## API
+# API Reference
 
-- `app`
-  
-  - API documentation
+- **app**: [API Documentation](https://github.com/Koatty/koatty_core/blob/main/docs/api/koatty_core.koatty.md)
+- **ctx**: [API Documentation](https://github.com/Koatty/koatty_core/blob/main/docs/api/koatty_core.koattycontext.md)
+- **IOCContainer**: [API Documentation](https://github.com/Koatty/koatty_container/blob/master/docs/api/koatty_container.container.md)
+- **Other APIs**: [API Documentation](https://github.com/Koatty/koatty/blob/master/docs/api/koatty.md)
 
-- `ctx`
-  
-  - API documentation
+---
 
-- `IOCContainer`
-  
-  - API documentation
+## Community
 
-- Other APIs
-  
-  - API documentation
+- [GitHub Discussions](https://github.com/Koatty/koatty/discussions)
+- [中文文档](https://koatty.org/)
+
+## License
+
+[BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause) © Koatty Team
