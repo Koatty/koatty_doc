@@ -1765,74 +1765,181 @@ async index(type: string) {
 
 Koatty封装了一个缓存库 [koatty_cacheable](https://github.com/koatty/koatty_cacheable)，支持内存以及redis存储。 `koatty_cacheable` 提供了两个装饰器 CacheAble, CacheEvict。
 
-### 缓存配置
+### 1. 生成插件模板
 
-缓存配置保存在 `config/db.ts`内：
+使用 Koatty CLI 生成插件模板：
 
-```js
-export default {
-    ...
-
-    "CacheStore": {
-        type: "memory", // redis or memory, memory is default
-        // key_prefix: "koatty",
-        // host: '127.0.0.1',
-        // port: 6379,
-        // name: "",
-        // username: "",
-        // password: "",
-        // db: 0,
-        // timeout: 30,
-        // pool_size: 10,
-        // conn_timeout: 30
-    },
-
-    ...
-};
-
+```bash
+kt plugin Cacheable
 ```
-默认使用memory存储，如果需要使用redis，则需要补充redis 链接相关配置项。
 
-### 缓存使用
+创建 `src/plugin/Cacheable.ts`：
 
-* @CacheAble(cacheName: string, {params: string[], timeout = 3600})
+```typescript
+import { Plugin, IPlugin, App } from "koatty";
+import { KoattyCached } from "koatty_cacheable";
 
-开启方法结果自动缓存。当执行该方法的时候，会先查找缓存，缓存结果存在直接返回结果，不存在则执行后返回并保持执行结果。params数组元素为参数名，会根据传入的参数名获取参数值，然后同缓存前缀一起拼接成缓存key。例如：`@CacheAble("getUser", {params: ["name"]})`, name入参值`tom`, 拼接的缓存key为 `getUser:name:tom`。
+@Plugin()
+export class Cacheable implements IPlugin {
+  run(options: any, app: App) {
+    return KoattyCached(options, app);
+  }
+}
+```
 
-* @CacheEvict(cacheName: string, {params: string[], delayedDoubleDeletion = true})
+### 2. 配置插件
 
-清除方法结果缓存，params参数使用和CacheAble一致。delayedDoubleDeletion为true时开启延迟双删策略。
+更新 `src/config/plugin.ts`：
 
-* GetCacheStore(app: Koatty) 
+```typescript
+export default {
+  list: ["Cacheable"], // 插件加载顺序
+  config: {
+    Cacheable: {
+      type: "memory", // 缓存类型: "redis" 或 "memory"，默认为 "memory"
+      db: 0,
+      timeout: 30,
+      // Redis 配置 (当 type 为 "redis" 时)
+      // key_prefix: "koatty",
+      // host: '127.0.0.1',
+      // port: 6379,
+      // name: "",
+      // username: "",
+      // password: "",
+      // pool_size: 10,
+      // conn_timeout: 30
+    }
+  }
+};
+```
 
-获取缓存实例，可以手动调用get、set等方法操作缓存
+**注意事项**:
+- 插件会在应用启动时自动初始化缓存
+- 必须在插件配置中提供正确的缓存配置
+- 如果缓存未正确初始化，装饰器方法会直接执行而不进行缓存（优雅降级）
 
-示例：
+### 3. 缓存使用
 
-```js
+#### 基本用法
+
+```typescript
 import { CacheAble, CacheEvict, GetCacheStore } from "koatty_cacheable";
 
 @Service()
 export class TestService {
 
-    @CacheAble("testCache") // 自动缓存结果,缓存key=testCache
-    getTest(){
+    // 自动缓存方法返回值
+    @CacheAble("testCache", {
+        params: ["id"],    // 使用 id 参数作为缓存键的一部分
+        timeout: 300       // 缓存过期时间（秒），默认 300 秒
+    })
+    async getTest(id: string){
         //todo
     }
 
-    @CacheEvict("testCache") // 执行setTest()之前,先清除缓存,缓存key=testCache
-    setTest(){
+    // 自动清除相关缓存
+    @CacheEvict("testCache", {
+        params: ["id"],                    // 使用 id 参数定位要清除的缓存
+        delayedDoubleDeletion: true        // 启用延迟双删策略，默认 true
+    })
+    async setTest(id: string){
         //todo
     }
 
-    test(){
+    // 手动操作缓存
+    async test(){
         // 自行操作缓存实例
-        const store = GetCacheStore(this.app);
-        store.set(key, value);
+        const store = await GetCacheStore(this.app);
+        await store.set(key, value, 60);
+        const value = await store.get(key);
+        await store.del(key);
     }
 }
-
 ```
+
+#### 高级用法
+
+```typescript
+@Service()
+export class ProductService {
+
+    // 无参数缓存
+    @CacheAble("productStats")
+    async getProductStats(): Promise<ProductStats> {
+        return await this.calculateStats();
+    }
+
+    // 多参数缓存
+    @CacheAble("productSearch", {
+        params: ["category", "keyword"],
+        timeout: 600
+    })
+    async searchProducts(category: string, keyword: string, page: number = 1): Promise<Product[]> {
+        return await this.productRepository.search(category, keyword, page);
+    }
+
+    // 立即清除缓存（不使用延迟双删）
+    @CacheEvict("productSearch", {
+        params: ["category"],
+        delayedDoubleDeletion: false
+    })
+    async updateProductCategory(category: string, updates: any): Promise<void> {
+        await this.productRepository.updateCategory(category, updates);
+    }
+}
+```
+
+### API 说明
+
+* @CacheAble(cacheName: string, options?)
+
+开启方法结果自动缓存。当执行该方法的时候，会先查找缓存，缓存结果存在直接返回结果，不存在则执行后返回并保持执行结果。
+
+**参数:**
+- `cacheName: string` - 缓存名称
+- `options?: CacheAbleOpt` - 缓存选项
+  - `params?: string[]` - 用作缓存键的参数名数组
+  - `timeout?: number` - 缓存过期时间（秒），默认 300
+
+* @CacheEvict(cacheName: string, options?)
+
+清除方法结果缓存。
+
+**参数:**
+- `cacheName: string` - 要清除的缓存名称
+- `options?: CacheEvictOpt` - 清除选项
+  - `params?: string[]` - 用于定位缓存的参数名数组
+  - `delayedDoubleDeletion?: boolean` - 是否启用延迟双删策略，默认 true
+
+* GetCacheStore(app?)
+
+获取缓存存储实例，可以手动调用get、set等方法操作缓存。
+
+**参数:**
+- `app?: Application` - Koatty 应用实例
+
+**返回:** `Promise<CacheStore>`
+
+### 缓存键生成规则
+
+缓存键按以下格式生成：
+```
+{cacheName}:{paramName1}:{paramValue1}:{paramName2}:{paramValue2}...
+```
+
+例如：
+- `@CacheAble("user", {params: ["id"]})` + `getUserById("123")` → `user:id:123`
+- 当缓存键长度超过 128 字符时，会自动使用 murmur hash 进行压缩
+
+### 延迟双删策略
+
+延迟双删是一种解决缓存一致性问题的策略：
+
+1. 立即删除缓存
+2. 执行数据更新操作
+3. 延迟 5 秒后再次删除缓存
+
+这样可以避免在并发场景下出现脏数据。
 
 > 注意： @CacheAble以及@CacheEvict装饰器不能用于控制器类
 
@@ -1841,41 +1948,112 @@ export class TestService {
 
 Koatty封装了一个计划任务库 [koatty_schedule](https://github.com/koatty/koatty_schedule)，支持cron表达式以及基于redis的分布式锁。
 
-### cron表达式
+### 1. 生成插件模板
 
-cron表达式包含6位，分别代表 秒、分、小时、天、月、周：
+使用 Koatty CLI 生成插件模板：
 
- * Seconds: 0-59
- * Minutes: 0-59
- * Hours: 0-23
- * Day of Month: 1-31
- * Months: 1-12 (Jan-Dec)
- * Day of Week: 1-7 (Mon-Sun)
+```bash
+kt plugin Scheduled
+```
 
-### @Scheduled(cron: string)
+创建 `src/plugin/Scheduled.ts`：
 
-通过装饰器 @Scheduled 可以很方便的给方法增加任务执行计划:
+```typescript
+import { Plugin, IPlugin, App } from "koatty";
+import { KoattyScheduled } from "koatty_schedule";
 
-```js
+@Plugin()
+export class Scheduled implements IPlugin {
+  run(options: any, app: App) {
+    return KoattyScheduled(options, app);
+  }
+}
+```
+
+### 2. 配置插件
+
+更新 `src/config/plugin.ts`：
+
+```typescript
+import { RedisMode } from "koatty_schedule";
+
+export default {
+  list: ["Scheduled"], // 插件加载顺序
+  config: {
+    Scheduled: {
+      timezone: "Asia/Shanghai",  // 全局时区配置
+      lockTimeOut: 10000,        // 锁超时时间(ms)
+      maxRetries: 3,             // 获取锁最大重试次数
+      retryDelayMs: 200,         // 重试延迟(ms)
+      redisConfig: {
+        mode: RedisMode.STANDALONE,  // Redis模式: STANDALONE | SENTINEL | CLUSTER
+        host: "127.0.0.1",
+        port: 6379,
+        db: 0,
+        keyPrefix: "koatty:schedule:"
+        // password: "your-password",  // 可选
+      }
+    }
+  }
+};
+```
+
+### 3. 基本使用
+
+#### cron表达式
+
+cron表达式支持5位或6位格式：
+
+**6位格式（推荐，包含秒）：**
+```
+┌────────────── second (0-59)
+│ ┌──────────── minute (0-59)
+│ │ ┌────────── hour (0-23)
+│ │ │ ┌──────── day of month (1-31)
+│ │ │ │ ┌────── month (1-12 or JAN-DEC)
+│ │ │ │ │ ┌──── day of week (0-7 or SUN-SAT, 0 and 7 are Sunday)
+│ │ │ │ │ │
+* * * * * *
+```
+
+**5位格式（不含秒）：**
+```
+┌──────────── minute (0-59)
+│ ┌────────── hour (0-23)
+│ │ ┌──────── day of month (1-31)
+│ │ │ ┌────── month (1-12 or JAN-DEC)
+│ │ │ │ ┌──── day of week (0-7 or SUN-SAT)
+│ │ │ │ │
+* * * * *
+```
+
+#### 基本调度
+
+```typescript
 import { Scheduled, RedLock } from "koatty_schedule";
 
+@Service()
 export class TestService {
 
+    // 每分钟执行一次
     @Scheduled("0 * * * * *")
-    Test(){
+    async test(){
+        //todo
+    }
+
+    // 指定时区执行
+    @Scheduled("0 0 2 * * *", "UTC") // 每天2点UTC时间执行
+    async dailyTask(){
         //todo
     }
 }
-
 ```
 
-### 任务执行锁
+#### 分布式锁
 
 在某些业务场景，计划任务是不能并发执行的，解决方案就是加锁。`koatty_schedule`实现了一个基于redis的分布式锁。
 
 * RedLock(name?: string, options?: RedLockOptions)
-
-RedLockOptions:
 
 ```
   /**
@@ -1899,51 +2077,21 @@ import { Scheduled, RedLock } from "koatty_schedule";
 
 export class TestService {
 
-    @Scheduled("0 * * * * *")
-    @RedLock("testCron") //locker
-    Test(){
-        //todo
-    }
-}
+  @Scheduled("0 */10 * * * *")
+  @RedLock("critical-task") // Prevents concurrent execution
+  async criticalTask() {
+    console.log("Running critical task with lock protection...");
+    // Only one instance can execute this at a time
+  }
 
-```
-
-因为使用了redis，redis缓存配置保存在 `config/db.ts`内：
-
-```js
-export default {
-    ...
-
-    "RedLock": {
-        host: '127.0.0.1',
-        port: 6379,
-        name: "",
-        username: "",
-        password: "",
-        db: 0
-    },
-
-    ...
-};
-
-```
-
-也可以调用装饰器时传入配置:
-
-```js
-import { Scheduled, RedLock } from "koatty_schedule";
-
-export class TestService {
-    @Config("redisConf", "db")
-    private redisConf;
-
-    @Scheduled("0 * * * * *")
-    @RedLock("testCron", {
-      RedisOptions: redisConf
-    }) //locker
-    Test(){
-        //todo
-    }
+  @RedLock("user-sync", { 
+    lockTimeOut: 30000,    // 30 seconds
+    maxRetries: 5,         // Retry 5 times
+    retryDelayMs: 500      // Wait 500ms between retries
+  })
+  async syncUsers() {
+    console.log("Syncing users with lock protection...");
+  }
 }
 
 ```
@@ -2546,11 +2694,11 @@ export class TestAspect {
 | `@PatchMapping()`          | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Patch路由                                              | 仅用于控制器方法                              |
 | `@OptionsMapping()`        | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Options路由                                            | 仅用于控制器方法                              |
 | `@HeadMapping()`           | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Head路由                                               | 仅用于控制器方法                              |
-| `@Scheduled()`             | `cron` 任务计划配置<br> * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 1-12 (Jan-Dec)<br>Day of Week: 1-7 (Mon-Sun)                                                        | 定义类的方法执行计划任务                                                 | 不能用于控制器方法，依赖`koatty_schedule`模块 |
+| `@Scheduled()`             | `cron` 任务计划配置（支持5位或6位格式）<br> 6位: * * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 1-12 (Jan-Dec)<br>Day of Week: 0-7 (Sun-Sat)<br>`timezone` 可选时区参数，覆盖全局配置                                                        | 定义类的方法执行计划任务                                                 | 不能用于控制器方法，依赖`koatty_schedule`模块 |
 | `@Validated()`             |                                                                                                                                                                                                                           | 配合DTO类型进行参数验证                                                  | 方法入参没有DTO类型的不生效，仅用于控制器类   |
-| `@RedLock()`               | `name` 锁的名称<br> `options` 锁配置，包含redis服务器连接配置                                                                                                                                                             | 定义方法执行时必须先获取分布式锁(基于Redis)，依赖`koatty_schedule`模块   |                                               |
-| `@CacheAble()`             | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `redisOptions` Redis服务器连接配置                                                                                        | 基于Redis的缓存，依赖`koatty_cacheable`模块                              | 不能用于控制器方法                            |
-| `@CacheEvict()`            | `cacheName` 缓存name <br> `paramKey`基于方法入参作为缓存key,值为方法入参的位置,从0开始计数 <br> `eventTime` 清除缓存的时点 <br>`redisOptions` Redis服务器连接配置                                                         | 同@Cacheable配合使用，用于方法执行时清理缓存，依赖`koatty_cacheable`模块 | 不能用于控制器方法                            |
+| `@RedLock()`               | `name` 锁的名称（可选，不提供时自动生成）<br> `options` 锁配置（可选，会覆盖全局配置）<br> - `lockTimeOut` 锁超时时间(ms)<br> - `maxRetries` 最大重试次数<br> - `retryDelayMs` 重试延迟(ms)<br> - `clockDriftFactor` 时钟漂移因子                                                                              | 定义方法执行时必须先获取分布式锁(基于Redis)，依赖`koatty_schedule`模块   |                                               |
+| `@CacheAble()`             | `cacheName` 缓存名称 <br> `options` 缓存选项（可选）<br> - `params` 用作缓存键的参数名数组<br> - `timeout` 缓存过期时间（秒），默认300                                                                                        | 自动缓存方法返回值，依赖`koatty_cacheable`模块                              | 不能用于控制器方法                            |
+| `@CacheEvict()`            | `cacheName` 缓存名称 <br> `options` 清除选项（可选）<br> - `params` 用于定位缓存的参数名数组<br> - `delayedDoubleDeletion` 是否启用延迟双删策略，默认true                                                         | 自动清除相关缓存，依赖`koatty_cacheable`模块 | 不能用于控制器方法                            |
 
 
 

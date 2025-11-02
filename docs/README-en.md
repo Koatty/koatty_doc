@@ -1653,68 +1653,181 @@ async index(type: string) {
 
 Koatty encapsulates a caching library [koatty_cacheable](https://github.com/koatty/koatty_cacheable), which supports memory and Redis storage. `koatty_cacheable` provides two decorators `CacheAble` and `CacheEvict`.
 
-### Cache Configuration
+### 1. Generate Plugin Template
 
-Cache configuration is saved in `config/db.ts`:
+Use Koatty CLI to generate the plugin template:
+
+```bash
+kt plugin Cacheable
+```
+
+Create `src/plugin/Cacheable.ts`:
+
+```typescript
+import { Plugin, IPlugin, App } from "koatty";
+import { KoattyCached } from "koatty_cacheable";
+
+@Plugin()
+export class Cacheable implements IPlugin {
+  run(options: any, app: App) {
+    return KoattyCached(options, app);
+  }
+}
+```
+
+### 2. Configure Plugin
+
+Update `src/config/plugin.ts`:
 
 ```typescript
 export default {
-  "CacheStore": {
-    type: "memory", // redis or memory, memory is default
-    // key_prefix: "koatty",
-    // host: '127.0.0.1',
-    // port: 6379,
-    // name: "",
-    // username: "",
-    // password: "",
-    // db: 0,
-    // timeout: 30,
-    // pool_size: 10,
-    // conn_timeout: 30
-  },
+  list: ["Cacheable"], // Plugin loading order
+  config: {
+    Cacheable: {
+      type: "memory", // Cache type: "redis" or "memory", default is "memory"
+      db: 0,
+      timeout: 30,
+      // Redis configuration (when type is "redis")
+      // key_prefix: "koatty",
+      // host: '127.0.0.1',
+      // port: 6379,
+      // name: "",
+      // username: "",
+      // password: "",
+      // pool_size: 10,
+      // conn_timeout: 30
+    }
+  }
 };
 ```
 
-The default uses memory storage. If Redis is needed, Redis connection-related configuration items need to be supplemented.
+**Important Notes:**
+- The plugin will automatically initialize the cache when the application starts
+- Must provide correct cache configuration in the plugin configuration
+- If the cache is not correctly initialized, decorated methods will execute directly without caching (graceful degradation)
 
-### Cache Usage
+### 3. Cache Usage
 
-- **`@CacheAble(cacheName: string, {params: string[], timeout = 3600})`**
-
-Enables automatic caching of method results. When this method is executed, it first checks the cache. If the cached result exists, it returns the result directly; otherwise, it executes and then returns and stores the result. The elements of the `params` array are parameter names, which will be used to get the parameter values, and then concatenated with the cache prefix to form the cache key. For example: `@CacheAble("getUser", {params:["name"]})`, if the `name` parameter value is `tom`, the concatenated cache key is `getUser:name:tom`.
-
-- **`@CacheEvict(cacheName: string, {params: string[], delayedDoubleDeletion = true})`**
-
-Clears the method result cache. The `params` parameter is used the same as `CacheAble`. `delayedDoubleDeletion` is `true` to enable delayed double deletion strategy.
-
-- **`GetCacheStore(app: Koatty)`**
-
-Gets the cache instance, which can manually call `get`, `set`, and other methods to operate the cache.
-
-**Example:**
+#### Basic Usage
 
 ```typescript
 import { CacheAble, CacheEvict, GetCacheStore } from "koatty_cacheable";
 
 @Service()
 export class TestService {
-  @CacheAble("testCache") // Automatically caches the result, cache key=testCache
-  getTest() {
-    // todo
-  }
 
-  @CacheEvict("testCache") // Clears the cache before executing setTest(), cache key=testCache
-  setTest() {
-    // todo
-  }
+    // Automatically cache method return value
+    @CacheAble("testCache", {
+        params: ["id"],    // Use id parameter as part of cache key
+        timeout: 300       // Cache expiration time (seconds), default 300
+    })
+    async getTest(id: string){
+        //todo
+    }
 
-  test() {
-    // Manually operate the cache instance
-    const store = GetCacheStore(this.app);
-    store.set(key, value);
-  }
+    // Automatically clear related cache
+    @CacheEvict("testCache", {
+        params: ["id"],                    // Use id parameter to locate cache to clear
+        delayedDoubleDeletion: true        // Enable delayed double deletion strategy, default true
+    })
+    async setTest(id: string){
+        //todo
+    }
+
+    // Manual cache operations
+    async test(){
+        // Manually operate cache instance
+        const store = await GetCacheStore(this.app);
+        await store.set(key, value, 60);
+        const value = await store.get(key);
+        await store.del(key);
+    }
 }
 ```
+
+#### Advanced Usage
+
+```typescript
+@Service()
+export class ProductService {
+
+    // No parameter cache
+    @CacheAble("productStats")
+    async getProductStats(): Promise<ProductStats> {
+        return await this.calculateStats();
+    }
+
+    // Multi-parameter cache
+    @CacheAble("productSearch", {
+        params: ["category", "keyword"],
+        timeout: 600
+    })
+    async searchProducts(category: string, keyword: string, page: number = 1): Promise<Product[]> {
+        return await this.productRepository.search(category, keyword, page);
+    }
+
+    // Immediate cache clear (without delayed double deletion)
+    @CacheEvict("productSearch", {
+        params: ["category"],
+        delayedDoubleDeletion: false
+    })
+    async updateProductCategory(category: string, updates: any): Promise<void> {
+        await this.productRepository.updateCategory(category, updates);
+    }
+}
+```
+
+### API Reference
+
+#### `@CacheAble(cacheName: string, options?)`
+
+Automatically caches the method return value. When executing the method, it first checks the cache. If the cached result exists, it returns the result directly; otherwise, it executes and then returns and stores the result.
+
+**Parameters:**
+- `cacheName: string` - Cache name
+- `options?: CacheAbleOpt` - Cache options
+  - `params?: string[]` - Array of parameter names used as cache keys
+  - `timeout?: number` - Cache expiration time (seconds), default 300
+
+#### `@CacheEvict(cacheName: string, options?)`
+
+Automatically clears method result cache.
+
+**Parameters:**
+- `cacheName: string` - Cache name to clear
+- `options?: CacheEvictOpt` - Clear options
+  - `params?: string[]` - Array of parameter names used to locate cache
+  - `delayedDoubleDeletion?: boolean` - Whether to enable delayed double deletion strategy, default true
+
+#### `GetCacheStore(app?)`
+
+Gets the cache store instance, which can manually call `get`, `set`, and other methods to operate the cache.
+
+**Parameters:**
+- `app?: Application` - Koatty application instance
+
+**Returns:** `Promise<CacheStore>`
+
+### Cache Key Generation Rules
+
+Cache keys are generated in the following format:
+```
+{cacheName}:{paramName1}:{paramValue1}:{paramName2}:{paramValue2}...
+```
+
+For example:
+- `@CacheAble("user", {params: ["id"]})` + `getUserById("123")` → `user:id:123`
+- When cache key length exceeds 128 characters, it will automatically use murmur hash for compression
+
+### Delayed Double Deletion Strategy
+
+Delayed double deletion is a strategy to solve cache consistency problems:
+
+1. Delete cache immediately
+2. Execute data update operation
+3. Delete cache again after 5 seconds delay
+
+This avoids dirty data in concurrent scenarios.
 
 > Note: Decorators `@CacheAble` and `@CacheEvict` cannot be used for controller classes.
 
@@ -1722,97 +1835,264 @@ export class TestService {
 
 Koatty encapsulates a scheduling task library [koatty_schedule](https://github.com/koatty/koatty_schedule), which supports cron expressions and distributed locks based on Redis.
 
-### Cron Expressions
+### 1. Generate Plugin Template
 
-Cron expressions consist of 6 fields, representing seconds, minutes, hours, day of month, month, and day of week:
+Use Koatty CLI to generate the plugin template:
 
-- Seconds: 0-59
-- Minutes: 0-59
-- Hours: 0-23
-- Day of Month: 1-31
-- Months: 1-12 (Jan-Dec)
-- Day of Week: 1-7 (Mon-Sun)
+```bash
+kt plugin Scheduled
+```
 
-### `@Scheduled(cron: string)`
-
-Easily add task execution plans to methods through the `@Scheduled` decorator:
+Create `src/plugin/Scheduled.ts`:
 
 ```typescript
-import { Scheduled, RedLock } from "koatty_schedule";
+import { Plugin, IPlugin, App } from "koatty";
+import { KoattyScheduled } from "koatty_schedule";
 
-export class TestService {
-  @Scheduled("0 * * * * *")
-  Test() {
-    // todo
+@Plugin()
+export class Scheduled implements IPlugin {
+  run(options: any, app: App) {
+    return KoattyScheduled(options, app);
   }
 }
 ```
 
-### Task Execution Lock
+### 2. Configure Plugin
 
-In some business scenarios, scheduled tasks cannot be executed concurrently, and the solution is to add a lock. `koatty_schedule` implements a distributed lock based on Redis.
-
-**`RedLock(name?: string, options?: RedLockOptions)`**
-
-`RedLockOptions`:
-
-- `lockTimeOut?`: Lock timeout in milliseconds, default 10000
-- `retryCount?`: Maximum retry count, default 3
-- `RedisOptions`: Redis configuration, supports Standalone, Sentinel, Cluster
-
-**Example:**
+Update `src/config/plugin.ts`:
 
 ```typescript
-import { Scheduled, RedLock } from "koatty_schedule";
+import { RedisMode } from "koatty_schedule";
 
-export class TestService {
-  @Scheduled("0 * * * * *")
-  @RedLock("testCron") // locker
-  Test() {
-    // todo
-  }
-}
-```
-
-Because Redis is used, Redis cache configuration is saved in `config/db.ts`:
-
-```typescript
 export default {
-  "RedLock": {
-    host: '127.0.0.1',
-    port: 6379,
-    name: "",
-    username: "",
-    password: "",
-    db: 0
-  },
+  list: ["Scheduled"], // Plugin loading order
+  config: {
+    Scheduled: {
+      timezone: "Asia/Shanghai",  // Global timezone configuration
+      lockTimeOut: 10000,        // Lock timeout (ms)
+      maxRetries: 3,             // Maximum retry count for acquiring lock
+      retryDelayMs: 200,         // Retry delay (ms)
+      redisConfig: {
+        mode: RedisMode.STANDALONE,  // Redis mode: STANDALONE | SENTINEL | CLUSTER
+        host: "127.0.0.1",
+        port: 6379,
+        db: 0,
+        keyPrefix: "koatty:schedule:"
+        // password: "your-password",  // Optional
+      }
+    }
+  }
 };
 ```
 
-You can also pass in the configuration when calling the decorator:
+### 3. Basic Usage
+
+#### Cron Expressions
+
+Cron expressions support both 5-part and 6-part formats:
+
+**6-part format (recommended, includes seconds):**
+```
+┌────────────── second (0-59)
+│ ┌──────────── minute (0-59)
+│ │ ┌────────── hour (0-23)
+│ │ │ ┌──────── day of month (1-31)
+│ │ │ │ ┌────── month (1-12 or JAN-DEC)
+│ │ │ │ │ ┌──── day of week (0-7 or SUN-SAT, 0 and 7 are Sunday)
+│ │ │ │ │ │
+* * * * * *
+```
+
+**5-part format (without seconds):**
+```
+┌──────────── minute (0-59)
+│ ┌────────── hour (0-23)
+│ │ ┌──────── day of month (1-31)
+│ │ │ ┌────── month (1-12 or JAN-DEC)
+│ │ │ │ ┌──── day of week (0-7 or SUN-SAT)
+│ │ │ │ │
+* * * * *
+```
+
+#### Basic Scheduling
 
 ```typescript
 import { Scheduled, RedLock } from "koatty_schedule";
 
+@Service()
 export class TestService {
-  @Config("redisConf", "db")
-  private redisConf;
 
-  @Scheduled("0 * * * * *")
-  @RedLock("testCron", {
-    RedisOptions: this.redisConf
-  }) // locker
-  Test() {
-    // todo
+    // Execute every minute
+    @Scheduled("0 * * * * *")
+    async test(){
+        //todo
+    }
+
+    // Execute with specified timezone
+    @Scheduled("0 0 2 * * *", "UTC") // Execute daily at 2 AM UTC
+    async dailyTask(){
+        //todo
+    }
+}
+```
+
+#### Distributed Lock
+
+In some business scenarios, scheduled tasks cannot be executed concurrently, and the solution is to add a lock. `koatty_schedule` implements a distributed lock based on Redis.
+
+```typescript
+import { Scheduled, RedLock } from "koatty_schedule";
+
+@Service()
+export class TestService {
+
+    @Scheduled("0 * * * * *")
+    @RedLock("testCron") // Use default distributed lock configuration
+    async test(){
+        //todo
+    }
+
+    // Custom lock configuration
+    @Scheduled("0 */10 * * * *")
+    @RedLock("critical-task", {
+        lockTimeOut: 30000,    // Lock timeout (ms)
+        maxRetries: 5,         // Maximum retry count
+        retryDelayMs: 500      // Retry delay (ms)
+    })
+    async criticalTask(){
+        //todo
+    }
+}
+```
+
+### 4. Advanced Configuration
+
+#### Redis Deployment Modes
+
+koatty_schedule supports three Redis deployment modes:
+
+**Standalone Mode (default):**
+
+```typescript
+import { RedisMode } from "koatty_schedule";
+
+export default {
+  config: {
+    Scheduled: {
+      redisConfig: {
+        mode: RedisMode.STANDALONE,
+        host: "127.0.0.1",
+        port: 6379,
+        password: "your-password",
+        db: 0,
+        keyPrefix: "koatty:schedule:"
+      }
+    }
+  }
+};
+```
+
+**Sentinel Mode (high availability):**
+
+```typescript
+import { RedisMode } from "koatty_schedule";
+
+export default {
+  config: {
+    Scheduled: {
+      redisConfig: {
+        mode: RedisMode.SENTINEL,
+        sentinels: [
+          { host: "192.168.1.10", port: 26379 },
+          { host: "192.168.1.11", port: 26379 },
+          { host: "192.168.1.12", port: 26379 }
+        ],
+        name: "mymaster",  // Sentinel master name
+        password: "your-password",
+        sentinelPassword: "sentinel-password",  // Optional
+        db: 0,
+        keyPrefix: "koatty:schedule:"
+      }
+    }
+  }
+};
+```
+
+**Cluster Mode (horizontal scaling):**
+
+```typescript
+import { RedisMode } from "koatty_schedule";
+
+export default {
+  config: {
+    Scheduled: {
+      redisConfig: {
+        mode: RedisMode.CLUSTER,
+        nodes: [
+          { host: "192.168.1.10", port: 7000 },
+          { host: "192.168.1.11", port: 7001 },
+          { host: "192.168.1.12", port: 7002 }
+        ],
+        redisOptions: {
+          password: "your-password",
+          db: 0
+        },
+        keyPrefix: "koatty:schedule:"
+      }
+    }
+  }
+};
+```
+
+#### Configuration Priority
+
+The library uses a three-tier priority system for configuration:
+
+1. **Method-level** (highest priority)
+2. **Global plugin config**
+3. **Built-in defaults** (lowest priority)
+
+```typescript
+// Method-level timezone overrides global config
+@Scheduled('0 0 12 * * *', 'UTC')  // Uses UTC (method-level)
+async task1() { ... }
+
+@Scheduled('0 0 12 * * *')  // Uses global timezone from plugin config
+async task2() { ... }
+```
+
+### 5. Health Check
+
+```typescript
+import { RedLocker } from "koatty_schedule";
+
+@Service()
+export class MonitoringService {
+  
+  @Scheduled('*/30 * * * * *') // Every 30 seconds
+  async checkSystemHealth() {
+    const redLocker = RedLocker.getInstance();
+    const health = await redLocker.healthCheck();
+    
+    console.log('RedLock Status:', health.status);
+    console.log('Connection Details:', health.details);
+    
+    if (health.status === 'unhealthy') {
+      console.error('RedLock is unhealthy!', health.details);
+    }
   }
 }
 ```
 
-**Several points to note:**
+### Notes
 
-- Decorators `@Scheduled` and `@RedLock` cannot be used for controller classes.
-- Configure corresponding parameters according to the duration of the scheduled task to prevent lock expiration.
-- When the lock expires but the business logic has not been completed, the lock will automatically extend for one time. If the extension time expires and the business logic is still not completed, the lock will be released.
+> Decorators `@Scheduled` and `@RedLock` cannot be used for controller classes; 
+> 
+> Configure corresponding parameters according to the duration of the scheduled task to prevent lock expiration
+> 
+> When the lock expires but the business logic has not been completed, the lock will automatically extend (up to 3 times). If the extension time expires and the business logic is still not completed, the lock will be released
+> 
+> Method-level configuration overrides global configuration, global configuration overrides default configuration
 
 ## Distributed Tracing and Performance Monitoring
 
@@ -2343,11 +2623,11 @@ export class TestAspect {
 | `@PatchMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Patch routes to controller methods | Only for controller methods |
 | `@OptionsMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Options routes to controller methods | Only for controller methods |
 | `@HeadMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Head routes to controller methods | Only for controller methods |
-| `@Scheduled()` | `cron` - Task scheduling configuration<br>`* * * * *`<br>Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 1-12 (Jan-Dec)<br>Day of Week: 1-7 (Mon-Sun) | Define the execution plan task of the class method | Cannot be used for controller methods, dependent on the `koatty_schedule` module |
+| `@Scheduled()` | `cron` Task scheduling configuration (supports 5-part or 6-part format)<br> 6-part: * * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 1-12 (Jan-Dec)<br>Day of Week: 0-7 (Sun-Sat)<br>`timezone` Optional timezone parameter, overrides global config | Define the execution plan task of the class method | Cannot be used for controller methods, dependent on the `koatty_schedule` module |
 | `@Validated()` | - | Used in conjunction with DTO types for parameter validation | Method parameters without DTO types are not effective, only for controller classes |
-| `@RedLock()` | `name` - Name of the lock<br>`options` - Lock configuration, including Redis server connection configuration | Define that the method must first obtain a distributed lock (based on Redis) before execution | Dependent on the `koatty_schedule` module |
-| `@CacheAble()` | `cacheName` - Cache name<br>`paramKey` - Based on method input parameters as cache key, value is the position of the method input parameter, starting from 0<br>`redisOptions` - Redis server connection configuration | Dependent on the `koatty_cacheable` module | Cannot be used for controller methods |
-| `@CacheEvict()` | `cacheName` - Cache name<br>`paramKey` - Based on method input parameters as cache key, value is the position of the method input parameter, starting from 0<br>`eventTime` - Time point for clearing the cache<br>`redisOptions` - Redis server connection configuration | Used together with `@Cacheable`, for clearing the cache when the method is executed | Cannot be used for controller methods |
+| `@RedLock()` | `name` Lock name (optional, auto-generated if not provided)<br>`options` Lock configuration (optional, overrides global config)<br> - `lockTimeOut` Lock timeout (ms)<br> - `maxRetries` Maximum retry count<br> - `retryDelayMs` Retry delay (ms)<br> - `clockDriftFactor` Clock drift factor | Define that the method must first obtain a distributed lock (based on Redis) before execution | Dependent on the `koatty_schedule` module |
+| `@CacheAble()` | `cacheName` Cache name <br>`options` Cache options (optional)<br> - `params` Array of parameter names used as cache keys<br> - `timeout` Cache expiration time (seconds), default 300 | Automatically cache method return value, dependent on `koatty_cacheable` module | Cannot be used for controller methods |
+| `@CacheEvict()` | `cacheName` Cache name <br>`options` Clear options (optional)<br> - `params` Array of parameter names used to locate cache<br> - `delayedDoubleDeletion` Whether to enable delayed double deletion strategy, default true | Automatically clear related cache, dependent on `koatty_cacheable` module | Cannot be used for controller methods |
 
 ### Parameter Decorators
 
