@@ -210,6 +210,12 @@ The Koatty CLI tool `koatty_cli` creates the following directory structure by de
 │   ├── utils                     # Utility functions
 │   │   └── tool.ts
 │   └── App.ts                    # Entry file
+├── resource                      # Static data or resources
+│   └── proto                     # Protocol Buffers
+│   │     └── test.proto
+│   └── graphql                   # Protocol graphql
+│   │     └── User.graphql
+│   └── data.json
 ├── static                        # Static files directory
 │   └── index.html
 ├── test                          # Test cases

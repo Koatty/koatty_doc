@@ -204,15 +204,17 @@ Koatty的命令行工具`koatty_cli`在创建项目的时候，默认会形成�
 │   │   └── TestModel.ts
 │   ├── plugin                    # 插件
 │   │   └── TestPlugin.ts
-│   ├── resource                  # 用于存放静态数据或白名单等
-│   │   └── proto                     # pb协议
-│   │     └── test.proto
-│   │   └── data.json
 │   ├── service                   # service逻辑层
 │   │   └── TestService.ts
 │   ├── utils                     # 工具函数
 │   │   └── tool.ts
 │   └── App.ts                    # 入口文件
+├── resource                      # 用于存放静态数据或白名单等
+│   └── proto                     # pb协议
+│   │     └── test.proto
+│   └── graphql                   # graphql协议
+│   │     └── User.graphql
+│   └── data.json
 ├── static                        # 静态文件目录
 │   └── index.html
 ├── test                          # 测试用例
