@@ -24,8 +24,10 @@ Koa + TypeScript + IOC = Koatty. **Koatty** is a progressive Node.js framework f
 
 - ✅ **Multi-Protocol Architecture** - Run HTTP, HTTPS, HTTP/2, HTTP/3, gRPC, WebSocket, and GraphQL simultaneously with independent server instances for each protocol
 - ✅ **Intelligent Metadata Cache** - LRU caching with preloading for 70%+ performance boost, metadata operations < 0.01ms/call
-- ✅ **Application Lifecycle Hooks** - Custom decorators with `BindEventHook` API for boot/ready/stop events
+- ✅ **Application Lifecycle Hooks** - Use `@OnEvent` decorator or `BindEventHook` API for appBoot/appReady/appStart/appStop lifecycle events
 - ✅ **Version Conflict Detection** - Automatic detection and resolution of dependency conflicts
+- ✅ **Configuration Restructuring** - Server configuration separated to `server.ts`, router ext configuration uses protocol name as key
+- ✅ **Enhanced Component Decorator** - Supports `priority`, `scope`, `requires`, `version`, `description` configuration options
 
 ### Routing & Middleware
 
@@ -182,7 +184,8 @@ The Koatty CLI tool `koatty_cli` creates the following directory structure by de
 ├── dist                          # Compiled directory
 ├── src                           # Project source code
 │   ├── config
-│   │   ├── config.ts             # Framework configuration
+│   │   ├── config.ts             # General framework configuration
+│   │   ├── server.ts             # Server configuration (protocol, port, SSL, etc.)
 │   │   ├── db.ts                 # Database configuration
 │   │   ├── middleware.ts         # Middleware configuration
 │   │   ├── plugin.ts             # Plugin configuration
@@ -346,35 +349,49 @@ In actual projects, various configurations are needed, including framework-requi
 
 **Configuration Files**:
 
-- `config.ts` - General configurations (including server protocol configuration)
+- `config.ts` - General configurations (log level, log path, sensitive fields, etc.)
+- `server.ts` - Server configuration (protocol, port, SSL, tracing, etc.)
 - `db.ts` - Database configurations
-- `router.ts` - Router configurations (including protocol-specific extension configuration)
+- `router.ts` - Router configurations (route prefix, payload parsing, protocol-specific extension configuration)
 - `middleware.ts` - Middleware configurations
 - `plugin.ts` - Plugin configurations
 
+> **Note**: Starting from Koatty 4.0, server-related configurations (hostname, port, protocol, ssl, etc.) have been separated from `config.ts` to `server.ts` for clearer server configuration management.
+
 In addition to the common configuration files mentioned above, Koatty also supports custom configuration file naming.
 
-### Multi-Protocol Server Configuration
+### Server Configuration (server.ts)
 
-Starting from version 3.14.x, Koatty supports running multiple protocols simultaneously. Configure protocols in `config/config.ts`:
+Starting from Koatty 4.0, server configuration has been separated to `config/server.ts`. It supports running multiple protocols simultaneously.
 
 ```typescript
-// Single protocol mode (backward compatible)
+// config/server.ts
 export default {
-  server: {
-    hostname: '127.0.0.1',
-    port: 3000,
-    protocol: "http", // Single protocol
+  hostname: '127.0.0.1', // Server hostname
+  port: 3000,            // Server port (single value or array)
+  protocol: "http",      // Single protocol mode
+  trace: false,          // Enable tracing
+  ssl: {
+    mode: 'auto',        // 'auto' | 'manual' | 'mutual_tls'
+    key: '',             // SSL key file path
+    cert: '',            // SSL certificate file path
+    ca: ''               // CA certificate file path
   }
 }
 
 // Multi-protocol mode
 export default {
-  server: {
-    hostname: '127.0.0.1',
-    port: 3000,
-    protocol: ["http", "grpc"], // Multiple protocols: 'http' | 'https' | 'http2' | 'http3' | 'grpc' | 'ws' | 'wss' | 'graphql'
-    trace: false, // Enable tracing
+  hostname: '127.0.0.1',
+  // Port configuration: single value or array
+  // If array, each port maps to corresponding protocol
+  // If single value, first protocol uses it, others auto-increment (3000, 3001, 3002...)
+  port: [3000, 50051],
+  protocol: ["http", "grpc"], // Multiple protocols: 'http' | 'https' | 'http2' | 'grpc' | 'ws' | 'wss' | 'graphql'
+  trace: false,
+  ssl: {
+    mode: 'auto',
+    key: './ssl/server.key',
+    cert: './ssl/server.crt'
   }
 }
 ```
@@ -400,28 +417,35 @@ export default {
   - **Server Push**: Prefetch related resources
   - **HTTP/1.1 Fallback**: Automatic downgrade for compatibility
   
-  To enable HTTP/2 for GraphQL, configure in `config/config.ts`:
+  To enable HTTP/2 for GraphQL, configure in `config/server.ts`:
   ```typescript
+  // config/server.ts
   export default {
-    server: {
-      protocol: "graphql",
-      ssl: {
-        mode: 'auto',
-        key: './ssl/server.key',
-        cert: './ssl/server.crt'
-      },
-      ext: {
-        maxConcurrentStreams: 100  // Optional: HTTP/2 config
-      }
+    hostname: '127.0.0.1',
+    port: 3000,
+    protocol: "graphql",
+    trace: false,
+    ssl: {
+      mode: 'auto',
+      key: './ssl/server.key',
+      cert: './ssl/server.crt'
     }
   }
   ```
   
-  Then configure GraphQL schema in `config/router.ts`:
+  Then configure GraphQL schema in `config/router.ts` (using protocol name as key):
   ```typescript
+  // config/router.ts
   export default {
     ext: {
-      schemaFile: "./resource/graphql/schema.graphql"
+      graphql: {
+        schemaFile: "./resource/graphql/schema.graphql",
+        playground: true,              // Enable GraphQL Playground
+        introspection: true,           // Enable introspection
+        depthLimit: 10,                // Query depth limit
+        // Optional: HTTP/2 configuration
+        // http2: { maxConcurrentStreams: 100 }
+      }
     }
   }
   ```
@@ -701,81 +725,156 @@ The custom route configuration is stored in `src/config/router.ts`, which initia
 
 ```typescript
 export default {
-  prefix: string;           // Route prefix
-  methods?: string[];       // Supported HTTP methods
-  routerPath?: string;      // Route path
-  sensitive?: boolean;      // Case sensitive
-  strict?: boolean;         // Strict matching
-  
-   ext?: {                   // Protocol-specific extension configuration
-     // HTTP protocol config (optional)
+    prefix: string;           // Route prefix
+    methods?: string[];       // Supported HTTP methods
+    routerPath?: string;      // Route path
+    sensitive?: boolean;      // Case sensitive
+    strict?: boolean;         // Strict matching
+    payload?: PayloadOptions; // Payload parsing options
 
-     // gRPC protocol config (optional)
-     protoFile: string;           // gRPC proto file path (required)
-     poolSize?: number;           // Connection pool size, default 10
-     batchSize?: number;          // Batch size, default 10
-     streamConfig?: {             // Stream configuration
-       maxConcurrentStreams?: number;    // Max concurrent streams, default 50
-       streamTimeout?: number;           // Stream timeout (ms), default 60s
-       backpressureThreshold?: number;   // Backpressure threshold (bytes), default 2048
-     };
-     enableReflection?: boolean;          // Enable reflection, default false
-
-     // WebSocket protocol config (optional)
-     maxFrameSize?: number;        // Max frame size (bytes), default 1MB
-     heartbeatInterval?: number;   // Heartbeat interval (ms), default 15s
-     heartbeatTimeout?: number;    // Heartbeat timeout (ms), default 30s
-     maxConnections?: number;      // Max connections, default 1000
-     maxBufferSize?: number;       // Max buffer size (bytes), default 10MB
-
-     // GraphQL protocol config (optional)
-     schemaFile: string;          // GraphQL Schema file path (required)
-     playground?: boolean;        // Enable GraphQL Playground, default false
-     introspection?: boolean;     // Enable introspection query, default true
-     debug?: boolean;             // Debug mode, default false
-     depthLimit?: number;         // Query depth limit, default 10
-     complexityLimit?: number;    // Query complexity limit, default 1000
-   }
+    // Protocol-specific extension configuration (using protocol name as key)
+    ext?: {
+      http?: {};                        // HTTP protocol config (optional)
+      grpc?: GrpcExtOptions;            // gRPC protocol config (optional)
+      ws?: WebSocketExtOptions;         // WebSocket protocol config (optional)
+      graphql?: GraphQLExtOptions;      // GraphQL protocol config (optional)
+    }
 };
+```
+
+> **Note**: Starting from Koatty 4.0, `ext` configuration uses protocol name as key for better multi-protocol support. E.g., `ext.grpc`, `ext.ws`, `ext.graphql`, etc.
+
+**Protocol-Specific Extension Configuration Options**:
+
+**gRPC Configuration Options (GrpcExtOptions)**:
+```typescript
+{
+  protoFile: string;           // gRPC proto file path (required)
+  poolSize?: number;           // Connection pool size, default 10
+  batchSize?: number;          // Batch size, default 10
+  streamConfig?: {             // Stream configuration
+    maxConcurrentStreams?: number;    // Max concurrent streams, default 50
+    streamTimeout?: number;           // Stream timeout (ms), default 60s
+    backpressureThreshold?: number;   // Backpressure threshold (bytes), default 2048
+  };
+  enableReflection?: boolean;  // Enable reflection, default false
+}
+```
+
+**WebSocket Configuration Options (WebSocketExtOptions)**:
+```typescript
+{
+  maxFrameSize?: number;        // Max frame size (bytes), default 1MB
+  heartbeatInterval?: number;   // Heartbeat interval (ms), default 15s
+  heartbeatTimeout?: number;    // Heartbeat timeout (ms), default 30s
+  maxConnections?: number;      // Max connections, default 1000
+  maxBufferSize?: number;       // Max buffer size (bytes), default 10MB
+}
+```
+
+**GraphQL Configuration Options (GraphQLExtOptions)**:
+```typescript
+{
+  schemaFile: string;          // GraphQL Schema file path (required)
+  playground?: boolean;        // Enable GraphQL Playground, default false
+  introspection?: boolean;     // Enable introspection query, default true
+  debug?: boolean;             // Debug mode, default false
+  depthLimit?: number;         // Query depth limit, default 10
+  complexityLimit?: number;    // Query complexity limit, default 1000
+  // Optional: HTTP/2 configuration
+  // keyFile?: string;         // SSL key file path
+  // crtFile?: string;         // SSL certificate file path
+  // http2?: { maxConcurrentStreams?: number }
+}
 ```
 
 **Protocol-Specific Extension Configuration Examples**:
 
-#### gRPC Configuration
+#### Single Protocol Configuration
+
+##### gRPC Configuration
 ```typescript
 export default {
-  ext: {
-    protoFile: "./resource/proto/Hello.proto",  // gRPC proto file
-    poolSize: 10,                               // Connection pool size
-    streamConfig: {
-      maxConcurrentStreams: 50,               // Max concurrent streams
-      streamTimeout: 60000                    // Stream timeout (ms)
+    ext: {
+        grpc: {
+            protoFile: "./resource/proto/Hello.proto",  // gRPC proto file
+            poolSize: 10,                               // Connection pool size
+            streamConfig: {
+                maxConcurrentStreams: 50,               // Max concurrent streams
+                streamTimeout: 60000                    // Stream timeout (ms)
+            }
+        }
     }
-  }
 };
 ```
 
-#### WebSocket Configuration
+##### WebSocket Configuration
 ```typescript
 export default {
-  ext: {
-    maxFrameSize: 1024 * 1024,     // Max frame size 1MB
-    heartbeatInterval: 15000,       // Heartbeat interval 15s
-    maxConnections: 1000            // Max connections
-  }
+    ext: {
+        ws: {
+            maxFrameSize: 1024 * 1024,     // Max frame size 1MB
+            heartbeatInterval: 15000,       // Heartbeat interval 15s
+            maxConnections: 1000            // Max connections
+        }
+    }
 };
 ```
 
-#### GraphQL Configuration
+##### GraphQL Configuration
 ```typescript
 export default {
-  ext: {
-    schemaFile: "./resource/graphql/schema.graphql",  // GraphQL Schema file
-    playground: true,                                 // Enable GraphQL Playground
-    introspection: true,                              // Enable introspection
-    depthLimit: 10,                                   // Query depth limit
-    complexityLimit: 1000                             // Query complexity limit
-  }
+    ext: {
+        graphql: {
+            schemaFile: "./resource/graphql/schema.graphql",  // GraphQL Schema file
+            playground: true,                                 // Enable GraphQL Playground
+            introspection: true,                              // Enable introspection
+            depthLimit: 10,                                   // Query depth limit
+            complexityLimit: 1000                             // Query complexity limit
+        }
+    }
+};
+```
+
+#### Multi-Protocol Configuration (Recommended)
+
+When running multiple protocols, use protocol names as keys for extension parameters:
+
+```typescript
+// config/router.ts - Multi-protocol configuration example
+export default {
+    payload: {
+        extTypes: {
+            json: ['application/json'],
+            form: ['application/x-www-form-urlencoded'],
+            grpc: ['application/grpc'],
+            graphql: ['application/graphql+json'],
+            websocket: ['application/websocket']
+        },
+        limit: '20mb',
+        encoding: 'utf-8',
+    },
+    ext: {
+        http: {},  // HTTP protocol (no special config)
+        grpc: {
+            protoFile: "./resource/proto/service.proto",
+            poolSize: 10,
+            streamConfig: { maxConcurrentStreams: 50 }
+        },
+        graphql: {
+            schemaFile: "./resource/graphql/schema.graphql",
+            playground: true,
+            introspection: true,
+            // Optional: Enable HTTP/2
+            // keyFile: "./ssl/server.key",
+            // crtFile: "./ssl/server.crt"
+        },
+        ws: {
+            maxFrameSize: 1024 * 1024,
+            heartbeatInterval: 15000,
+            maxConnections: 1000
+        }
+    }
 };
 ```
 
@@ -2656,23 +2755,34 @@ In addition to the controller file, Koatty will also automatically create RPC pr
 
 ### Service Configuration
 
-Modify `config/config.ts`:
+Modify `config/server.ts`:
 
 ```typescript
+// config/server.ts
 export default {
-  server: {
-    protocol: "grpc", // Server protocol
-  }
+  hostname: '127.0.0.1',
+  port: 50051,
+  protocol: "grpc", // Server protocol: 'http' | 'https' | 'http2' | 'grpc' | 'ws' | 'wss' | 'graphql'
+  trace: false,
 }
 ```
 
 Modify `config/router.ts`:
 
 ```typescript
+// config/router.ts
 export default {
-  ext: {
-    protoFile: process.env.APP_PATH + "resource/proto/Hello.proto", // gRPC proto file
-  }
+    // Protocol-specific extension configuration (using protocol name as key)
+    ext: {
+        grpc: {
+            protoFile: process.env.APP_PATH + "resource/proto/Hello.proto", // gRPC proto file
+            poolSize: 10,
+            streamConfig: {
+                maxConcurrentStreams: 50,
+                streamTimeout: 60000
+            }
+        }
+    }
 }
 ```
 
@@ -2730,13 +2840,31 @@ export class RequestController {
 
 ### Service Configuration
 
-Modify `config/config.ts`:
+Modify `config/server.ts`:
 
 ```typescript
+// config/server.ts
 export default {
-  server: {
-    protocol: "ws", // Server protocol: 'ws' | 'wss'
-  }
+  hostname: '127.0.0.1',
+  port: 3000,
+  protocol: "ws", // Server protocol: 'http' | 'https' | 'http2' | 'grpc' | 'ws' | 'wss' | 'graphql'
+  trace: false,
+}
+```
+
+Optional: Modify `config/router.ts` to configure WebSocket extension parameters:
+
+```typescript
+// config/router.ts
+export default {
+    ext: {
+        ws: {
+            maxFrameSize: 1024 * 1024,     // Max frame size 1MB
+            heartbeatInterval: 15000,       // Heartbeat interval 15s
+            heartbeatTimeout: 30000,        // Heartbeat timeout 30s
+            maxConnections: 1000            // Max connections
+        }
+    }
 }
 ```
 
@@ -2806,6 +2934,101 @@ export class App extends Koatty {
 ```
 
 > Note: The function execution of the custom decorator created by `BindEventHook` is triggered by the event (`appBoot`, `appReady`, `appStart`, `appStop`), and attention should be paid to the framework startup logic and related context.
+
+### @OnEvent Decorator (4.0 New)
+
+Starting from Koatty 4.0, the `@OnEvent` decorator is added for binding methods to application lifecycle events in `@Component` or `@Plugin` classes. This provides a more intuitive and declarative way to handle application lifecycle.
+
+**Supported Event Types (AppEvent):**
+
+| Event Name | Trigger Time | Description |
+| ---------- | ------------ | ----------- |
+| `appBoot` | After app initialization | Configuration loaded, components not yet loaded |
+| `loadServe` | When server loads | Create server instance |
+| `loadRouter` | When router loads | Initialize routing |
+| `appReady` | Application ready | All components loaded, server about to start |
+| `appStart` | Application started | Server started, accepting requests |
+| `appStop` | Application stopping | Graceful shutdown, cleanup resources |
+
+**Usage Example:**
+
+```typescript
+import { Component, OnEvent, AppEvent, KoattyApplication } from "koatty";
+
+@Component("MyComponent", { 
+  scope: 'user', 
+  priority: 50,
+  description: 'Custom component example'
+})
+export class MyComponent {
+  
+  // Execute when router loads
+  @OnEvent(AppEvent.loadRouter)
+  async initRouter(app: KoattyApplication) {
+    console.log('Initializing router...');
+    // Custom router initialization logic
+  }
+  
+  // Execute when application is ready
+  @OnEvent(AppEvent.appReady)
+  async onReady(app: KoattyApplication) {
+    console.log('Application ready');
+    // Service registration, connection pool initialization, etc.
+  }
+  
+  // Execute when application stops
+  @OnEvent(AppEvent.appStop)
+  async cleanup(app: KoattyApplication) {
+    console.log('Cleaning up resources...');
+    // Close connections, release resources
+  }
+}
+```
+
+**Can also be used in bootstrap class:**
+
+```typescript
+// src/bootstrap/TestBootStrap.ts
+import { Component, OnEvent, AppEvent, KoattyApplication, Logger } from "koatty";
+
+@Component()
+export class TestBootStrap {
+  
+  @OnEvent(AppEvent.appBoot)
+  async onBoot(app: KoattyApplication) {
+    Logger.Info('Application booting...');
+    // Initialize environment configuration
+  }
+  
+  @OnEvent(AppEvent.appStart)
+  async onStart(app: KoattyApplication) {
+    Logger.Info('Application started');
+    // Service registration, health checks, etc.
+  }
+}
+```
+
+**Important Restrictions:**
+
+- `@OnEvent` decorator can **only** be used in `@Component` or `@Plugin` decorated classes
+- Cannot be used in `@Controller`, `@Service`, `@Middleware`, or other types of Beans
+- If used in unsupported types, the framework will throw an error
+
+```typescript
+// ❌ Wrong usage - Cannot use in Controller
+@Controller('/api')
+export class UserController {
+  @OnEvent(AppEvent.appReady)  // Will throw error
+  async onReady() {}
+}
+
+// ✅ Correct usage - Use in Component
+@Component()
+export class UserComponent {
+  @OnEvent(AppEvent.appReady)  // Correct
+  async onReady() {}
+}
+```
 
 ## Loading Customizations
 
@@ -2958,66 +3181,233 @@ export class TestAspect {
 
 ## Decorators
 
+Koatty framework provides rich decorators to simplify development. Decorators are categorized by scope: Class Decorators, Property Decorators, Method Decorators, and Parameter Decorators.
+
 ### Class Decorators
 
+#### Core Decorators
+
 | Decorator Name | Parameters | Description | Remarks |
-|----------------|------------|-------------|---------|
-| `@Aspect()` | `identifier` - Identifier registered in IOC container, default is class name | Declare the current class as an aspect class. The aspect class is executed at the pointcut, and the aspect class must implement the run method for the pointcut to call | Only for aspect classes |
-| `@Bootstrap()` | `bootFunc` - Function to execute before application startup. Executed when `app.on("appReady")` event is triggered | Declare the current class as a startup class, which is the entry file of the project | Only for application startup classes |
-| `@ComponentScan()` | `scanPath` - String or string array | Define the directory that the project needs to automatically load into the container | Only for application startup classes |
-| `@Component()` | `identifier` - Identifier registered in IOC container, default is class name | Define the class as a component class | Used for third-party modules or imported classes |
-| `@ConfigurationScan()` | `scanPath` - String or string array, configuration file directory | Define the directory of project configuration files | Only for application startup classes |
-| `@Controller()` | `path` - Binding controller access route | Define the class as an HTTP/HTTPS/HTTP2 controller class and bind the route. Default route is "/" | Only for HTTP controller classes |
-| `@GrpcController()` | `path` - Binding controller access route, must match the service name in proto | Define the class as a gRPC controller class and bind the route | Only for gRPC controller classes |
-| `@GraphQLController()` | `path` - Binding controller access route | Define the class as a GraphQL controller class and bind the route. GraphQL runs over HTTP/HTTPS | Only for GraphQL controller classes |
-| `@WsController()` | `path` - Binding controller access route | Define the class as a WebSocket controller class and bind the route | Only for WebSocket controller classes |
-| `@Service()` | `identifier` - Identifier registered in IOC container, default is class name | Define the class as a service class | Only for service classes |
-| `@Middleware()` | `options?: { protocol?: string[] }` - Optional protocol list | Define the class as a middleware class. Can specify `protocol` parameter to bind to specific protocols | Only for middleware classes |
-| `@ExceptionHandler()` | - | Define the class as a global exception handling class | Only for exception handling classes |
-| `@BeforeEach(aopName: string)` | `aopName` - Name of the aspect class executing the pointcut | Declare an aspect for the current class, which will execute the aspect class's `run` method before each method ("constructor", "init", "__before", "__after" excepted) | - |
-| `@AfterEach(aopName: string)` | `aopName` - Name of the aspect class executing the pointcut | Declare an aspect for the current class, which will execute the aspect class's `run` method after each method ("constructor", "init", "__before", "__after" excepted) | - |
+| -------------- | ---------- | ----------- | ------- |
+| `@Bootstrap()` | `bootFunc?: (...args: any[]) => any` - Function to execute before startup | Declare the class as a startup class, the entry file of the project. Startup class must inherit from `Koatty` | Only for startup classes |
+| `@ComponentScan()` | `scanPath?: string \| string[]` - Scan directory | Define directories for auto-loading into container, default scans `src` directory | Only for startup classes |
+| `@ConfigurationScan()` | `scanPath?: string \| string[]` - Config file directory | Define config file directories, default `./config` | Only for startup classes |
+
+#### Component Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@Component()` | `identifier?: string` - IOC container identifier<br>`options?: IComponentOptions` - Config options:<br>- `enabled?: boolean` Whether enabled (default true)<br>- `priority?: number` Load priority (default 0)<br>- `scope?: 'core' \| 'user'` Component scope<br>- `requires?: string[]` Dependent component names<br>- `version?: string` Component version<br>- `description?: string` Component description | Define class as a component. Can be used with `@OnEvent` decorator for lifecycle event binding | For third-party modules or extensions |
+| `@Plugin()` | `identifier?: string` - IOC identifier (must end with "Plugin")<br>`options?: IPluginOptions` - Same as `@Component` | Define class as a plugin. Plugin must implement `run(options, app)` method | Only for plugin classes |
+| `@Service()` | `identifier?: string` - IOC identifier<br>`options?: object` - Optional config | Define class as a service class | Only for service classes |
+| `@Middleware()` | `identifier?: string` - Custom identifier<br>`options?: IMiddlewareOptions` - Config options:<br>- `protocol?: string \| string[]` Protocol list<br>- `priority?: number` Priority (default 50)<br>- `enabled?: boolean` Whether enabled (default true) | Define class as middleware. Can specify `protocol` to limit effective protocols | Only for middleware classes |
+
+#### Controller Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@Controller()` | `path?: string` - Route path (default "/")<br>`options?: IControllerOptions` - Config options:<br>- `middleware?: Function[]` Controller-level middleware | Define HTTP/HTTPS/HTTP2 controller class | Only for HTTP controllers |
+| `@GrpcController()` | `path?: string` - Route path (must match proto service name)<br>`options?: IExtraControllerOptions` - Config options:<br>- `middleware?: Function[]` Controller-level middleware | Define gRPC controller class | Only for gRPC controllers |
+| `@WebSocketController()` | `path?: string` - Route path<br>`options?: IExtraControllerOptions` | Define WebSocket controller class | Only for WebSocket controllers |
+| `@GraphQLController()` | `path?: string` - Route path<br>`options?: IControllerOptions` | Define GraphQL controller class | Only for GraphQL controllers |
+
+#### AOP Class Decorators
+
+> Note: AOP also has method-level decorators `@Before`, `@After`, `@Around`, see "Method Decorators" section below.
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@Aspect()` | `identifier?: string` - IOC identifier | Declare aspect class. Class name must end with "Aspect", must implement `run` method | Only for aspect classes |
+| `@BeforeEach()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect before each method in class (excluding constructor/init/__before/__after) | Class decorator |
+| `@AfterEach()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect after each method in class | Class decorator |
+| `@AroundEach()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Wrap execution of each method in class | Class decorator |
+
+#### Other Class Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@ExceptionHandler()` | None | Define global exception handling class. Class must inherit `Exception` and implement `handler` method | Only for exception handling classes |
+
 
 ### Property Decorators
 
 | Decorator Name | Parameters | Description | Remarks |
-|----------------|------------|-------------|---------|
-| `@Autowired()` | `identifier` - Identifier registered in IOC container, default is class name<br>`type` - Type of bean to inject<br>`constructArgs` - Constructor arguments of injected bean. If passed, returns a request-scoped instance<br>`isDelay` - Whether to delay loading. Delayed loading is mainly to solve circular dependency issues | Automatically inject bean from IOC container to the current class | - |
-| `@Config()` | `key` - Key of the configuration item<br>`type` - Type of the configuration item | The type of the configuration item is automatically defined according to the file where the configuration item is located, e.g., "db" represents the file `db.ts` | - |
-| `@Values()` | `val` - Value of the attribute, can be a function, the attribute value is the result of the function operation<br>`defaultValue` - Default value, when val is `Null`, `undefined`, `NaN`, take the default value | Used to dynamically modify the attribute value of the class instance | - |
+| -------------- | ---------- | ----------- | ------- |
+| `@Autowired()` | `paramName?: ClassOrString` - Dependency class or identifier<br>`cType?: string` - Component type (default "COMPONENT")<br>`constructArgs?: any[]` - Constructor arguments<br>`isDelay?: boolean` - Whether to delay load (default false) | Auto-inject dependency from IOC container. Cannot inject CONTROLLER type | Property decorator |
+| `@Config()` | `key?: string` - Config key<br>`type?: string` - Config type (default "config") | Inject config value. Type corresponds to config file name, e.g., "db" for db.ts | Property decorator |
+| `@Values()` | `value: unknown \| Function` - Property value or function returning value<br>`defaultValue?: unknown` - Default value | Dynamically set property value. Performs type checking | Property decorator |
+| `@IsDefined()` / `@Expose()` | None | Mark property as defined, for exporting in validation | Validation decorator |
+
 
 ### Method Decorators
 
+#### Lifecycle Decorators
+
 | Decorator Name | Parameters | Description | Remarks |
-|----------------|------------|-------------|---------|
-| `@Before(aopName: string)` | `aopName` - Name of the aspect class executing the pointcut | Declare an aspect for the current method, which will execute the aspect class's `run` method before the current method | - |
-| `@After(aopName: string)` | `aopName` - Name of the aspect class executing the pointcut | Declare an aspect for the current method, which will execute the aspect class's `run` method after the current method | - |
-| `@RequestMapping()` | `path` - Bound route<br>`requestMethod` - Bound HTTP request method. Use `RequestMethod` enum for assignment, e.g., `RequestMethod.GET`. If set to `RequestMethod.ALL`, it means support all request methods<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding routes to controller methods | Only for controller methods |
-| `@GetMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Get routes to controller methods | Only for controller methods |
-| `@PostMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Post routes to controller methods | Only for controller methods |
-| `@DeleteMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Delete routes to controller methods | Only for controller methods |
-| `@PutMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Put routes to controller methods | Only for controller methods |
-| `@PatchMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Patch routes to controller methods | Only for controller methods |
-| `@OptionsMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Options routes to controller methods | Only for controller methods |
-| `@HeadMapping()` | `path` - Bound route<br>`routerOptions` - Configuration items of `koa/_router` | Used for binding Head routes to controller methods | Only for controller methods |
-| `@Scheduled()` | `cron` Task scheduling configuration (supports 5-part or 6-part format)<br> 6-part: * * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 1-12 (Jan-Dec)<br>Day of Week: 0-7 (Sun-Sat)<br>`timezone` Optional timezone parameter, overrides global config | Define the execution plan task of the class method | Cannot be used for controller methods, dependent on the `koatty_schedule` module |
-| `@Validated()` | - | Used in conjunction with DTO types for parameter validation | Method parameters without DTO types are not effective, only for controller classes |
-| `@RedLock()` | `name` Lock name (optional, auto-generated if not provided)<br>`options` Lock configuration (optional, overrides global config)<br> - `lockTimeOut` Lock timeout (ms)<br> - `maxRetries` Maximum retry count<br> - `retryDelayMs` Retry delay (ms)<br> - `clockDriftFactor` Clock drift factor | Define that the method must first obtain a distributed lock (based on Redis) before execution | Dependent on the `koatty_schedule` module |
-| `@CacheAble()` | `cacheName` Cache name <br>`options` Cache options (optional)<br> - `params` Array of parameter names used as cache keys<br> - `timeout` Cache expiration time (seconds), default 300 | Automatically cache method return value, dependent on `koatty_cacheable` module | Cannot be used for controller methods |
-| `@CacheEvict()` | `cacheName` Cache name <br>`options` Clear options (optional)<br> - `params` Array of parameter names used to locate cache<br> - `delayedDoubleDeletion` Whether to enable delayed double deletion strategy, default true | Automatically clear related cache, dependent on `koatty_cacheable` module | Cannot be used for controller methods |
+| -------------- | ---------- | ----------- | ------- |
+| `@OnEvent()` | `event: AppEvent` - Event type:<br>- `AppEvent.appBoot` After app initialization<br>- `AppEvent.loadServe` When server loads<br>- `AppEvent.loadRouter` When router loads<br>- `AppEvent.appReady` Application ready<br>- `AppEvent.appStart` Application started<br>- `AppEvent.appStop` Application stopping | Bind method to application lifecycle event | Only for `@Component` or `@Plugin` classes |
+
+#### AOP Method Decorators
+
+For single method aspect declaration. Unlike class-level `@BeforeEach`/`@AfterEach`/`@AroundEach`, these decorators only apply to the decorated method.
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@Before()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect's `run` method before method execution | Method decorator |
+| `@After()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect's `run` method after method execution | Method decorator |
+| `@Around()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Wrap method execution, aspect's `run` receives `proceed` function | Method decorator |
+
+**AOP Decorator Comparison:**
+
+| Decorator | Type | Scope | Use Case |
+| --------- | ---- | ----- | -------- |
+| `@Before()` | Method decorator | Single method | Pre-processing for specific method |
+| `@After()` | Method decorator | Single method | Post-processing for specific method |
+| `@Around()` | Method decorator | Single method | Wrap specific method, control execution flow |
+| `@BeforeEach()` | Class decorator | All methods in class | Unified pre-processing for all methods |
+| `@AfterEach()` | Class decorator | All methods in class | Unified post-processing for all methods |
+| `@AroundEach()` | Class decorator | All methods in class | Wrap all methods in class |
+
+#### Route Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@RequestMapping()` | `path?: string` - Route path (default "/")<br>`reqMethod?: RequestMethod` - Request method (default GET)<br>`routerOptions?: object` - Config options:<br>- `routerName?: string` Route name<br>- `middleware?: Function[] \| MiddlewareDecoratorConfig[]` Method-level middleware | Bind route to method | Only for controller methods |
+| `@GetMapping()` | `path?: string` - Route path<br>`routerOptions?: RouterOption` | Bind GET route | Only for controller methods |
+| `@PostMapping()` | `path?: string` - Route path<br>`routerOptions?: RouterOption` | Bind POST route | Only for controller methods |
+| `@PutMapping()` | `path?: string` - Route path<br>`routerOptions?: RouterOption` | Bind PUT route | Only for controller methods |
+| `@DeleteMapping()` | `path?: string` - Route path<br>`routerOptions?: RouterOption` | Bind DELETE route | Only for controller methods |
+| `@PatchMapping()` | `path?: string` - Route path<br>`routerOptions?: RouterOption` | Bind PATCH route | Only for controller methods |
+| `@OptionsMapping()` | `path?: string` - Route path<br>`routerOptions?: RouterOption` | Bind OPTIONS route | Only for controller methods |
+| `@HeadMapping()` | `path?: string` - Route path<br>`routerOptions?: RouterOption` | Bind HEAD route | Only for controller methods |
+
+#### Validation Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@Validated()` | `isAsync?: boolean` - Whether async mode (default true) | Auto-validate DTO objects in method parameters | Only for controller methods |
+
+#### Cache Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@CacheAble()` | `cacheName: string` - Cache name<br>`options?: CacheAbleOpt` - Config options:<br>- `params?: string[]` Parameter names for cache key<br>- `timeout?: number` Expiration time (seconds, default 300) | Auto-cache method return value | Only for SERVICE/COMPONENT classes |
+| `@CacheEvict()` | `cacheName: string` - Cache name<br>`options?: CacheEvictOpt` - Config options:<br>- `params?: string[]` Parameter names to locate cache<br>- `delayedDoubleDeletion?: boolean` Enable delayed double deletion (default true)<br>- `delayTime?: number` Delay time (ms, default 5000) | Clear method-related cache | Only for SERVICE/COMPONENT classes |
+
+#### Scheduled Task Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@Scheduled()` | `cron: string` - Cron expression (5 or 6 parts)<br>`timezone?: string` - Timezone (default 'Asia/Beijing') | Define scheduled execution method | Only for SERVICE/COMPONENT classes |
+| `@RedLock()` | `lockName?: string` - Lock name (auto-generated if not provided)<br>`options?: RedLockMethodOptions` - Config options:<br>- `lockTimeOut?: number` Lock timeout (ms)<br>- `maxRetries?: number` Max retry count<br>- `retryDelayMs?: number` Retry delay (ms) | Acquire distributed lock before method execution | Only for SERVICE/COMPONENT classes |
+
 
 ### Parameter Decorators
 
+#### Request Parameter Decorators
+
 | Decorator Name | Parameters | Description | Remarks |
-|----------------|------------|-------------|---------|
-| `@File()` | `name` - File name | Get the uploaded file object | Only for HTTP controller method parameters |
-| `@Get()` | `name` - Parameter name | Get querystring parameters (get route-bound parameters) | Only for HTTP controller method parameters |
-| `@Header()` | `name` - Parameter name | Get Header content | Only for HTTP controller method parameters |
-| `@PathVariable()` | `name` - Parameter name | Get route-bound parameters `/user/:id` | Only for HTTP controller method parameters |
-| `@Post()` | `name` - Parameter name | Get Post parameters | Only for HTTP controller method parameters |
-| `@RequestBody()` | - | Get `ctx.body` | Only for controller method parameters |
-| `@RequestParam()` | `name` - Parameter name | Get Get or Post parameters, Post takes precedence | Only for controller method parameters |
-| `@Valid()` | `rule` - Validation rule, supports built-in rules or custom functions<br>`message` - Error message when the rule does not match | Used for parameter format validation | Only for controller classes |
-| `@Inject()` | `paramName` - Constructor method argument name (formal parameter)<br>`cType` - Type of bean to inject | This decorator uses the class constructor method argument to inject dependencies. If used together with `@Autowired()`, it may overwrite the same property injected by `autowired` | Only for constructor arguments (constructor) |
+| -------------- | ---------- | ----------- | ------- |
+| `@Header()` | `name?: string` - Parameter name<br>`defaultValue?: any` - Default value | Get request header. Without name, gets all headers | Only for controller method parameters |
+| `@PathVariable()` | `name?: string` - Parameter name<br>`defaultValue?: any` - Default value | Get route parameter (ctx.params) | Only for controller method parameters |
+| `@Get()` | `name?: string` - Parameter name<br>`defaultValue?: any` - Default value | Get querystring parameter (ctx.query) | Only for controller method parameters |
+| `@Post()` | `name?: string` - Parameter name<br>`defaultValue?: any` - Default value | Get POST request body parameter | Only for controller method parameters |
+| `@File()` | `name?: string` - File name<br>`defaultValue?: any` - Default value | Get uploaded file object | Only for controller method parameters |
+| `@RequestBody()` / `@Body()` | None | Get complete request body (including body and file) | Only for controller method parameters |
+| `@RequestParam()` / `@Param()` | None | Get merged query and path parameters | Only for controller method parameters |
+
+#### Validation Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@Valid()` | `rule: ValidRules \| Function` - Validation rule or custom function<br>`options?: string \| ValidOtpions` - Error message or config | Validate single parameter | Only for controller method parameters |
+
+#### Dependency Injection Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@Inject()` | `paramName?: ClassOrString` - Dependency class or identifier<br>`cType?: string` - Component type (default "COMPONENT") | Inject dependency through constructor parameter | Only for constructor parameters |
+
+
+### Validation Rule Decorators
+
+Decorators for DTO class property validation (used with `@Validated()`):
+
+#### Chinese Validation Decorators
+
+| Decorator Name | Description |
+| -------------- | ----------- |
+| `@IsCnName()` | Validate Chinese name |
+| `@IsIdNumber()` | Validate ID number |
+| `@IsMobile()` | Validate mobile number |
+| `@IsZipCode()` | Validate zip code |
+| `@IsPlateNumber()` | Validate license plate number |
+
+#### General Validation Decorators
+
+| Decorator Name | Parameters | Description |
+| -------------- | ---------- | ----------- |
+| `@IsNotEmpty()` | `options?: ValidationOptions` | Validate not empty |
+| `@IsEmail()` | `options?: IsEmailOptions, validationOptions?: ValidationOptions` | Validate email |
+| `@IsIP()` | `version?: any, validationOptions?: ValidationOptions` | Validate IP address |
+| `@IsPhoneNumber()` | `region?: CountryCode, validationOptions?: ValidationOptions` | Validate international phone number |
+| `@IsUrl()` | `options?: IsURLOptions, validationOptions?: ValidationOptions` | Validate URL |
+| `@IsHash()` | `algorithm: HashAlgorithm, validationOptions?: ValidationOptions` | Validate hash value |
+| `@IsDate()` | `options?: ValidationOptions` | Validate date |
+
+#### Numeric Comparison Decorators
+
+| Decorator Name | Parameters | Description |
+| -------------- | ---------- | ----------- |
+| `@Gt()` | `min: number` | Greater than |
+| `@Gte()` | `min: number` | Greater than or equal |
+| `@Lt()` | `max: number` | Less than |
+| `@Lte()` | `max: number` | Less than or equal |
+| `@Equals()` | `comparison: any` | Equals |
+| `@NotEquals()` | `comparison: any` | Not equals |
+
+#### String Validation Decorators
+
+| Decorator Name | Parameters | Description |
+| -------------- | ---------- | ----------- |
+| `@Contains()` | `seed: string` | Contains string |
+| `@IsIn()` | `possibleValues: any[]` | In array |
+| `@IsNotIn()` | `possibleValues: any[]` | Not in array |
+
+
+### Route Middleware Helper Function
+
+#### withMiddleware()
+
+Create advanced middleware configuration with priority, conditional execution, and metadata support:
+
+```typescript
+import { withMiddleware, GetMapping } from "koatty";
+
+@Controller('/api')
+export class UserController {
+  
+  @GetMapping('/users', {
+    middleware: [
+      withMiddleware(AuthMiddleware, { 
+        priority: 100,           // Priority, higher executes first
+        enabled: true,           // Whether enabled
+        conditions: [            // Conditional execution
+          { type: 'header', value: 'authorization', operator: 'contains' }
+        ],
+        metadata: { role: 'admin' }  // Metadata passed to middleware
+      }),
+      withMiddleware(RateLimitMiddleware, { 
+        priority: 90,
+        metadata: { limit: 100, window: 60000 }
+      })
+    ]
+  })
+  async getUsers() {
+    return 'users list';
+  }
+}
+```
 
 # Programming Standards and Conventions
 

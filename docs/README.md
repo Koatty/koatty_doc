@@ -23,8 +23,10 @@ Koa + TypeScript + IOC = Koatty. **Koatty** 是一个渐进式 Node.js 框架，
 
 - ✅ **多协议架构** - 同时运行 HTTP、HTTPS、HTTP/2、HTTP/3、gRPC、WebSocket、GraphQL，每个协议独立服务器实例
 - ✅ **智能元数据缓存** - LRU 缓存和预加载，性能提升 70%+，元数据操作 < 0.01ms/次
-- ✅ **应用生命周期钩子** - 使用 `BindEventHook` API 自定义装饰器，支持 appBoot/appReady/appStop 事件
+- ✅ **应用生命周期钩子** - 使用 `@OnEvent` 装饰器或 `BindEventHook` API，支持 appBoot/appReady/appStart/appStop 等生命周期事件
 - ✅ **版本冲突检测** - 自动检测和解决依赖冲突
+- ✅ **配置文件重构** - 服务器配置独立到 `server.ts`，路由扩展配置采用协议名作为键的新格式
+- ✅ **Component 装饰器增强** - 支持 `priority`、`scope`、`requires`、`version`、`description` 等配置项
 
 ### 路由与中间件
 
@@ -185,7 +187,8 @@ Koatty的命令行工具`koatty_cli`在创建项目的时候，默认会形成�
 ├── dist                          # 编译后目录
 ├── src                           # 项目源代码
 │   ├── config
-│   │   ├── config.ts             # 框架配置
+│   │   ├── config.ts             # 框架通用配置
+│   │   ├── server.ts             # 服务器配置（协议、端口、SSL等）
 │   │   ├── db.ts                 # 存储配置
 │   │   ├── middleware.ts         # 中间件配置
 │   │   ├── plugin.ts             # 插件配置
@@ -351,40 +354,50 @@ export class RequestService {
 
 实际项目中，肯定需要各种配置，包括：框架需要的配置以及项目自定义的配置。Koatty 将所有的配置都统一管理，并根据不同的功能划分为不同的配置文件。
 
-* config.ts 通用的一些配置（包括服务器协议配置）
+* config.ts 通用的一些配置（日志级别、日志路径、敏感字段等）
+* server.ts 服务器配置（协议、端口、SSL、链路追踪等）
 * db.ts 数据库配置
-* router.ts 路由配置（包括协议特定扩展配置）
+* router.ts 路由配置（路由前缀、载荷解析、协议特定扩展配置）
 * middleware.ts 中间件配置
 * plugin.ts 插件配置
 
+> **注意**: 从 Koatty 4.0 开始，服务器相关配置（hostname、port、protocol、ssl等）已从 `config.ts` 独立到 `server.ts` 文件中，以便更清晰地管理服务器配置。
+
 除上述常见的配置文件之外，Koatty也支持用户自行定义的配置文件命名。
 
-### 多协议服务器配置
+### 服务器配置 (server.ts)
 
-Koatty 从 3.14.x 版本开始支持同时运行多个协议。在 `config/config.ts` 中配置协议：
+Koatty 从 4.0 版本开始，服务器配置已独立到 `config/server.ts` 文件中。支持同时运行多个协议。
 
 ```js
-// 单协议模式（向后兼容）
+// config/server.ts
 export default {
-  ...
-  server: {
-    hostname: '127.0.0.1',
-    port: 3000,
-    protocol: "http", // 单个协议
-  },
-  ...
+  hostname: '127.0.0.1', // 服务器主机名
+  port: 3000,            // 服务器端口（单端口或数组）
+  protocol: "http",      // 单协议模式
+  trace: false,          // 是否启用链路追踪
+  ssl: {
+    mode: 'auto',        // 'auto' | 'manual' | 'mutual_tls'
+    key: '',             // SSL 密钥文件路径
+    cert: '',            // SSL 证书文件路径
+    ca: ''               // CA 证书文件路径
+  }
 }
 
 // 多协议模式
 export default {
-  ...
-  server: {
-    hostname: '127.0.0.1',
-    port: 3000,
-    protocol: ["http", "grpc"], // 多个协议: 'http' | 'https' | 'http2' | 'http3' | 'grpc' | 'ws' | 'wss' | 'graphql'
-    trace: false, // 是否启用链路追踪
-  },
-  ...
+  hostname: '127.0.0.1',
+  // 端口配置：单值或数组
+  // 如果是数组，每个端口对应相应的协议
+  // 如果是单值，第一个协议使用它，其他协议自动递增 (3000, 3001, 3002...)
+  port: [3000, 50051],
+  protocol: ["http", "grpc"], // 多协议: 'http' | 'https' | 'http2' | 'grpc' | 'ws' | 'wss' | 'graphql'
+  trace: false,
+  ssl: {
+    mode: 'auto',
+    key: './ssl/server.key',
+    cert: './ssl/server.crt'
+  }
 }
 ```
 
@@ -408,28 +421,35 @@ export default {
   - **服务器推送**: 预取相关资源
   - **HTTP/1.1 回退**: 自动降级以保持兼容性
   
-  要为 GraphQL 启用 HTTP/2，在 `config/config.ts` 中配置：
+  要为 GraphQL 启用 HTTP/2，在 `config/server.ts` 中配置：
   ```js
+  // config/server.ts
   export default {
-    server: {
-      protocol: "graphql",
-      ssl: {
-        mode: 'auto',
-        key: './ssl/server.key',
-        cert: './ssl/server.crt'
-      },
-      ext: {
-        maxConcurrentStreams: 100  // 可选: HTTP/2 配置
-      }
+    hostname: '127.0.0.1',
+    port: 3000,
+    protocol: "graphql",
+    trace: false,
+    ssl: {
+      mode: 'auto',
+      key: './ssl/server.key',
+      cert: './ssl/server.crt'
     }
   }
   ```
   
-  然后在 `config/router.ts` 中配置 GraphQL schema：
+  然后在 `config/router.ts` 中配置 GraphQL schema（使用协议名作为键）：
   ```js
+  // config/router.ts
   export default {
     ext: {
-      schemaFile: "./resource/graphql/schema.graphql"
+      graphql: {
+        schemaFile: "./resource/graphql/schema.graphql",
+        playground: true,              // 启用 GraphQL Playground
+        introspection: true,           // 启用内省查询
+        depthLimit: 10,                // 查询深度限制
+        // 可选: HTTP/2 相关配置
+        // http2: { maxConcurrentStreams: 100 }
+      }
     }
   }
   ```
@@ -755,75 +775,148 @@ export default {
     strict?: boolean;         // 严格匹配
     payload?: PayloadOptions; // 载荷解析选项
 
-    ext?: {                   // 协议特定扩展配置
-      // HTTP协议配置 (可选)
-      ...
-
-      // gRPC协议配置 (可选)
-      protoFile: string;           // gRPC proto 文件路径（必需）
-      poolSize?: number;           // 连接池大小，默认10
-      batchSize?: number;          // 批处理大小，默认10
-      streamConfig?: {             // 流配置
-        maxConcurrentStreams?: number;    // 最大并发流数量，默认50
-        streamTimeout?: number;           // 流超时时间(ms)，默认60秒
-        backpressureThreshold?: number;   // 背压阈值(字节)，默认2048
-      };
-      enableReflection?: boolean;          // 是否启用反射，默认false
-
-      // WebSocket协议配置 (可选)
-      maxFrameSize?: number;        // 最大分帧大小(字节)，默认1MB
-      heartbeatInterval?: number;   // 心跳检测间隔(ms)，默认15秒
-      heartbeatTimeout?: number;    // 心跳超时时间(ms)，默认30秒
-      maxConnections?: number;      // 最大连接数，默认1000
-      maxBufferSize?: number;       // 最大缓冲区大小(字节)，默认10MB
-
-      // GraphQL协议配置 (可选)
-      schemaFile: string;          // GraphQL Schema 文件路径（必需）
-      playground?: boolean;        // 启用 GraphQL Playground，默认false
-      introspection?: boolean;     // 启用内省查询，默认true
-      debug?: boolean;             // 调试模式，默认false
-      depthLimit?: number;         // 查询深度限制，默认10
-      complexityLimit?: number;    // 查询复杂度限制，默认1000
+    // 协议特定扩展配置 (使用协议名作为键)
+    ext?: {
+      http?: {};                        // HTTP协议配置 (可选)
+      grpc?: GrpcExtOptions;            // gRPC协议配置 (可选)
+      ws?: WebSocketExtOptions;         // WebSocket协议配置 (可选)
+      graphql?: GraphQLExtOptions;      // GraphQL协议配置 (可选)
     }
 };
 ```
 
+> **注意**: 从 Koatty 4.0 开始，`ext` 配置改为使用协议名作为键的方式，以便更好地支持多协议配置。例如 `ext.grpc`、`ext.ws`、`ext.graphql` 等。
+
+**协议特定扩展配置选项**：
+
+**gRPC 配置选项 (GrpcExtOptions)**:
+```js
+{
+  protoFile: string;           // gRPC proto 文件路径（必需）
+  poolSize?: number;           // 连接池大小，默认10
+  batchSize?: number;          // 批处理大小，默认10
+  streamConfig?: {             // 流配置
+    maxConcurrentStreams?: number;    // 最大并发流数量，默认50
+    streamTimeout?: number;           // 流超时时间(ms)，默认60秒
+    backpressureThreshold?: number;   // 背压阈值(字节)，默认2048
+  };
+  enableReflection?: boolean;  // 是否启用反射，默认false
+}
+```
+
+**WebSocket 配置选项 (WebSocketExtOptions)**:
+```js
+{
+  maxFrameSize?: number;        // 最大分帧大小(字节)，默认1MB
+  heartbeatInterval?: number;   // 心跳检测间隔(ms)，默认15秒
+  heartbeatTimeout?: number;    // 心跳超时时间(ms)，默认30秒
+  maxConnections?: number;      // 最大连接数，默认1000
+  maxBufferSize?: number;       // 最大缓冲区大小(字节)，默认10MB
+}
+```
+
+**GraphQL 配置选项 (GraphQLExtOptions)**:
+```js
+{
+  schemaFile: string;          // GraphQL Schema 文件路径（必需）
+  playground?: boolean;        // 启用 GraphQL Playground，默认false
+  introspection?: boolean;     // 启用内省查询，默认true
+  debug?: boolean;             // 调试模式，默认false
+  depthLimit?: number;         // 查询深度限制，默认10
+  complexityLimit?: number;    // 查询复杂度限制，默认1000
+  // 可选: HTTP/2 相关配置
+  // keyFile?: string;         // SSL 密钥文件路径
+  // crtFile?: string;         // SSL 证书文件路径
+  // http2?: { maxConcurrentStreams?: number }
+}
+```
+
 **协议特定扩展配置示例**：
 
-#### gRPC 配置
+#### 单协议配置
+
+##### gRPC 配置
 ```js
 export default {
     ext: {
-        protoFile: "./resource/proto/Hello.proto",  // gRPC proto 文件
-        poolSize: 10,                               // 连接池大小
-        streamConfig: {
-            maxConcurrentStreams: 50,               // 最大并发流数量
-            streamTimeout: 60000                    // 流超时时间(ms)
+        grpc: {
+            protoFile: "./resource/proto/Hello.proto",  // gRPC proto 文件
+            poolSize: 10,                               // 连接池大小
+            streamConfig: {
+                maxConcurrentStreams: 50,               // 最大并发流数量
+                streamTimeout: 60000                    // 流超时时间(ms)
+            }
         }
     }
 };
 ```
 
-#### WebSocket 配置
+##### WebSocket 配置
 ```js
 export default {
     ext: {
-        maxFrameSize: 1024 * 1024,     // 最大分帧大小 1MB
-        heartbeatInterval: 15000,       // 心跳检测间隔 15秒
-        maxConnections: 1000            // 最大连接数
+        ws: {
+            maxFrameSize: 1024 * 1024,     // 最大分帧大小 1MB
+            heartbeatInterval: 15000,       // 心跳检测间隔 15秒
+            maxConnections: 1000            // 最大连接数
+        }
     }
 };
 ```
 
-#### GraphQL 配置
+##### GraphQL 配置
 ```js
 export default {
     ext: {
-        schemaFile: "./resource/graphql/schema.graphql",  // GraphQL Schema 文件
-        playground: true,                                 // 启用 GraphQL Playground
-        introspection: true,                              // 启用内省查询
-        depthLimit: 10,                                   // 查询深度限制
-        complexityLimit: 1000                             // 查询复杂度限制
+        graphql: {
+            schemaFile: "./resource/graphql/schema.graphql",  // GraphQL Schema 文件
+            playground: true,                                 // 启用 GraphQL Playground
+            introspection: true,                              // 启用内省查询
+            depthLimit: 10,                                   // 查询深度限制
+            complexityLimit: 1000                             // 查询复杂度限制
+        }
+    }
+};
+```
+
+#### 多协议配置（推荐）
+
+当服务器运行多个协议时，使用协议名作为键来配置各协议的扩展参数：
+
+```js
+// config/router.ts - 多协议配置示例
+export default {
+    payload: {
+        extTypes: {
+            json: ['application/json'],
+            form: ['application/x-www-form-urlencoded'],
+            grpc: ['application/grpc'],
+            graphql: ['application/graphql+json'],
+            websocket: ['application/websocket']
+        },
+        limit: '20mb',
+        encoding: 'utf-8',
+    },
+    ext: {
+        http: {},  // HTTP 协议（无特殊配置）
+        grpc: {
+            protoFile: "./resource/proto/service.proto",
+            poolSize: 10,
+            streamConfig: { maxConcurrentStreams: 50 }
+        },
+        graphql: {
+            schemaFile: "./resource/graphql/schema.graphql",
+            playground: true,
+            introspection: true,
+            // 可选: 启用 HTTP/2
+            // keyFile: "./ssl/server.key",
+            // crtFile: "./ssl/server.crt"
+        },
+        ws: {
+            maxFrameSize: 1024 * 1024,
+            heartbeatInterval: 15000,
+            maxConnections: 1000
+        }
     }
 };
 ```
@@ -2817,32 +2910,36 @@ export class HelloController {
 
 ### 服务配置
 
-修改 config/config.ts :
+修改 config/server.ts :
 
 ```js
+// config/server.ts
 export default {
-  ...
-  protocol: "grpc", // Server protocol 'http' | 'https' | 'http2' | 'grpc' | 'ws' | 'wss'
-
-  ...
-
+  hostname: '127.0.0.1',
+  port: 50051,
+  protocol: "grpc", // Server protocol 'http' | 'https' | 'http2' | 'grpc' | 'ws' | 'wss' | 'graphql'
+  trace: false,
 }
 ```
 
 修改 config/router.ts :
 
 ```js
+// config/router.ts
 export default {
-  ...
     /**
-     *  Other extended configuration
+     *  协议特定扩展配置（使用协议名作为键）
      */
     ext: {
-        protoFile: process.env.APP_PATH + "resource/proto/Hello.proto", // gRPC proto file
+        grpc: {
+            protoFile: process.env.APP_PATH + "resource/proto/Hello.proto", // gRPC proto file
+            poolSize: 10,
+            streamConfig: {
+                maxConcurrentStreams: 50,
+                streamTimeout: 60000
+            }
+        }
     }
-
-  ...
-
 }
 ```
 
@@ -2852,9 +2949,24 @@ OK，现在可以启动一个gRPC服务器。
 
 Koatty 从 3.14.x 版本开始集成了 OpenTelemetry 全链路追踪和 Prometheus 指标导出功能。
 
+### 启用链路追踪
+
+首先在 `config/server.ts` 中启用链路追踪：
+
+```js
+// config/server.ts
+export default {
+  hostname: '127.0.0.1',
+  port: 3000,
+  protocol: "http",
+  trace: true,  // 启用链路追踪
+  // ...
+}
+```
+
 ### OpenTelemetry 链路追踪
 
-启用链路追踪配置（在 `config/config.ts` 或中间件配置中）：
+配置 OpenTelemetry（在中间件配置中）：
 
 ```js
 import { Trace } from 'koatty_trace';
@@ -3031,15 +3143,31 @@ export class RequstController {
 
 ### 服务配置
 
-修改 config/config.ts :
+修改 config/server.ts :
 
 ```js
+// config/server.ts
 export default {
-  ...
-  protocol: "ws", // Server protocol 'http' | 'https' | 'http2' | 'grpc' | 'ws' | 'wss'
+  hostname: '127.0.0.1',
+  port: 3000,
+  protocol: "ws", // Server protocol 'http' | 'https' | 'http2' | 'grpc' | 'ws' | 'wss' | 'graphql'
+  trace: false,
+}
+```
 
-  ...
+可选：修改 config/router.ts 配置 WebSocket 扩展参数：
 
+```js
+// config/router.ts
+export default {
+    ext: {
+        ws: {
+            maxFrameSize: 1024 * 1024,     // 最大分帧大小 1MB
+            heartbeatInterval: 15000,       // 心跳检测间隔 15秒
+            heartbeatTimeout: 30000,        // 心跳超时时间 30秒
+            maxConnections: 1000            // 最大连接数
+        }
+    }
 }
 ```
 
@@ -3084,34 +3212,102 @@ export class App extends Koatty {
 
 > 注意： 启动函数执行时机在框架执行`initialize`初始化之后，此时框架的相关路径属性(appPath、rootPath等)和process.env已经加载设置完成，但是配置及其他组件(插件、中间件、控制器等)并未加载，在定义启动函数的时候需要注意。
 
-### BindEventHook
 
-除了 `@Bootstrap`装饰器，我们还可以通过 `BindEventHook` 自定义装饰器用于启动类来绑定应用事件(appBoot、appReady、appStart、appStop)。
 
-```js
-// src/TestBootstrap.ts:
-export function TestBootstrap(): ClassDecorator {
-  return (target: Function) => {
-    BindEventHook(AppEvent.appBoot, (app: Koatty) => {
-        // todo
-        return Promise.resolve();
-    }, target)   
+### @OnEvent 装饰器（4.0 新增）
+
+从 Koatty 4.0 开始，新增了 `@OnEvent` 装饰器，用于在 `@Component` 或 `@Plugin` 类中绑定方法到应用生命周期事件。这提供了一种更直观、更声明式的方式来处理应用生命周期。
+
+**支持的事件类型 (AppEvent)**：
+
+| 事件名称 | 触发时机 | 说明 |
+| -------- | -------- | ---- |
+| `appBoot` | 应用启动初始化后 | 配置加载完成，组件尚未加载 |
+| `loadServe` | 服务器加载时 | 创建服务器实例 |
+| `loadRouter` | 路由加载时 | 初始化路由 |
+| `appReady` | 应用准备就绪 | 所有组件加载完成，服务器即将启动 |
+| `appStart` | 应用启动完成 | 服务器已启动，开始接收请求 |
+| `appStop` | 应用停止时 | 优雅关闭，清理资源 |
+
+**使用示例**：
+
+```typescript
+import { Component, OnEvent, AppEvent, KoattyApplication } from "koatty";
+
+@Component("MyComponent", { 
+  scope: 'user', 
+  priority: 50,
+  description: '自定义组件示例'
+})
+export class MyComponent {
+  
+  // 在路由加载时执行
+  @OnEvent(AppEvent.loadRouter)
+  async initRouter(app: KoattyApplication) {
+    console.log('路由初始化...');
+    // 自定义路由初始化逻辑
+  }
+  
+  // 应用准备就绪时执行
+  @OnEvent(AppEvent.appReady)
+  async onReady(app: KoattyApplication) {
+    console.log('应用准备就绪');
+    // 可以在这里进行服务注册、连接池初始化等
+  }
+  
+  // 应用停止时执行
+  @OnEvent(AppEvent.appStop)
+  async cleanup(app: KoattyApplication) {
+    console.log('清理资源...');
+    // 关闭连接、释放资源
   }
 }
-
 ```
 
-在项目启动类上使用:
+**也可以在启动类中使用**：
 
-```js
-@Bootstrap()
-@TestBootstrap()
-export class App extends Koatty {
-  ...
+```typescript
+// src/bootstrap/TestBootStrap.ts
+import { Component, OnEvent, AppEvent, KoattyApplication, Logger } from "koatty";
+
+@Component()
+export class TestBootStrap {
+  
+  @OnEvent(AppEvent.appBoot)
+  async onBoot(app: KoattyApplication) {
+    Logger.Info('应用启动中...');
+    // 初始化环境配置
+  }
+  
+  @OnEvent(AppEvent.appStart)
+  async onStart(app: KoattyApplication) {
+    Logger.Info('应用已启动');
+    // 服务注册、健康检查等
+  }
 }
 ```
 
-> 注意：通过BindEventHook创建的自定义装饰器，其函数执行是由 事件(appBoot、appReady、appStart、appStop)触发，需要注意框架启动逻辑及相关上下文
+**重要限制**：
+
+- `@OnEvent` 装饰器 **只能** 用于 `@Component` 或 `@Plugin` 装饰的类
+- 不能用于 `@Controller`、`@Service`、`@Middleware` 等其他类型的 Bean
+- 如果在不支持的类型中使用，框架会抛出错误提示
+
+```typescript
+// ❌ 错误用法 - 不能在 Controller 中使用
+@Controller('/api')
+export class UserController {
+  @OnEvent(AppEvent.appReady)  // 会抛出错误
+  async onReady() {}
+}
+
+// ✅ 正确用法 - 在 Component 中使用
+@Component()
+export class UserComponent {
+  @OnEvent(AppEvent.appReady)  // 正确
+  async onReady() {}
+}
+```
 
 
 ## 装载自定义
@@ -3441,72 +3637,233 @@ export class TestAspect {
 
 ## 装饰器
 
+Koatty 框架提供了丰富的装饰器来简化开发。装饰器按照作用范围分为：类装饰器、属性装饰器、方法装饰器和参数装饰器。
+
 ### 类装饰器
 
-| 装饰器名称                     | 参数                                                                        | 说明                                                                                                                    | 备注                   |
-| ------------------------------ | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| `@Aspect()`                    | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 声明当前类是一个切面类。切面类在切点执行，切面类必须实现run方法供切点调用                                               | 仅用于切面类           |
-| `@Bootstrap()`                 | `bootFunc` 应用启动前执行函数。具体执行时机是在app.on("appReady")事件触发。 | 声明当前类是一个启动类，为项目的入口文件。                                                                              | 仅用于应用启动类       |
-| `@ComponentScan()`             | `scanPath` 字符串或字符串数组                                               | 定义项目需要自动装载进容器的目录                                                                                        | 仅用于应用启动类       |
-| `@Component()`                 | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类为一个组件类                                                                                                    | 第三方模块或引入类使用 |
-| `@ConfiguationScan()`          | `scanPath` 字符串或字符串数组，配置文件的目录                               | 定义项目需要加载的配置文件的目录                                                                                        | 仅用于应用启动类       |
-| `@Controller()`                | `path` 绑定控制器访问路由                                                   | 定义该类是一个 HTTP/HTTPS/HTTP2 控制器类，并绑定路由。默认路由为"/"                                                     | 仅用于 HTTP 控制器类   |
-| `@GrpcController()`            | `path` 绑定控制器访问路由，必须与 proto 中的 service 名称一致               | 定义该类是一个 gRPC 控制器类，并绑定路由。                                                                              | 仅用于 gRPC 控制器类   |
-| `@GraphQLController()`         | `path` 绑定控制器访问路由                                                   | 定义该类是一个 GraphQL 控制器类，并绑定路由。GraphQL 基于 HTTP/HTTPS 运行                                               | 仅用于 GraphQL 控制器类 |
-| `@WsController()`              | `path` 绑定控制器访问路由                                                   | 定义该类是一个 WebSocket 控制器类，并绑定路由。                                                                         | 仅用于 WebSocket 控制器类 |
-| `@Service()`                   | `identifier` 注册到IOC容器的标识，默认值为类名。                            | 定义该类是一个服务类                                                                                                    | 仅用于服务类           |
-| `@Middleware()`                | `options?: { protocol?: string[] }` 可选协议列表                            | 定义该类是一个中间件类。可指定 `protocol` 参数绑定到特定协议                                                            | 仅用于中间件类         |
-| `@ExceptionHandler()`          |                                                                             | 定义该类是一个全局异常处理类                                                                                            | 仅用于异常处理类       |
-| `@BeforeEach(aopName: string)` | `aopName` 切点执行的切面类名                                                | 为当前类声明一个切面，在当前类每一个方法("constructor", "init", "__before", "__after"除外)执行之前执行切面类的run方法。 |                        |
-| `@AfterEach(aopName: string)`  | `aopName` 切点执行的切面类名                                                | 为当前类声明一个切面，在当前每一个方法("constructor", "init", "__before", "__after"除外)执行之后执行切面类的run方法。   |                        |
+#### 核心装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Bootstrap()` | `bootFunc?: (...args: any[]) => any` 应用启动前执行函数 | 声明当前类是一个启动类，为项目的入口文件。启动类必须继承 `Koatty` | 仅用于应用启动类 |
+| `@ComponentScan()` | `scanPath?: string \| string[]` 扫描目录 | 定义项目需要自动装载进容器的目录，默认扫描 `src` 目录 | 仅用于应用启动类 |
+| `@ConfigurationScan()` | `scanPath?: string \| string[]` 配置文件目录 | 定义项目需要加载的配置文件目录，默认 `./config` | 仅用于应用启动类 |
+
+#### 组件装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Component()` | `identifier?: string` IOC容器标识<br>`options?: IComponentOptions` 配置项：<br>- `enabled?: boolean` 是否启用(默认true)<br>- `priority?: number` 加载优先级(默认0)<br>- `scope?: 'core' \| 'user'` 组件范围<br>- `requires?: string[]` 依赖组件名称<br>- `version?: string` 组件版本<br>- `description?: string` 组件描述 | 定义该类为组件类。可配合 `@OnEvent` 装饰器绑定生命周期事件 | 第三方模块或扩展类使用 |
+| `@Plugin()` | `identifier?: string` IOC容器标识(必须以"Plugin"结尾)<br>`options?: IPluginOptions` 配置项同 `@Component` | 定义该类是插件类。插件必须实现 `run(options, app)` 方法 | 仅用于插件类 |
+| `@Service()` | `identifier?: string` IOC容器标识<br>`options?: object` 可选配置项 | 定义该类是服务类 | 仅用于服务类 |
+| `@Middleware()` | `identifier?: string` 自定义标识<br>`options?: IMiddlewareOptions` 配置项：<br>- `protocol?: string \| string[]` 协议列表<br>- `priority?: number` 优先级(默认50)<br>- `enabled?: boolean` 是否启用(默认true) | 定义该类是中间件类。可指定 `protocol` 限定生效协议 | 仅用于中间件类 |
+
+#### 控制器装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Controller()` | `path?: string` 路由路径(默认"/")<br>`options?: IControllerOptions` 配置项：<br>- `middleware?: Function[]` 控制器级别中间件 | 定义 HTTP/HTTPS/HTTP2 控制器类 | 仅用于 HTTP 控制器 |
+| `@GrpcController()` | `path?: string` 路由路径(必须与 proto 的 service 名称一致)<br>`options?: IExtraControllerOptions` 配置项：<br>- `middleware?: Function[]` 控制器级别中间件 | 定义 gRPC 控制器类 | 仅用于 gRPC 控制器 |
+| `@WebSocketController()` | `path?: string` 路由路径<br>`options?: IExtraControllerOptions` | 定义 WebSocket 控制器类 | 仅用于 WebSocket 控制器 |
+| `@GraphQLController()` | `path?: string` 路由路径<br>`options?: IControllerOptions` | 定义 GraphQL 控制器类 | 仅用于 GraphQL 控制器 |
+
+#### AOP 类装饰器
+
+> 注意：AOP 还有方法级别的装饰器 `@Before`、`@After`、`@Around`，详见下方"方法装饰器"章节。
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Aspect()` | `identifier?: string` IOC容器标识 | 声明切面类。类名必须以"Aspect"结尾，必须实现 `run` 方法 | 仅用于切面类 |
+| `@BeforeEach()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在类的每个方法执行前执行切面(排除 constructor/init/__before/__after) | 类装饰器 |
+| `@AfterEach()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在类的每个方法执行后执行切面 | 类装饰器 |
+| `@AroundEach()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 包装类的每个方法执行 | 类装饰器 |
+
+#### 其他类装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@ExceptionHandler()` | 无 | 定义全局异常处理类。类必须继承 `Exception` 并实现 `handler` 方法 | 仅用于异常处理类 |
 
 
 ### 属性装饰器
 
-| 装饰器名称     | 参数                                                                                                                                                                                                                       | 说明                                                                 | 备注 |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---- |
-| `@Autowired()` | `identifier` 注册到IOC容器的标识，默认值为类名 <br> `type` 注入bean的类型 <br> `constructArgs` 注入bean构造方法入参。如果传递该参数，则返回request作用域的实例 <br> `isDelay` 是否延迟加载。延迟加载主要是解决循环依赖问题 | 从IOC容器自动注入bean到当前类                                        |      |
-| `@Config()`    | `key` 配置项的key <br> `type` 配置项类型                                                                                                                                                                                   | 配置项类型自动根据配置项所在文件来定义，例如 "db" 代表在 db.ts文件内 |      |
-| `@Values()`    | `val` 属性的值，可以是函数，属性值为函数运算结果 <br> `defaultValue` 默认值，当val值为Null、undefined、NaN时，取默认值                                                                                                     | 用于动态修改类实例的属性值                                           |      |
-
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Autowired()` | `paramName?: ClassOrString` 依赖类或标识<br>`cType?: string` 组件类型(默认"COMPONENT")<br>`constructArgs?: any[]` 构造参数<br>`isDelay?: boolean` 是否延迟加载(默认false) | 从IOC容器自动注入依赖。不能注入 CONTROLLER 类型 | 属性装饰器 |
+| `@Config()` | `key?: string` 配置项的key<br>`type?: string` 配置类型(默认"config") | 注入配置值。类型对应配置文件名，如 "db" 对应 db.ts | 属性装饰器 |
+| `@Values()` | `value: unknown \| Function` 属性值或返回值的函数<br>`defaultValue?: unknown` 默认值 | 动态设置属性值。会进行类型检查 | 属性装饰器 |
+| `@IsDefined()` / `@Expose()` | 无 | 标记属性为已定义，用于参数验证时导出属性 | 验证装饰器 |
 
 
 ### 方法装饰器
 
-| 装饰器名称                 | 参数                                                                                                                                                                                                                      | 说明                                                                     | 备注                                          |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------- |
-| `@Before(aopName: string)` | `aopName` 切点执行的切面类名                                                                                                                                                                                              | 为当前方法声明一个切面，在当前方法执行之前执行切面类的run方法。          |                                               |
-| `@After(aopName: string)`  | `aopName` 切点执行的切面类名                                                                                                                                                                                              | 为当前方法声明一个切面，在当前方法执行之后执行切面类的run方法。          |                                               |
-| `@RequestMapping()`        | `path` 绑定的路由 <br> `requestMethod` 绑定的HTTP请求方式。可以使用`RequestMethod` enum数据进行赋值，例如 `RequestMethod.GET`。如果设置为`RequestMethod.ALL`表示支持所有请求方式 <br> `routerOptions` koa/_router的配置项 | 用于控制器方法绑定路由                                                   | 仅用于控制器方法                              |
-| `@GetMapping()`            | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Get路由                                                | 仅用于控制器方法                              |
-| `@PostMapping()`           | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Post路由                                               | 仅用于控制器方法                              |
-| `@DeleteMapping()`         | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Delete路由                                             | 仅用于控制器方法                              |
-| `@PutMapping()`            | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Put路由                                                | 仅用于控制器方法                              |
-| `@PatchMapping()`          | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Patch路由                                              | 仅用于控制器方法                              |
-| `@OptionsMapping()`        | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Options路由                                            | 仅用于控制器方法                              |
-| `@HeadMapping()`           | `path` 绑定的路由 <br> `routerOptions` koa/_router的配置项                                                                                                                                                                | 用于控制器方法绑定Head路由                                               | 仅用于控制器方法                              |
-| `@Scheduled()`             | `cron` 任务计划配置（支持5位或6位格式）<br> 6位: * * * * * * <br> Seconds: 0-59<br>Minutes: 0-59<br>Hours: 0-23<br>Day of Month: 1-31<br>Months: 1-12 (Jan-Dec)<br>Day of Week: 0-7 (Sun-Sat)<br>`timezone` 可选时区参数，覆盖全局配置                                                        | 定义类的方法执行计划任务                                                 | 不能用于控制器方法，依赖`koatty_schedule`模块 |
-| `@Validated()`             |                                                                                                                                                                                                                           | 配合DTO类型进行参数验证                                                  | 方法入参没有DTO类型的不生效，仅用于控制器类   |
-| `@RedLock()`               | `name` 锁的名称（可选，不提供时自动生成）<br> `options` 锁配置（可选，会覆盖全局配置）<br> - `lockTimeOut` 锁超时时间(ms)<br> - `maxRetries` 最大重试次数<br> - `retryDelayMs` 重试延迟(ms)<br> - `clockDriftFactor` 时钟漂移因子                                                                              | 定义方法执行时必须先获取分布式锁(基于Redis)，依赖`koatty_schedule`模块   |                                               |
-| `@CacheAble()`             | `cacheName` 缓存名称 <br> `options` 缓存选项（可选）<br> - `params` 用作缓存键的参数名数组<br> - `timeout` 缓存过期时间（秒），默认300                                                                                        | 自动缓存方法返回值，依赖`koatty_cacheable`模块                              | 不能用于控制器方法                            |
-| `@CacheEvict()`            | `cacheName` 缓存名称 <br> `options` 清除选项（可选）<br> - `params` 用于定位缓存的参数名数组<br> - `delayedDoubleDeletion` 是否启用延迟双删策略，默认true                                                         | 自动清除相关缓存，依赖`koatty_cacheable`模块 | 不能用于控制器方法                            |
+#### 生命周期装饰器
 
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@OnEvent()` | `event: AppEvent` 事件类型：<br>- `AppEvent.appBoot` 应用启动初始化后<br>- `AppEvent.loadServe` 服务器加载时<br>- `AppEvent.loadRouter` 路由加载时<br>- `AppEvent.appReady` 应用准备就绪<br>- `AppEvent.appStart` 应用启动完成<br>- `AppEvent.appStop` 应用停止时 | 将方法绑定到应用生命周期事件 | 仅用于 `@Component` 或 `@Plugin` 类 |
+
+#### AOP 方法装饰器
+
+用于单个方法的切面声明。与类级别的 `@BeforeEach`/`@AfterEach`/`@AroundEach` 不同，这些装饰器只作用于被装饰的方法。
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Before()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在方法执行前执行切面的 `run` 方法 | 方法装饰器 |
+| `@After()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在方法执行后执行切面的 `run` 方法 | 方法装饰器 |
+| `@Around()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 包装方法执行，切面的 `run` 方法接收 `proceed` 函数 | 方法装饰器 |
+
+**AOP 装饰器对比：**
+
+| 装饰器 | 类型 | 作用范围 | 使用场景 |
+| ------ | ---- | -------- | -------- |
+| `@Before()` | 方法装饰器 | 单个方法 | 特定方法执行前的前置处理 |
+| `@After()` | 方法装饰器 | 单个方法 | 特定方法执行后的后置处理 |
+| `@Around()` | 方法装饰器 | 单个方法 | 包装特定方法，可控制执行流程 |
+| `@BeforeEach()` | 类装饰器 | 类的所有方法 | 类内所有方法的统一前置处理 |
+| `@AfterEach()` | 类装饰器 | 类的所有方法 | 类内所有方法的统一后置处理 |
+| `@AroundEach()` | 类装饰器 | 类的所有方法 | 包装类内所有方法 |
+
+#### 路由装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@RequestMapping()` | `path?: string` 路由路径(默认"/")<br>`reqMethod?: RequestMethod` 请求方式(默认GET)<br>`routerOptions?: object` 配置项：<br>- `routerName?: string` 路由名称<br>- `middleware?: Function[] \| MiddlewareDecoratorConfig[]` 方法级别中间件 | 绑定路由到方法 | 仅用于控制器方法 |
+| `@GetMapping()` | `path?: string` 路由路径<br>`routerOptions?: RouterOption` | 绑定 GET 路由 | 仅用于控制器方法 |
+| `@PostMapping()` | `path?: string` 路由路径<br>`routerOptions?: RouterOption` | 绑定 POST 路由 | 仅用于控制器方法 |
+| `@PutMapping()` | `path?: string` 路由路径<br>`routerOptions?: RouterOption` | 绑定 PUT 路由 | 仅用于控制器方法 |
+| `@DeleteMapping()` | `path?: string` 路由路径<br>`routerOptions?: RouterOption` | 绑定 DELETE 路由 | 仅用于控制器方法 |
+| `@PatchMapping()` | `path?: string` 路由路径<br>`routerOptions?: RouterOption` | 绑定 PATCH 路由 | 仅用于控制器方法 |
+| `@OptionsMapping()` | `path?: string` 路由路径<br>`routerOptions?: RouterOption` | 绑定 OPTIONS 路由 | 仅用于控制器方法 |
+| `@HeadMapping()` | `path?: string` 路由路径<br>`routerOptions?: RouterOption` | 绑定 HEAD 路由 | 仅用于控制器方法 |
+
+#### 验证装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Validated()` | `isAsync?: boolean` 是否异步模式(默认true) | 自动验证方法参数中的 DTO 对象 | 仅用于控制器方法 |
+
+#### 缓存装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@CacheAble()` | `cacheName: string` 缓存名称<br>`options?: CacheAbleOpt` 配置项：<br>- `params?: string[]` 用作缓存键的参数名<br>- `timeout?: number` 过期时间(秒，默认300) | 自动缓存方法返回值 | 仅用于 SERVICE/COMPONENT 类 |
+| `@CacheEvict()` | `cacheName: string` 缓存名称<br>`options?: CacheEvictOpt` 配置项：<br>- `params?: string[]` 用于定位缓存的参数名<br>- `delayedDoubleDeletion?: boolean` 启用延迟双删(默认true)<br>- `delayTime?: number` 延迟时间(ms，默认5000) | 清除方法相关的缓存 | 仅用于 SERVICE/COMPONENT 类 |
+
+#### 计划任务装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Scheduled()` | `cron: string` Cron 表达式(支持5位或6位)<br>`timezone?: string` 时区(默认'Asia/Beijing') | 定义定时执行的方法 | 仅用于 SERVICE/COMPONENT 类 |
+| `@RedLock()` | `lockName?: string` 锁名称(不提供则自动生成)<br>`options?: RedLockMethodOptions` 配置项：<br>- `lockTimeOut?: number` 锁超时(ms)<br>- `maxRetries?: number` 最大重试次数<br>- `retryDelayMs?: number` 重试延迟(ms) | 方法执行前获取分布式锁 | 仅用于 SERVICE/COMPONENT 类 |
 
 
 ### 参数装饰器
 
-| 装饰器名称        | 参数                                                                                   | 说明                                                                                                    | 备注                              |
-| ----------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| `@File()`         | `name` 文件名                                                                          | 获取上传的文件对象                                                                                      | 仅用于HTTP控制器方法参数          |
-| `@Get()`          | `name` 参数名                                                                          | 获取querystring参数(获取路由绑定的参数)                                                                 | 仅用于HTTP控制器方法参数          |
-| `@Header()`       | `name` 参数名                                                                          | 获取Header内容                                                                                          | 仅用于HTTP控制器方法参数          |
-| `@PathVariable()` | `name` 参数名                                                                          | 获取路由绑定的参数 /user/:id                                                                            | 仅用于HTTP控制器方法参数          |
-| `@Post()`         | `name` 参数名                                                                          | 获取Post参数                                                                                            | 仅用于HTTP控制器方法参数          |
-| `@RequestBody()`  |                                                                                        | 获取ctx.body                                                                                            | 仅用于控制器方法参数              |
-| `@RequestParam()` | `name` 参数名                                                                          | 获取Get或Post参数，Post优先                                                                             | 仅用于控制器方法参数              |
-| `@Valid()`        | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证                                                                                        | 仅用于控制器类                    |
-| `@Inject()`       | `paramName` 构造方法入参名(形参)  <br> `cType` 注入bean的类型                          | 该装饰器使用类构造方法入参来注入依赖, 如果和 `@Autowired()` 同时使用, 可能会覆盖autowired注入的相同属性 | 仅用于构造方法(constructor)的入参 |
---
+#### 请求参数装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Header()` | `name?: string` 参数名<br>`defaultValue?: any` 默认值 | 获取请求头。不传 name 则获取所有请求头 | 仅用于控制器方法参数 |
+| `@PathVariable()` | `name?: string` 参数名<br>`defaultValue?: any` 默认值 | 获取路由参数(ctx.params) | 仅用于控制器方法参数 |
+| `@Get()` | `name?: string` 参数名<br>`defaultValue?: any` 默认值 | 获取 querystring 参数(ctx.query) | 仅用于控制器方法参数 |
+| `@Post()` | `name?: string` 参数名<br>`defaultValue?: any` 默认值 | 获取 POST 请求体参数 | 仅用于控制器方法参数 |
+| `@File()` | `name?: string` 文件名<br>`defaultValue?: any` 默认值 | 获取上传的文件对象 | 仅用于控制器方法参数 |
+| `@RequestBody()` / `@Body()` | 无 | 获取完整的请求体(包含 body 和 file) | 仅用于控制器方法参数 |
+| `@RequestParam()` / `@Param()` | 无 | 获取 query 和 path 参数的合并对象 | 仅用于控制器方法参数 |
+
+#### 验证装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Valid()` | `rule: ValidRules \| Function` 验证规则或自定义函数<br>`options?: string \| ValidOtpions` 错误信息或配置 | 验证单个参数 | 仅用于控制器方法参数 |
+
+#### 依赖注入装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Inject()` | `paramName?: ClassOrString` 依赖类或标识<br>`cType?: string` 组件类型(默认"COMPONENT") | 通过构造函数参数注入依赖 | 仅用于构造方法参数 |
+| `@Autowired()` | `paramName?: ClassOrString` 依赖类或标识<br>`cType?: string` 组件类型(默认"COMPONENT")<br>`constructArgs?: any[]` 构造参数<br>`isDelay?: boolean` 是否延迟加载(默认false) | 从IOC容器自动注入依赖。不能注入 CONTROLLER 类型 |
+
+### 验证规则装饰器
+
+用于 DTO 类属性验证的装饰器（配合 `@Validated()` 使用）：
+
+#### 中文验证装饰器
+
+| 装饰器名称 | 说明 |
+| ---------- | ---- |
+| `@IsCnName()` | 验证中文姓名 |
+| `@IsIdNumber()` | 验证身份证号 |
+| `@IsMobile()` | 验证手机号 |
+| `@IsZipCode()` | 验证邮政编码 |
+| `@IsPlateNumber()` | 验证车牌号 |
+
+#### 通用验证装饰器
+
+| 装饰器名称 | 参数 | 说明 |
+| ---------- | ---- | ---- |
+| `@IsNotEmpty()` | `options?: ValidationOptions` | 验证非空 |
+| `@IsEmail()` | `options?: IsEmailOptions, validationOptions?: ValidationOptions` | 验证邮箱 |
+| `@IsIP()` | `version?: any, validationOptions?: ValidationOptions` | 验证 IP 地址 |
+| `@IsPhoneNumber()` | `region?: CountryCode, validationOptions?: ValidationOptions` | 验证国际电话号码 |
+| `@IsUrl()` | `options?: IsURLOptions, validationOptions?: ValidationOptions` | 验证 URL |
+| `@IsHash()` | `algorithm: HashAlgorithm, validationOptions?: ValidationOptions` | 验证哈希值 |
+| `@IsDate()` | `options?: ValidationOptions` | 验证日期 |
+
+#### 数值比较装饰器
+
+| 装饰器名称 | 参数 | 说明 |
+| ---------- | ---- | ---- |
+| `@Gt()` | `min: number` | 大于 |
+| `@Gte()` | `min: number` | 大于等于 |
+| `@Lt()` | `max: number` | 小于 |
+| `@Lte()` | `max: number` | 小于等于 |
+| `@Equals()` | `comparison: any` | 等于 |
+| `@NotEquals()` | `comparison: any` | 不等于 |
+
+#### 字符串验证装饰器
+
+| 装饰器名称 | 参数 | 说明 |
+| ---------- | ---- | ---- |
+| `@Contains()` | `seed: string` | 包含字符串 |
+| `@IsIn()` | `possibleValues: any[]` | 在数组中 |
+| `@IsNotIn()` | `possibleValues: any[]` | 不在数组中 |
+
+
+### 路由中间件辅助函数
+
+#### withMiddleware()
+
+用于创建高级中间件配置，支持优先级、条件执行、元数据等特性：
+
+```typescript
+import { withMiddleware, GetMapping } from "koatty";
+
+@Controller('/api')
+export class UserController {
+  
+  @GetMapping('/users', {
+    middleware: [
+      withMiddleware(AuthMiddleware, { 
+        priority: 100,           // 优先级，数值越高越先执行
+        enabled: true,           // 是否启用
+        conditions: [            // 条件执行
+          { type: 'header', value: 'authorization', operator: 'contains' }
+        ],
+        metadata: { role: 'admin' }  // 传递给中间件的元数据
+      }),
+      withMiddleware(RateLimitMiddleware, { 
+        priority: 90,
+        metadata: { limit: 100, window: 60000 }
+      })
+    ]
+  })
+  async getUsers() {
+    return 'users list';
+  }
+}
+```
 
 ### 自定义装饰器
 
