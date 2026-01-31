@@ -2092,6 +2092,75 @@ setExceptionConfig({
 });
 ```
 
+### @Catch() Method Decorator
+
+Starting from Koatty 4.0, `koatty_exception` provides the `@Catch()` method decorator for actively catching errors at the method level and converting them to Exception.
+
+#### Basic Usage
+
+```typescript
+import { Catch, Exception } from 'koatty_exception';
+
+@Service()
+class UserService {
+
+  // Usage 1: Basic - Catch all errors and convert to Exception
+  @Catch()
+  async findUser(id: string): Promise<User> {
+    return await this.userRepository.findById(id);
+  }
+
+  // Usage 2: Specify error code and message (shorthand)
+  @Catch(1001, 'User creation failed')
+  async createUser(data: CreateUserDTO): Promise<User> {
+    return await this.userRepository.create(data);
+  }
+
+  // Usage 3: Use custom Exception class (shorthand)
+  @Catch(ValidationException)
+  async validateUser(data: UserDTO): Promise<boolean> {
+    return await this.validator.validate(data);
+  }
+
+  // Usage 4: Full configuration
+  @Catch({
+    code: 2001,
+    status: 400,
+    message: (err) => `Operation failed: ${err.message}`,
+    exception: BusinessException,
+  })
+  async updateUser(id: string, data: UpdateUserDTO): Promise<User> {
+    return await this.userRepository.update(id, data);
+  }
+
+  // Usage 5: Catch specific error types only
+  @Catch([TypeError, RangeError], { code: 3001, message: 'Parameter type error' })
+  async processData(data: unknown): Promise<void> {
+    // Only catches TypeError and RangeError, other errors are re-thrown
+  }
+}
+```
+
+#### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `code` | `number` | `1` | Business error code |
+| `status` | `number` | `500` | HTTP status code |
+| `message` | `string \| (err) => string` | Original error message | Error message (supports dynamic generation) |
+| `exception` | `ExceptionConstructor` | `Exception` | Custom exception class |
+| `catchTypes` | `ErrorType[]` | Catch all | Error types to catch |
+| `transform` | `(ex, err) => ex` | - | Error transformation callback |
+| `preserveStack` | `boolean` | `true` | Whether to preserve original stack trace |
+| `suppress` | `boolean` | `false` | Whether to suppress error (don't throw) |
+
+#### Use Cases
+
+- **Unified Error Handling**: Catch and transform underlying errors uniformly in Service layer
+- **Error Classification**: Convert different types of errors to corresponding business exceptions
+- **Error Message Beautification**: Provide user-friendly error messages
+- **Logging and Tracing**: Add context information via transform callback
+
 ### Global Exception Handling
 
 Koatty provides a decorator `@ExceptionHandler()` to register global exception handling:
@@ -3286,6 +3355,16 @@ For single method aspect declaration. Unlike class-level `@BeforeEach`/`@AfterEa
 | Decorator Name | Parameters | Description | Remarks |
 | -------------- | ---------- | ----------- | ------- |
 | `@Validated()` | `isAsync?: boolean` - Whether async mode (default true) | Auto-validate DTO objects in method parameters | Only for controller methods |
+
+#### Exception Handling Decorators
+
+| Decorator Name | Parameters | Description | Remarks |
+| -------------- | ---------- | ----------- | ------- |
+| `@Catch()` | No parameters | Catch all errors and convert to Exception | Method decorator |
+| `@Catch()` | `exception: ExceptionConstructor` - Custom exception class | Use specified Exception class to handle errors | Method decorator |
+| `@Catch()` | `code: number, message?: string` - Error code and message | Specify error code and message | Method decorator |
+| `@Catch()` | `options: CatchOptions` - Full configuration | Full config mode, supports code/status/message/exception/catchTypes/transform/preserveStack/suppress | Method decorator |
+| `@Catch()` | `errorTypes: ErrorType[], options?: CatchOptions` | Catch specific error types only | Method decorator |
 
 #### Cache Decorators
 

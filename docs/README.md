@@ -2453,6 +2453,75 @@ setExceptionConfig({
 });
 ```
 
+### @Catch() 方法装饰器
+
+从 Koatty 4.0 开始，`koatty_exception` 提供了 `@Catch()` 方法装饰器，用于在方法级别主动捕获错误并转换为 Exception。
+
+#### 基本用法
+
+```typescript
+import { Catch, Exception } from 'koatty_exception';
+
+@Service()
+class UserService {
+
+  // 用法1: 基础用法 - 捕获所有错误转换为 Exception
+  @Catch()
+  async findUser(id: string): Promise<User> {
+    return await this.userRepository.findById(id);
+  }
+
+  // 用法2: 指定错误码和消息（简写）
+  @Catch(1001, '用户创建失败')
+  async createUser(data: CreateUserDTO): Promise<User> {
+    return await this.userRepository.create(data);
+  }
+
+  // 用法3: 使用自定义 Exception 类（简写）
+  @Catch(ValidationException)
+  async validateUser(data: UserDTO): Promise<boolean> {
+    return await this.validator.validate(data);
+  }
+
+  // 用法4: 完整配置
+  @Catch({
+    code: 2001,
+    status: 400,
+    message: (err) => `操作失败: ${err.message}`,
+    exception: BusinessException,
+  })
+  async updateUser(id: string, data: UpdateUserDTO): Promise<User> {
+    return await this.userRepository.update(id, data);
+  }
+
+  // 用法5: 只捕获特定错误类型
+  @Catch([TypeError, RangeError], { code: 3001, message: '参数类型错误' })
+  async processData(data: unknown): Promise<void> {
+    // 只捕获 TypeError 和 RangeError，其他错误继续向上抛出
+  }
+}
+```
+
+#### 配置选项
+
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `code` | `number` | `1` | 业务错误码 |
+| `status` | `number` | `500` | HTTP 状态码 |
+| `message` | `string \| (err) => string` | 原始错误消息 | 错误消息（支持动态生成） |
+| `exception` | `ExceptionConstructor` | `Exception` | 自定义异常类 |
+| `catchTypes` | `ErrorType[]` | 捕获所有 | 只捕获的错误类型 |
+| `transform` | `(ex, err) => ex` | - | 错误转换回调 |
+| `preserveStack` | `boolean` | `true` | 是否保留原始堆栈 |
+| `suppress` | `boolean` | `false` | 是否抑制错误（不抛出） |
+
+#### 使用场景
+
+- **统一错误处理**：在 Service 层统一捕获并转换底层错误
+- **错误分类**：将不同类型的错误转换为对应的业务异常
+- **错误信息美化**：为用户提供友好的错误提示
+- **日志和追踪**：通过 transform 回调添加上下文信息
+
 ### 全局异常处理
 
 koatty提供了一个装饰器 `@ExceptionHandler()`来注册全局的异常处理。
@@ -3742,6 +3811,16 @@ Koatty 框架提供了丰富的装饰器来简化开发。装饰器按照作用�
 | 装饰器名称 | 参数 | 说明 | 备注 |
 | ---------- | ---- | ---- | ---- |
 | `@Validated()` | `isAsync?: boolean` 是否异步模式(默认true) | 自动验证方法参数中的 DTO 对象 | 仅用于控制器方法 |
+
+#### 异常处理装饰器
+
+| 装饰器名称 | 参数 | 说明 | 备注 |
+| ---------- | ---- | ---- | ---- |
+| `@Catch()` | 无参数 | 捕获所有错误并转换为 Exception | 方法装饰器 |
+| `@Catch()` | `exception: ExceptionConstructor` 自定义异常类 | 使用指定的 Exception 类处理错误 | 方法装饰器 |
+| `@Catch()` | `code: number, message?: string` 错误码和消息 | 指定错误码和消息 | 方法装饰器 |
+| `@Catch()` | `options: CatchOptions` 完整配置 | 完整配置模式，支持 code/status/message/exception/catchTypes/transform/preserveStack/suppress | 方法装饰器 |
+| `@Catch()` | `errorTypes: ErrorType[], options?: CatchOptions` | 只捕获特定类型的错误 | 方法装饰器 |
 
 #### 缓存装饰器
 
