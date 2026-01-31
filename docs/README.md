@@ -23,7 +23,7 @@ Koa + TypeScript + IOC = Koatty. **Koatty** 是一个渐进式 Node.js 框架，
 
 - ✅ **多协议架构** - 同时运行 HTTP、HTTPS、HTTP/2、HTTP/3、gRPC、WebSocket、GraphQL，每个协议独立服务器实例
 - ✅ **智能元数据缓存** - LRU 缓存和预加载，性能提升 70%+，元数据操作 < 0.01ms/次
-- ✅ **应用生命周期钩子** - 使用 `@OnEvent` 装饰器或 `BindEventHook` API，支持 appBoot/appReady/appStart/appStop 等生命周期事件
+- ✅ **应用生命周期钩子** - 使用 `@OnEvent` 装饰器API，支持 appBoot/appReady/appStart/appStop 等生命周期事件
 - ✅ **版本冲突检测** - 自动检测和解决依赖冲突
 - ✅ **配置文件重构** - 服务器配置独立到 `server.ts`，路由扩展配置采用协议名作为键的新格式
 - ✅ **Component 装饰器增强** - 支持 `priority`、`scope`、`requires`、`version`、`description` 等配置项

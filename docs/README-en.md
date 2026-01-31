@@ -24,7 +24,7 @@ Koa + TypeScript + IOC = Koatty. **Koatty** is a progressive Node.js framework f
 
 - ✅ **Multi-Protocol Architecture** - Run HTTP, HTTPS, HTTP/2, HTTP/3, gRPC, WebSocket, and GraphQL simultaneously with independent server instances for each protocol
 - ✅ **Intelligent Metadata Cache** - LRU caching with preloading for 70%+ performance boost, metadata operations < 0.01ms/call
-- ✅ **Application Lifecycle Hooks** - Use `@OnEvent` decorator or `BindEventHook` API for appBoot/appReady/appStart/appStop lifecycle events
+- ✅ **Application Lifecycle Hooks** - Use `@OnEvent` decorator API for appBoot/appReady/appStart/appStop lifecycle events
 - ✅ **Version Conflict Detection** - Automatic detection and resolution of dependency conflicts
 - ✅ **Configuration Restructuring** - Server configuration separated to `server.ts`, router ext configuration uses protocol name as key
 - ✅ **Enhanced Component Decorator** - Supports `priority`, `scope`, `requires`, `version`, `description` configuration options
@@ -2975,34 +2975,6 @@ export class App extends Koatty {
 Common application scenarios are to handle some runtime environment settings before startup, such as `NODE_ENV`. The startup function supports asynchronous execution.
 
 > Note: The startup function is executed after the framework's `initialize` initialization, at which point the framework's related path attributes (`appPath`, `rootPath`, etc.) and `process.env` have been loaded and set, but other components (plugins, middleware, controllers, etc.) have not been loaded. Be aware when defining the startup function.
-
-### BindEventHook
-
-In addition to the `@Bootstrap` decorator, we can also use the `BindEventHook` custom decorator to bind application events (`appBoot`, `appReady`, `appStart`, `appStop`) to the startup class.
-
-```typescript
-// src/TestBootstrap.ts:
-export function TestBootstrap(): ClassDecorator {
-  return (target: Function) => {
-    BindEventHook(AppEvent.appBoot, (app: Koatty) => {
-      // todo
-      return Promise.resolve();
-    }, target)
-  }
-}
-```
-
-Use on the project startup class:
-
-```typescript
-@Bootstrap()
-@TestBootstrap()
-export class App extends Koatty {
-  // ...
-}
-```
-
-> Note: The function execution of the custom decorator created by `BindEventHook` is triggered by the event (`appBoot`, `appReady`, `appStart`, `appStop`), and attention should be paid to the framework startup logic and related context.
 
 ### @OnEvent Decorator (4.0 New)
 
