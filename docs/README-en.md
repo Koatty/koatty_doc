@@ -20,17 +20,63 @@ Koa + TypeScript + IOC = Koatty. **Koatty** is a progressive Node.js framework f
 
 ## ✨ Latest Features
 
-- ✅ **Multi-Protocol Architecture** - Run HTTP, HTTPS, HTTP/2, HTTP/3, gRPC, WebSocket, and GraphQL simultaneously
-- ✅ **Intelligent Metadata Cache** - LRU caching with preloading for 70%+ performance boost
-- ✅ **Protocol-Specific Middleware** - Bind middleware to specific protocols with `@Middleware({ protocol: [...] })`
-- ✅ **Graceful Shutdown** - Enhanced connection pool management and cleanup handlers
-- ✅ **Enhanced gRPC Support** - Timeout detection, duplicate call protection, streaming improvements
+### Architecture Upgrades
+
+- ✅ **Multi-Protocol Architecture** - Run HTTP, HTTPS, HTTP/2, HTTP/3, gRPC, WebSocket, and GraphQL simultaneously with independent server instances for each protocol
+- ✅ **Intelligent Metadata Cache** - LRU caching with preloading for 70%+ performance boost, metadata operations < 0.01ms/call
 - ✅ **Application Lifecycle Hooks** - Custom decorators with `BindEventHook` API for boot/ready/stop events
 - ✅ **Version Conflict Detection** - Automatic detection and resolution of dependency conflicts
-- ✅ **GraphQL over HTTP/2** - Automatic HTTP/2 upgrade with SSL for multiplexing and compression
-- ✅ **Global Exception Handling** - `@ExceptionHandler()` decorator for centralized error management
+
+### Routing & Middleware
+
+- ✅ **Router Middleware Manager** - Route-level middleware isolation, support for priority configuration and conditional execution
+- ✅ **Protocol-Specific Middleware** - Bind middleware to specific protocols with `@Middleware({ protocol: [...] })`
+- ✅ **Middleware Metadata Passing** - Pass configuration parameters via `withMiddleware()`, support for dynamic enable/disable
+- ✅ **Router Factory Pattern** - Flexible router creation and management, support for custom router registration
+
+### Protocol Enhancements
+
+- ✅ **Enhanced gRPC Support**
+  - Support for four gRPC stream types (server-streaming, client-streaming, bidirectional-streaming, unary)
+  - Automatic stream type detection and backpressure control
+  - Connection pool management and batch processing support
+  - Timeout detection and duplicate call protection
+- ✅ **GraphQL over HTTP/2** - Automatic HTTP/2 upgrade with SSL for multiplexing and compression, automatic HTTP/1.1 fallback
+- ✅ **WebSocket Enhancements** - Heartbeat detection, connection limits, frame size control
+
+### Operations & Monitoring
+
+- ✅ **Graceful Shutdown** - Five-step graceful shutdown process, enhanced connection pool management and cleanup handlers
+  - Stop accepting new requests
+  - Wait for in-flight requests to complete
+  - Trigger stop event
+  - Clean up WebSocket connections, gRPC streams, and other resources
+  - Exit process gracefully
 - ✅ **OpenTelemetry Tracing** - Full-stack observability with distributed tracing
+- ✅ **Multi-Protocol Metrics Collection** - Automatically collect HTTP, WebSocket, and gRPC metrics and export to Prometheus
+  - Request count (requests_total)
+  - Error count (errors_total)
+  - Response time (response_time_seconds)
+- ✅ **Health Checks** - Multi-level health status monitoring
+
+### Exception Handling
+
+- ✅ **Global Exception Handling** - `@ExceptionHandler()` decorator for centralized error management, support for multi-protocol exception handling
+- ✅ **Chained Exception Calls** - Support for method chaining, more elegant code
+- ✅ **Custom Exception Handlers** - Support for custom error response formats and log formats
+
+### Performance Optimizations
+
+- ✅ **High-Performance Connection Pools** - Protocol-optimized connection pool implementations, intelligent monitoring and automatic cleanup
+- ✅ **Configuration Hot Reload** - Intelligent configuration change detection, automatic restart strategy decision
+- ✅ **Performance Boost** - HTTP context creation < 0.1ms, GraphQL context creation < 0.2ms, concurrent processing > 10,000 ops/sec
+
+### Developer Experience
+
 - 💪 **Swagger/OpenAPI 3.0** - Automatic API documentation generation
+- ✅ **Full TypeScript Support** - Complete type definitions and type safety
+- ✅ **Koa 3.0 Upgrade** - Upgraded to Koa 3.0, improved performance and compatibility
+- ✅ **Decorator Pattern** - Unified decorator API, cleaner code style
 
 ## 📚 Documentation
 
@@ -584,6 +630,29 @@ NODE_ENV=dev ff_value=999 ts-node "test/test.ts"
 
 Koatty encapsulates a routing library `koatty_router` specifically for handling routes, supporting HTTP1/2, WebSocket, gRPC, and other protocol types.
 
+### Router Factory Pattern
+
+Koatty 4.0 introduces a router factory pattern, providing flexible router creation and management:
+
+```typescript
+import { RouterFactory, RegisterRouter } from "koatty_router";
+
+const factory = RouterFactory.getInstance();
+
+// Get supported protocols
+console.log(factory.getSupportedProtocols());
+// ['http', 'https', 'ws', 'wss', 'grpc', 'graphql']
+
+// Create router
+const router = factory.create("http", app, { prefix: "/api" });
+
+// Register custom router
+@RegisterRouter("mqtt")
+class MqttRouter implements KoattyRouter {
+  // Custom router implementation
+}
+```
+
 ### Controller Routing
 
 The `@Controller()` decorator's parameter serves as the controller's access entry, with the default value being `/`. Then, iterate over the controller's methods and register route mappings using decorators such as `GetMapping`, `DeleteMapping`, `PutMapping`, `PostMapping`.
@@ -638,27 +707,35 @@ export default {
   sensitive?: boolean;      // Case sensitive
   strict?: boolean;         // Strict matching
   
-  ext?: {                   // Protocol-specific extension configuration
-    // HTTP protocol config (optional)
-    
-    // gRPC protocol config (optional)
-    protoFile?: string;           // gRPC proto file path
-    poolSize?: number;            // Connection pool size
-    streamConfig?: {              // Stream configuration
-      maxConcurrentStreams?: number;    // Max concurrent streams
-      streamTimeout?: number;           // Stream timeout (ms)
-    }
-    
-    // WebSocket protocol config (optional)
-    maxFrameSize?: number;        // Max frame size (bytes)
-    heartbeatInterval?: number;   // Heartbeat interval (ms)
-    maxConnections?: number;      // Max connections
-    
-    // GraphQL protocol config (optional)
-    schemaFile?: string;          // GraphQL Schema file path
-    playground?: boolean;         // Enable GraphQL Playground
-    introspection?: boolean;      // Enable introspection query
-  }
+   ext?: {                   // Protocol-specific extension configuration
+     // HTTP protocol config (optional)
+
+     // gRPC protocol config (optional)
+     protoFile: string;           // gRPC proto file path (required)
+     poolSize?: number;           // Connection pool size, default 10
+     batchSize?: number;          // Batch size, default 10
+     streamConfig?: {             // Stream configuration
+       maxConcurrentStreams?: number;    // Max concurrent streams, default 50
+       streamTimeout?: number;           // Stream timeout (ms), default 60s
+       backpressureThreshold?: number;   // Backpressure threshold (bytes), default 2048
+     };
+     enableReflection?: boolean;          // Enable reflection, default false
+
+     // WebSocket protocol config (optional)
+     maxFrameSize?: number;        // Max frame size (bytes), default 1MB
+     heartbeatInterval?: number;   // Heartbeat interval (ms), default 15s
+     heartbeatTimeout?: number;    // Heartbeat timeout (ms), default 30s
+     maxConnections?: number;      // Max connections, default 1000
+     maxBufferSize?: number;       // Max buffer size (bytes), default 10MB
+
+     // GraphQL protocol config (optional)
+     schemaFile: string;          // GraphQL Schema file path (required)
+     playground?: boolean;        // Enable GraphQL Playground, default false
+     introspection?: boolean;     // Enable introspection query, default true
+     debug?: boolean;             // Debug mode, default false
+     depthLimit?: number;         // Query depth limit, default 10
+     complexityLimit?: number;    // Query complexity limit, default 1000
+   }
 };
 ```
 
@@ -718,6 +795,192 @@ Koatty's framework defaults to loading middleware such as trace and payload, whi
 Different from Koa middleware, Koatty middleware is written in the form of classes and uses the `@Middleware` decorator to declare the component type.
 
 Middleware classes must contain a method named `run(options: any, app: App)`. This method is called when the application starts and returns a function `(ctx: any, next: any){}`, which is the format of the Koa middleware.
+
+### Route-Level Middleware Management
+
+Koatty 4.0 introduces `RouterMiddlewareManager`, focusing on route-level middleware registration, composition, and conditional execution.
+
+#### Core Features
+
+- 🎯 **Route-Level Isolation** - Each route's middleware instances are independently configured
+- 🔧 **Intelligent Instance Management** - Uses `${middlewareName}@${route}#${method}` format for unique identification
+- ⚡ **Pre-Composition Optimization** - Compose middleware at registration time, improving runtime performance
+- 🔄 **Async Middleware Classes** - Full support for asynchronous `run` methods
+
+#### Route-Level Middleware Usage
+
+Route-level middleware can be directly configured to controllers or methods via decorators:
+
+##### 1. Basic Middleware Configuration
+
+```typescript
+import { Controller, GetMapping, PostMapping, Middleware } from "koatty";
+
+// Controller-level middleware
+@Controller('/api', [AuthMiddleware])
+export class UserController {
+
+  @GetMapping('/users')
+  getUsers() {
+    return 'users list';
+  }
+
+  // Method-level middleware
+  @PostMapping('/admin', {
+    middleware: [RateLimitMiddleware]
+  })
+  adminAction() {
+    return 'admin action';
+  }
+}
+```
+
+##### 2. Advanced Middleware Configuration
+
+Use the `withMiddleware` function to configure priority, conditions, metadata, and other advanced features:
+
+```typescript
+import { Controller, GetMapping, PostMapping, withMiddleware } from "koatty";
+
+@Controller('/api')
+export class UserController {
+
+  @GetMapping('/users', {
+    middleware: [
+      withMiddleware(AuthMiddleware, {
+        priority: 100,
+        metadata: { role: 'admin' }
+      }),
+      withMiddleware(RateLimitMiddleware, {
+        priority: 90,
+        conditions: [
+          { type: 'header', value: 'x-api-key', operator: 'contains' }
+        ]
+      })
+    ]
+  })
+  getUsers() {
+    return 'users list';
+  }
+
+  // Conditional middleware
+  @PostMapping('/admin', {
+    middleware: [
+      withMiddleware(AuthMiddleware, {
+        priority: 100,
+        conditions: [
+          { type: 'header', value: 'x-admin-token', operator: 'contains' }
+        ]
+      })
+    ]
+  })
+  adminAction() {
+    return 'admin action';
+  }
+}
+```
+
+##### 3. Middleware Metadata Configuration
+
+Pass configuration parameters to middleware via `metadata`:
+
+```typescript
+import { withMiddleware } from "koatty";
+
+@Controller('/api')
+export class RateLimitController {
+
+  @GetMapping('/rate-limited', {
+    middleware: [
+      withMiddleware(RateLimitMiddleware, {
+        priority: 100,
+        metadata: {
+          limit: 100,           // Max requests per minute
+          window: 60000,        // Time window (milliseconds）
+          keyGenerator: 'ip'    // Rate limit key generation strategy
+        }
+      })
+    ]
+  })
+  rateLimitedEndpoint() {
+    return 'rate limited endpoint';
+  }
+}
+```
+
+**Middleware class receives configuration:**
+
+```typescript
+class RateLimitMiddleware {
+  async run(config: any, app: any) {
+    const {
+      limit = 60,
+      window = 60000,
+      keyGenerator = 'ip'
+    } = config;
+
+    return async (ctx: KoattyContext, next: KoattyNext) => {
+      const key = keyGenerator === 'ip' ? ctx.ip : ctx.user?.id;
+
+      if (await this.isRateLimited(key, limit, window)) {
+        ctx.status = 429;
+        ctx.body = { error: 'Rate limit exceeded' };
+        return;
+      }
+
+      await next();
+    };
+  }
+}
+```
+
+##### 4. Middleware Disable and Add Features
+
+Use the `enabled: false` configuration to disable middleware execution:
+
+- **Controller-level disable**: All routes under the controller will not execute the middleware
+- **Method-level disable**: Only that method will not execute the specified middleware (only for middleware declared by the controller）
+- **Method-level add**: Can add middleware not declared by the controller, which only takes effect in that method
+
+```typescript
+import { Controller, GetMapping, PostMapping, PutMapping, withMiddleware } from "koatty";
+
+@Controller('/api', [
+  AuthMiddleware,
+  withMiddleware(RateLimitMiddleware, { enabled: false }), // Controller-level disable
+  LoggingMiddleware
+])
+export class UserController {
+
+  @GetMapping('/users')
+  async getUsers() {
+    // Execute AuthMiddleware and LoggingMiddleware
+  }
+
+  @PostMapping('/users', [
+    withMiddleware(AuthMiddleware, { enabled: false }), // Method-level disable
+    ValidationMiddleware // Method-level add
+  ])
+  async createUser() {
+    // Execute LoggingMiddleware and ValidationMiddleware
+  }
+
+  @PutMapping('/users/:id', [
+    withMiddleware(AuthMiddleware, { enabled: false }),     // Disable authentication
+    withMiddleware(AdminAuthMiddleware, { priority: 80 })   // Add admin authentication
+  ])
+  async updateUser() {
+    // Only execute AdminAuthMiddleware
+  }
+}
+```
+
+**Priority Planning Recommendations:**
+- **100+**: Authentication and authorization middleware
+- **90-99**: Rate limiting and security middleware
+- **80-89**: Validation and data processing middleware
+- **70-79**: Logging and monitoring middleware
+- **50-69**: Business logic middleware
 
 ### Using Middleware
 
@@ -1562,12 +1825,41 @@ export class ObjectDto {
 
 ## Exception Handling
 
-Koatty framework encapsulates the `koatty_exception` component for handling errors that need to be thrown in the project, supporting the customization of exception classes to handle different business exceptions.
+Koatty framework encapsulates the `koatty_exception` component for handling errors that need to be thrown in the project, supporting customization of exception classes to handle different business exceptions.
 
-**Features:**
-- Standardize error throwing in the project
-- Customize HTTP status, business error codes, and error messages
-- Save error stack in logs
+### Core Features
+
+- 🎯 **Unified Exception Handling** - Provides standardized exception handling mechanism
+- 🔗 **Chained Exception Calls** - Support for method chaining, more elegant code
+- 🌐 **Multi-Protocol Support** - Supports HTTP, gRPC, WebSocket multiple protocols
+- 📊 **Observability** - Integrated with OpenTelemetry tracing
+- 🔧 **Highly Configurable** - Supports custom log formats, error response formats, etc.
+- 📝 **TypeScript Support** - Complete type definitions and type safety
+- 🚀 **Zero Dependency Core** - Core functionality has no external dependencies
+- 📦 **Decorator Pattern** - Uses `@ExceptionHandler` decorator to register exception handlers
+
+### Exception Class Basic Usage
+
+```typescript
+import { Exception, Output, CommonErrorCode } from 'koatty_exception';
+
+// Create basic exception
+const error = new Exception('User not found', CommonErrorCode.RESOURCE_NOT_FOUND, 404);
+
+// Chained call to set exception properties
+const customError = new Exception('Validation failed')
+  .setCode(CommonErrorCode.VALIDATION_ERROR)
+  .setStatus(400)
+  .setContext({
+    requestId: 'req-123',
+    path: '/api/users',
+    method: 'POST'
+  });
+
+// Use Output class to format responses
+const successResponse = Output.ok('Operation successful', { id: 1, name: 'John Doe' });
+const errorResponse = Output.fail('Operation failed', null, 1001);
+```
 
 ### Default Exception Handling
 
@@ -1607,7 +1899,76 @@ export class BusinessException2 extends Exception {
 }
 ```
 
-In the application code, we can throw different exceptions according to business logic:
+#### Advanced Custom Exception Handler
+
+```typescript
+import { Exception, ExceptionHandler } from 'koatty_exception';
+import { KoattyContext } from 'koatty_core';
+
+@ExceptionHandler()
+export class ValidationException extends Exception {
+  constructor(message: string, field?: string) {
+    super(message, CommonErrorCode.VALIDATION_ERROR, 400);
+
+    if (field) {
+      this.setContext({ field });
+    }
+  }
+
+  async handler(ctx: KoattyContext): Promise<any> {
+    // Custom handling logic
+    const response = {
+      error: 'VALIDATION_ERROR',
+      message: this.message,
+      field: this.context?.field,
+      timestamp: new Date().toISOString()
+    };
+
+    ctx.status = this.status;
+    ctx.type = 'application/json';
+    return ctx.res.end(JSON.stringify(response));
+  }
+}
+
+// Use custom exception
+throw new ValidationException('Email format is incorrect', 'email');
+```
+
+#### Multi-Protocol Exception Handling
+
+```typescript
+@ExceptionHandler()
+export class MultiProtocolException extends Exception {
+  async handler(ctx: KoattyContext): Promise<any> {
+    // Handle differently based on protocol type
+    if (ctx.protocol === 'grpc') {
+      // gRPC protocol handling
+      return {
+        code: this.code,
+        message: this.message
+      };
+    } else if (ctx.protocol === 'websocket') {
+      // WebSocket protocol handling
+      ctx.websocket.send(JSON.stringify({
+        error: this.code,
+        message: this.message
+      }));
+      return;
+    } else {
+      // HTTP protocol handling (default）
+      ctx.status = this.status || 500;
+      ctx.type = 'application/json';
+      return ctx.res.end(JSON.stringify({
+        code: this.code,
+        message: this.message,
+        context: this.context
+      }));
+    }
+  }
+}
+```
+
+In application code, we can throw different exceptions according to business logic:
 
 ```typescript
 // res: {"code":1,"message":"error"}
@@ -1615,6 +1976,21 @@ throw new BusinessException1("error");
 
 // res: {"code":1000,"message":"error"}
 throw new BusinessException2("error", 1000);
+```
+
+### Global Exception Configuration
+
+```typescript
+import { setExceptionConfig } from 'koatty_exception';
+
+// Configure exception handling behavior
+setExceptionConfig({
+  enableStackTrace: process.env.NODE_ENV !== 'production',
+  enableLogging: true,
+  logFormat: 'json',  // 'json' or 'text'
+  defaultStatusCode: 500,
+  defaultErrorCode: CommonErrorCode.INTERNAL_SERVER_ERROR
+});
 ```
 
 ### Global Exception Handling

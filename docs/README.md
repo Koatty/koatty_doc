@@ -19,17 +19,63 @@ Koa + TypeScript + IOC = Koatty. **Koatty** 是一个渐进式 Node.js 框架，
 
 ## ✨ 最新特性
 
-- ✅ **多协议架构** - 同时运行 HTTP、HTTPS、HTTP/2、HTTP/3、gRPC、WebSocket、GraphQL
-- ✅ **智能元数据缓存** - LRU 缓存和预加载，性能提升 70%+
-- ✅ **协议特定中间件** - 使用 `@Middleware({ protocol: [...] })` 绑定中间件到特定协议
-- ✅ **优雅关闭增强** - 增强的连接池管理和清理处理程序
-- ✅ **增强的 gRPC 支持** - 超时检测、重复调用保护、流改进
-- ✅ **应用生命周期钩子** - 使用 `BindEventHook` API 自定义装饰器，支持 boot/ready/stop 事件
+### 架构升级
+
+- ✅ **多协议架构** - 同时运行 HTTP、HTTPS、HTTP/2、HTTP/3、gRPC、WebSocket、GraphQL，每个协议独立服务器实例
+- ✅ **智能元数据缓存** - LRU 缓存和预加载，性能提升 70%+，元数据操作 < 0.01ms/次
+- ✅ **应用生命周期钩子** - 使用 `BindEventHook` API 自定义装饰器，支持 appBoot/appReady/appStop 事件
 - ✅ **版本冲突检测** - 自动检测和解决依赖冲突
-- ✅ **GraphQL over HTTP/2** - SSL 配置自动 HTTP/2 升级，支持多路复用和压缩
-- ✅ **全局异常处理** - `@ExceptionHandler()` 装饰器集中错误管理
+
+### 路由与中间件
+
+- ✅ **路由中间件管理器** - 路由级别中间件隔离，支持优先级配置和条件执行
+- ✅ **协议特定中间件** - 使用 `@Middleware({ protocol: [...] })` 绑定中间件到特定协议
+- ✅ **中间件元数据传递** - 通过 `withMiddleware()` 传递配置参数，支持动态启用/禁用
+- ✅ **路由器工厂模式** - 灵活的路由器创建和管理，支持自定义路由器注册
+
+### 协议增强
+
+- ✅ **增强的 gRPC 支持** 
+  - 支持四种 gRPC 流类型（服务器流、客户端流、双向流、单向流）
+  - 自动流类型检测和背压控制
+  - 连接池管理和批处理支持
+  - 超时检测和重复调用保护
+- ✅ **GraphQL over HTTP/2** - SSL 配置自动 HTTP/2 升级，支持多路复用和压缩，自动 HTTP/1.1 回退
+- ✅ **WebSocket 增强** - 心跳检测、连接数限制、帧大小控制
+
+### 运维与监控
+
+- ✅ **优雅关闭增强** - 五步式优雅关闭流程，增强的连接池管理和清理处理程序
+  - 停止接收新请求
+  - 等待处理中的请求完成
+  - 触发 stop 事件
+  - 清理 WebSocket 连接、gRPC 流等资源
+  - 正常退出进程
 - ✅ **OpenTelemetry 链路追踪** - 全栈可观测性，支持分布式链路追踪
+- ✅ **多协议指标收集** - 自动收集 HTTP、WebSocket、gRPC 指标并导出到 Prometheus
+  - 请求总数（requests_total）
+  - 错误总数（errors_total）
+  - 响应时间（response_time_seconds）
+- ✅ **健康检查** - 多层次健康状态监控
+
+### 异常处理
+
+- ✅ **全局异常处理** - `@ExceptionHandler()` 装饰器集中错误管理，支持多协议异常处理
+- ✅ **链式异常调用** - 支持方法链式调用，代码更优雅
+- ✅ **自定义异常处理器** - 支持自定义错误响应格式和日志格式
+
+### 性能优化
+
+- ✅ **高性能连接池** - 每种协议优化的连接池实现，智能监控和自动清理
+- ✅ **配置热重载** - 智能检测配置变更，自动决定重启策略
+- ✅ **性能提升** - HTTP 上下文创建 < 0.1ms，GraphQL 上下文创建 < 0.2ms，并发处理 > 10,000 ops/sec
+
+### 开发体验
+
 - 💪 **Swagger/OpenAPI 3.0** - 自动生成 API 文档
+- ✅ **完整 TypeScript 支持** - 完整的类型定义和类型安全
+- ✅ **Koa 3.0 升级** - 升级到 Koa 3.0，性能和兼容性提升
+- ✅ **装饰器模式** - 统一的装饰器 API，更简洁的代码风格
 
 # 快速开始
 
@@ -624,7 +670,30 @@ Koatty定义的日志保存目录(默认为/`projectDIR`/logs，可在配置中�
 
 ## 路由
 
-Koatty 封装了一个专门处理路由的库 `koatty_router`，支持 http1/2, websocket, gRPC 等协议类型的路由处理。
+Koatty 封装了一个专门处理路由的库 `koatty_router`，支持 HTTP1/2、WebSocket、gRPC、GraphQL 等协议类型的路由处理。
+
+### 路由器工厂模式
+
+Koatty 4.0 引入了路由器工厂模式，提供灵活的路由器创建和管理：
+
+```typescript
+import { RouterFactory, RegisterRouter } from "koatty_router";
+
+const factory = RouterFactory.getInstance();
+
+// 获取支持的协议
+console.log(factory.getSupportedProtocols());
+// ['http', 'https', 'ws', 'wss', 'grpc', 'graphql']
+
+// 创建路由器
+const router = factory.create("http", app, { prefix: "/api" });
+
+// 注册自定义路由器
+@RegisterRouter("mqtt")
+class MqttRouter implements KoattyRouter {
+  // 自定义路由器实现
+}
+```
 
 ### 控制器路由
 
@@ -671,7 +740,7 @@ export class AdminController {
     ...
 }
 ```
-koatty的路由组件`koatty_router`基于`@koa/router`实现（gRPC除外），详细路由相关教程请参考 [@koa/router](https://github.com/koajs/router) 
+koatty的路由组件`koatty_router`基于`@koa/router`实现（gRPC除外），详细路由相关教程请参考 [@koa/router](https://github.com/koajs/router)
 
 ### 路由配置
 
@@ -684,28 +753,37 @@ export default {
     routerPath?: string;      // 路由路径
     sensitive?: boolean;      // 大小写敏感
     strict?: boolean;         // 严格匹配
-    
+    payload?: PayloadOptions; // 载荷解析选项
+
     ext?: {                   // 协议特定扩展配置
       // HTTP协议配置 (可选)
       ...
-      
+
       // gRPC协议配置 (可选)
-      protoFile?: string;           // gRPC proto 文件路径
-      poolSize?: number;            // 连接池大小
-      streamConfig?: {              // 流配置
-        maxConcurrentStreams?: number;    // 最大并发流数量
-        streamTimeout?: number;           // 流超时时间(ms)
-      }
-      
+      protoFile: string;           // gRPC proto 文件路径（必需）
+      poolSize?: number;           // 连接池大小，默认10
+      batchSize?: number;          // 批处理大小，默认10
+      streamConfig?: {             // 流配置
+        maxConcurrentStreams?: number;    // 最大并发流数量，默认50
+        streamTimeout?: number;           // 流超时时间(ms)，默认60秒
+        backpressureThreshold?: number;   // 背压阈值(字节)，默认2048
+      };
+      enableReflection?: boolean;          // 是否启用反射，默认false
+
       // WebSocket协议配置 (可选)
-      maxFrameSize?: number;        // 最大分帧大小(字节)
-      heartbeatInterval?: number;   // 心跳检测间隔(ms)
-      maxConnections?: number;      // 最大连接数
-      
+      maxFrameSize?: number;        // 最大分帧大小(字节)，默认1MB
+      heartbeatInterval?: number;   // 心跳检测间隔(ms)，默认15秒
+      heartbeatTimeout?: number;    // 心跳超时时间(ms)，默认30秒
+      maxConnections?: number;      // 最大连接数，默认1000
+      maxBufferSize?: number;       // 最大缓冲区大小(字节)，默认10MB
+
       // GraphQL协议配置 (可选)
-      schemaFile?: string;          // GraphQL Schema 文件路径
-      playground?: boolean;         // 启用 GraphQL Playground
-      introspection?: boolean;      // 启用内省查询
+      schemaFile: string;          // GraphQL Schema 文件路径（必需）
+      playground?: boolean;        // 启用 GraphQL Playground，默认false
+      introspection?: boolean;     // 启用内省查询，默认true
+      debug?: boolean;             // 调试模式，默认false
+      depthLimit?: number;         // 查询深度限制，默认10
+      complexityLimit?: number;    // 查询复杂度限制，默认1000
     }
 };
 ```
@@ -763,6 +841,61 @@ export default {
 
 * 路由支持正则，支持参数绑定(gRPC服务中不可用)。详细路由相关教程请参考 [@koa/router](https://github.com/koajs/router) 
 
+### gRPC 流处理
+
+Koatty 4.0 完整支持 gRPC 的四种流类型：服务器流、客户端流、双向流和单向流。
+
+```typescript
+@GrpcController()
+export class StreamController {
+
+  // 服务器流
+  async serverStream(ctx: any) {
+    for (let i = 0; i < 10; i++) {
+      ctx.writeStream({ data: `Message ${i}` });
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    ctx.endStream();
+  }
+
+  // 客户端流
+  async clientStream(ctx: any) {
+    // 接收客户端发送的多个消息
+    if (ctx.streamMessage) {
+      const result = processMessage(ctx.streamMessage);
+      return { result };
+    }
+  }
+
+  // 双向流
+  async bidirectionalStream(ctx: any) {
+    // 实时响应客户端消息
+    if (ctx.streamMessage) {
+      const response = processMessage(ctx.streamMessage);
+      ctx.writeStream(response);
+    }
+  }
+}
+```
+
+**gRPC 流特性：**
+- 🔄 **自动流类型检测** - 无需手动指定流类型
+- 🚦 **背压控制** - 防止内存溢出和性能问题
+- ⚡ **并发管理** - 限制同时活跃的流数量
+
+
+### 路由级别中间件
+
+Koatty 4.0 引入了 `RouterMiddlewareManager`，专注于路由级别的中间件注册、组合和条件执行。
+
+#### 核心特性
+
+- 🎯 **路由级别隔离** - 每个路由的中间件实例独立配置
+- 🔧 **智能实例管理** - 使用 `${middlewareName}@${route}#${method}` 格式的唯一标识
+- ⚡ **预组合优化** - 注册时组合中间件，提升运行时性能
+- 🔄 **异步中间件类** - 完整支持异步 `run` 方法
+
+> 具体使用方法见中间件章节 
 
 ## 中间件
 
@@ -867,6 +1000,143 @@ export class UniversalMiddleware {
   }
 }
 ```
+
+
+### 路由级别中间件
+
+路由级别中间件可以通过装饰器直接配置到控制器或方法上：
+
+#### 1. 基础中间件配置
+
+```typescript
+import { Controller, GetMapping, PostMapping, Middleware } from "koatty";
+
+// 控制器级别中间件
+@Controller('/api', [AuthMiddleware])
+export class UserController {
+
+  @GetMapping('/users')
+  getUsers() {
+    return 'users list';
+  }
+
+  // 方法级别中间件
+  @PostMapping('/admin', {
+    middleware: [RateLimitMiddleware]
+  })
+  adminAction() {
+    return 'admin action';
+  }
+}
+```
+
+#### 2. 高级中间件配置
+
+使用 `withMiddleware` 函数配置优先级、条件、元数据等高级特性：
+
+```typescript
+import { Controller, GetMapping, PostMapping, withMiddleware } from "koatty";
+
+@Controller('/api')
+export class UserController {
+
+  @GetMapping('/users', {
+    middleware: [
+      withMiddleware(AuthMiddleware, {
+        priority: 100,
+        metadata: { role: 'admin' }
+      }),
+      withMiddleware(RateLimitMiddleware, {
+        priority: 90,
+        conditions: [
+          { type: 'header', value: 'x-api-key', operator: 'contains' }
+        ]
+      })
+    ]
+  })
+  getUsers() {
+    return 'users list';
+  }
+
+  // 条件中间件
+  @PostMapping('/admin', {
+    middleware: [
+      withMiddleware(AuthMiddleware, {
+        priority: 100,
+        conditions: [
+          { type: 'header', value: 'x-admin-token', operator: 'contains' }
+        ]
+      })
+    ]
+  })
+  adminAction() {
+    return 'admin action';
+  }
+}
+```
+
+#### 3. 中间件元数据配置
+
+通过 `metadata` 为中间件传递配置参数：
+
+```typescript
+import { withMiddleware } from "koatty";
+
+@Controller('/api')
+export class RateLimitController {
+
+  @GetMapping('/rate-limited', {
+    middleware: [
+      withMiddleware(RateLimitMiddleware, {
+        priority: 100,
+        metadata: {
+          limit: 100,           // 每分钟最大请求数
+          window: 60000,        // 时间窗口（毫秒）
+          keyGenerator: 'ip'    // 限流键生成策略
+        }
+      })
+    ]
+  })
+  rateLimitedEndpoint() {
+    return 'rate limited endpoint';
+  }
+}
+```
+
+**中间件类接收配置：**
+
+```typescript
+class RateLimitMiddleware {
+  async run(config: any, app: any) {
+    const {
+      limit = 60,
+      window = 60000,
+      keyGenerator = 'ip'
+    } = config;
+
+    return async (ctx: KoattyContext, next: KoattyNext) => {
+      const key = keyGenerator === 'ip' ? ctx.ip : ctx.user?.id;
+
+      if (await this.isRateLimited(key, limit, window)) {
+        ctx.status = 429;
+        ctx.body = { error: 'Rate limit exceeded' };
+        return;
+      }
+
+      await next();
+    };
+  }
+}
+```
+
+**优先级规划建议：**
+- **100+**: 认证和授权中间件
+- **90-99**: 限流和安全中间件
+- **80-89**: 验证和数据处理中间件
+- **70-79**: 日志和监控中间件
+- **50-69**: 业务逻辑中间件
+
+
 ### 禁用中间件
 
 对于项目中自行开发中间件，如果要禁用，只需要修改中间件配置文件即可:
@@ -879,6 +1149,48 @@ config: { //中间件配置
 	'PassportMiddleware': {...}, 
 }
 ```
+
+#### 路由中间件禁用和添加功能
+
+通过 `enabled: false` 配置可以禁用中间件的执行：
+
+- **控制器级别禁用**：控制器下所有路由都不执行该中间件
+- **方法级别禁用**：只有该方法不执行指定的中间件（仅限控制器已声明的中间件）
+- **方法级别添加**：可以添加控制器未声明的中间件，仅在该方法中生效
+
+```typescript
+import { Controller, GetMapping, PostMapping, PutMapping, withMiddleware } from "koatty";
+
+@Controller('/api', [
+  AuthMiddleware,
+  withMiddleware(RateLimitMiddleware, { enabled: false }), // 控制器级别禁用
+  LoggingMiddleware
+])
+export class UserController {
+
+  @GetMapping('/users')
+  async getUsers() {
+    // 执行 AuthMiddleware 和 LoggingMiddleware
+  }
+
+  @PostMapping('/users', [
+    withMiddleware(AuthMiddleware, { enabled: false }), // 方法级别禁用
+    ValidationMiddleware // 方法级别添加
+  ])
+  async createUser() {
+    // 执行 LoggingMiddleware 和 ValidationMiddleware
+  }
+
+  @PutMapping('/users/:id', [
+    withMiddleware(AuthMiddleware, { enabled: false }),     // 禁用认证
+    withMiddleware(AdminAuthMiddleware, { priority: 80 })   // 添加管理员认证
+  ])
+  async updateUser() {
+    // 只执行 AdminAuthMiddleware
+  }
+}
+```
+
 
 ### 使用koa中间件
 
@@ -1508,7 +1820,15 @@ config: { //插件配置
 
 ## 参数验证
 
-参数验证在项目中是非常常用的功能，Koatty框架为此专门封装了一个库 `koatty_validation`，可以在项目中很方便的使用。Koatty提供了两种参数验证的方案，分别适用于不同的场景:
+Koatty 4.0 基于最新版的 `koatty_validation`，提供了强大的参数验证功能，支持中文本地化验证规则、自定义装饰器、性能缓存和错误处理。
+
+### 核心特性
+
+- 高性能: 内置缓存机制，提升验证性能 70%+
+- 中文支持: 内置中文验证规则（姓名、身份证、手机号等）
+- 自定义装饰器: 支持装饰器工厂模式，轻松创建自定义验证器
+- 性能监控: 内置性能监控和缓存统计
+- 错误处理: 多语言错误信息支持
 
 ### 方案一：装饰器@Valid及@Validated
 
@@ -1524,7 +1844,7 @@ index(@RequestBody() @Valid("IsEmail") body: string): Promise<any> {
 @Validated装饰器需要配合Dto类使用:
 
 ```js
-  @RequestMapping('/SayHello') 
+  @RequestMapping('/SayHello')
   @Validated() // DTO参数验证装饰器
   SayHello(@RequestBody() params: SayHelloRequestDto): Promise<SayHelloReplyDto> {
     const res = new SayHelloReplyDto();
@@ -1550,6 +1870,62 @@ export class SayHelloRequestDto {
 
 }
 ```
+
+#### @Validated 异步/同步模式
+
+Koatty 4.0 增强的 `@Validated` 装饰器支持异步和同步两种验证模式，以适应不同的应用场景：
+
+**异步模式（默认）** - 适用于 Koatty 框架中，控制器方法的参数需要异步获取的场景：
+
+```typescript
+class UserController {
+  // 默认异步模式
+  @Validated()
+  async register(user: UserDTO) {
+    // 框架流程：
+    // 1. 框架接收 HTTP 请求
+    // 2. 框架异步解析请求体，构造 UserDTO 实例
+    // 3. 框架检测到 @Validated() 元数据
+    // 4. 框架调用 checkValidated() 验证参数
+    // 5. 验证通过后调用此方法
+    return { success: true };
+  }
+
+  // 显式指定异步模式
+  @Validated(true)
+  async update(id: number, user: UserDTO) {
+    return { success: true };
+  }
+}
+```
+
+**同步模式** - 适用于单元测试或参数值已经准备好的场景：
+
+```typescript
+class UserService {
+  // 同步模式 - 立即验证
+  @Validated(false)
+  async createUser(user: UserDTO) {
+    // 方法执行前已经完成验证
+    return { success: true };
+  }
+
+  // 适用于多个参数的场景
+  @Validated(false)
+  async updateUser(id: number, user: UserDTO) {
+    // 只验证类类型参数（UserDTO），基础类型（number）不验证
+    return { success: true };
+  }
+}
+```
+
+**模式选择建议：**
+| 场景 | 推荐模式 | 原因 |
+|------|---------|------|
+| Koatty 框架控制器 | 异步 `@Validated()` | 参数需要异步获取 |
+| 单元测试 | 同步 `@Validated(false)` | 参数已准备好，立即验证 |
+| 独立服务/工具 | 同步 `@Validated(false)` | 不依赖框架，立即验证 |
+| 框架拦截器 | 手动 `checkValidated()` | 完全控制验证时机 |
 
 ### 方案二：FunctionValidator及ClassValidator
 
@@ -1584,6 +1960,153 @@ ClassValidator.valid(SchemaClass, ins, true).catch(err => {
     console.log(err);
 })
 ```
+
+### 预置验证装饰器
+
+#### 中文验证装饰器
+
+```typescript
+@IsCnName()        // 中文姓名
+@IsIdNumber()      // 身份证号
+@IsMobile()        // 手机号
+@IsZipCode()       // 邮政编码
+@IsPlateNumber()   // 车牌号
+```
+
+#### 通用验证装饰器
+
+```typescript
+@IsNotEmpty()      // 非空
+@IsEmail()         // 邮箱
+@IsIP()            // IP地址
+@IsPhoneNumber()   // 国际电话号码
+@IsUrl()           // URL
+@IsHash()          // 哈希值
+@IsDate()          // 日期
+```
+
+#### 数值比较装饰器
+
+```typescript
+@Gt(10)           // 大于
+@Gte(10)          // 大于等于
+@Lt(100)          // 小于
+@Lte(100)         // 小于等于
+@Equals('value')  // 等于
+@NotEquals('x')   // 不等于
+```
+
+#### 字符串验证装饰器
+
+```typescript
+@Contains('test')           // 包含字符串
+@IsIn(['a', 'b', 'c'])     // 在数组中
+@IsNotIn(['x', 'y', 'z'])  // 不在数组中
+```
+
+#### 控制装饰器
+
+```typescript
+@Valid(rule, options)   // 参数验证
+@Validated()           // DTO验证 (默认异步模式)
+@Validated(true)       // DTO验证 (异步模式)
+@Validated(false)      // DTO验证 (同步模式)
+@Expose()             // 暴露属性
+@IsDefined()          // 已定义（Expose别名）
+```
+
+### 自定义验证装饰器
+
+#### 使用装饰器工厂创建自定义验证器
+
+```typescript
+import { createSimpleDecorator, createParameterizedDecorator } from 'koatty_validation';
+
+// 简单装饰器
+export const IsPositiveInteger = createSimpleDecorator(
+  'IsPositiveInteger',
+  (value: any) => {
+    const num = Number(value);
+    return Number.isInteger(num) && num > 0;
+  },
+  'must be a positive integer'
+);
+
+// 带参数的装饰器
+export const InRange = createParameterizedDecorator(
+  'InRange',
+  (value: any, min: number, max: number) => {
+    const num = Number(value);
+    return num >= min && num <= max;
+  },
+  'must be between $constraint1 and $constraint2'
+);
+
+// 使用自定义装饰器
+class ProductDto {
+  @IsPositiveInteger()
+  quantity: number;
+
+  @InRange(0, 100)
+  discountPercent: number;
+}
+```
+
+#### 高级自定义装饰器
+
+```typescript
+import { createValidationDecorator } from 'koatty_validation';
+
+// 复杂验证逻辑
+export function IsStrongPassword(validationOptions?: ValidationOptions) {
+  return createValidationDecorator({
+    name: 'IsStrongPassword',
+    validator: (value: string) => {
+      const hasLowercase = /[a-z]/.test(value);
+      const hasUppercase = /[A-Z]/.test(value);
+      const hasNumbers = /\d/.test(value);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
+      return value.length >= 8 && hasLowercase && hasUppercase && hasNumbers && hasSpecialChar;
+    },
+    defaultMessage: 'password must be at least 8 characters with uppercase, lowercase, number and special character',
+    requiresValue: false
+  })(validationOptions);
+}
+```
+
+### 错误处理
+
+#### 多语言支持
+
+```typescript
+import { setValidationLanguage, KoattyValidationError } from 'koatty_validation';
+
+// 设置中文错误信息
+setValidationLanguage('zh');
+
+// 自定义错误处理
+try {
+  await validate(userDto);
+} catch (error) {
+  if (error instanceof KoattyValidationError) {
+    console.log('验证错误:', error.message);
+    console.log('错误详情:', error.errors);
+  }
+}
+```
+
+#### 错误格式化
+
+```typescript
+import { errorFormatter } from 'koatty_validation';
+
+const errors = await validate(dto);
+if (errors.length > 0) {
+  const formatted = errorFormatter(errors, 'zh');
+  console.log(formatted);
+}
+```
+
 ### 验证规则
 
 `koatty_validation`定义了一系列常用的[验证规则](https://github.com/Koatty/koatty_validation)
@@ -1671,9 +2194,35 @@ export class ObjectDto {
 
 Koatty框架封装了koatty_exception组件，用于处理项目中需要抛出错误的场景，支持用户定制化Exception类来处理不同的业务异常。
 
-* 规范项目中抛出错误的方式
-* 定制HTTP Status、业务错误码以及错误消息
-* 保存日志内错误栈
+### 核心特性
+
+- 统一异常处理** - 提供标准化的异常处理机制
+- 链式调用** - 支持方法链式调用，代码更优雅
+- 可观测性** - 集成 OpenTelemetry 链路追踪
+- 装饰器模式** - 使用 `@ExceptionHandler` 装饰器注册异常处理器
+
+### Exception 类基础用法
+
+```typescript
+import { Exception, Output, CommonErrorCode } from 'koatty_exception';
+
+// 创建基础异常
+const error = new Exception('用户未找到', CommonErrorCode.RESOURCE_NOT_FOUND, 404);
+
+// 链式调用设置异常属性
+const customError = new Exception('验证失败')
+  .setCode(CommonErrorCode.VALIDATION_ERROR)
+  .setStatus(400)
+  .setContext({
+    requestId: 'req-123',
+    path: '/api/users',
+    method: 'POST'
+  });
+
+// 使用 Output 类格式化响应
+const successResponse = Output.ok('操作成功', { id: 1, name: '张三' });
+const errorResponse = Output.fail('操作失败', null, 1001);
+```
 
 ### 默认异常处理
 
@@ -1715,6 +2264,76 @@ export class BussinessException2 extends Exception {
 }
 
 ```
+
+#### 高级自定义异常处理器
+
+```typescript
+import { Exception, ExceptionHandler } from 'koatty_exception';
+import { KoattyContext } from 'koatty_core';
+
+@ExceptionHandler()
+export class ValidationException extends Exception {
+  constructor(message: string, field?: string) {
+    super(message, CommonErrorCode.VALIDATION_ERROR, 400);
+
+    if (field) {
+      this.setContext({ field });
+    }
+  }
+
+  async handler(ctx: KoattyContext): Promise<any> {
+    // 自定义处理逻辑
+    const response = {
+      error: 'VALIDATION_ERROR',
+      message: this.message,
+      field: this.context?.field,
+      timestamp: new Date().toISOString()
+    };
+
+    ctx.status = this.status;
+    ctx.type = 'application/json';
+    return ctx.res.end(JSON.stringify(response));
+  }
+}
+
+// 使用自定义异常
+throw new ValidationException('邮箱格式不正确', 'email');
+```
+
+#### 多协议异常处理
+
+```typescript
+@ExceptionHandler()
+export class MultiProtocolException extends Exception {
+  async handler(ctx: KoattyContext): Promise<any> {
+    // 根据协议类型进行不同的处理
+    if (ctx.protocol === 'grpc') {
+      // gRPC 协议处理
+      return {
+        code: this.code,
+        message: this.message
+      };
+    } else if (ctx.protocol === 'websocket') {
+      // WebSocket 协议处理
+      ctx.websocket.send(JSON.stringify({
+        error: this.code,
+        message: this.message
+      }));
+      return;
+    } else {
+      // HTTP 协议处理（默认）
+      ctx.status = this.status || 500;
+      ctx.type = 'application/json';
+      return ctx.res.end(JSON.stringify({
+        code: this.code,
+        message: this.message,
+        context: this.context
+      }));
+    }
+  }
+}
+```
+
 在应用代码中，我们可以根据业务逻辑，抛出不同的异常：
 
 ```js
@@ -1724,6 +2343,21 @@ throw new BussinessException1("error");
 
 // res: {"code":1000,"message":"error"}
 throw new BussinessException2("error", 1000);
+```
+
+### 全局异常配置
+
+```typescript
+import { setExceptionConfig } from 'koatty_exception';
+
+// 配置异常处理行为
+setExceptionConfig({
+  enableStackTrace: process.env.NODE_ENV !== 'production',
+  enableLogging: true,
+  logFormat: 'json',  // 'json' 或 'text'
+  defaultStatusCode: 500,
+  defaultErrorCode: CommonErrorCode.INTERNAL_SERVER_ERROR
+});
 ```
 
 ### 全局异常处理
@@ -2573,7 +3207,88 @@ app.emit("appReady");
 
 ## AOP切面
 
-Koatty基于IOC容器实现了一套切面编程机制，利用装饰器以及内置特殊方法，在bean装载到IOC容器内的时候，通过嵌套函数的原理进行封装，简单而且高效。
+Koatty 4.0 基于增强版的 `koatty_container` 实现，提供强大的 IOC 容器、自定义装饰器管理、高性能缓存和完整的 AOP 支持。
+
+### 核心特性
+
+- 自定义装饰器支持 - 强大的装饰器管理器，轻松扩展装饰器生态系统
+- 高性能缓存 - WeakMap + LRU 策略，快速启动和运行时性能
+- 智能循环依赖处理 - 优雅解决复杂依赖关系
+- 完整 AOP 支持 - Before/After/Around 面向切面编程
+- 多种注入方式 - 构造函数、属性、字符串标识符注入
+
+### IOC 容器特性
+
+#### 基础依赖注入
+
+```typescript
+import { IOC, Autowired, Component, Service } from "koatty_container";
+
+@Component()
+class UserRepository {
+  async findById(id: string) {
+    return { id, name: "John Doe", email: "john@example.com" };
+  }
+}
+
+@Service()
+class UserService {
+  @Autowired()
+  private userRepository: UserRepository;
+
+  async getUser(id: string) {
+    return await this.userRepository.findById(id);
+  }
+}
+
+@Component()
+class UserController {
+  @Autowired()
+  private userService: UserService;
+
+  async handleRequest(id: string) {
+    const user = await this.userService.getUser(id);
+    return { success: true, data: user };
+  }
+}
+
+// 注册组件
+IOC.reg(UserRepository);
+IOC.reg(UserService);
+IOC.reg(UserController);
+
+// 使用
+const controller = IOC.get(UserController);
+const result = await controller.handleRequest("123");
+```
+
+#### 高性能批量注册
+
+```typescript
+async function initializeApp() {
+  const components = [
+    { target: UserRepository },
+    { target: UserService },
+    { target: UserController },
+    { target: EmailService },
+    { target: OrderService }
+  ];
+
+  // 批量注册，带性能优化
+  IOC.batchRegister(components, {
+    preProcessDependencies: true,  // 预处理依赖
+    warmupAOP: true               // 预热 AOP 缓存
+  });
+
+  // 性能统计
+  const stats = IOC.getDetailedPerformanceStats();
+  console.log(`🚀 初始化完成:`);
+  console.log(`   - 组件数量: ${stats.containers.totalRegistered}`);
+  console.log(`   - 依赖缓存命中率: ${(stats.lruCaches.dependencies.hitRate * 100).toFixed(1)}%`);
+  console.log(`   - AOP 缓存命中率: ${(stats.lruCaches.aop.hitRates.overall * 100).toFixed(1)}%`);
+}
+await initializeApp();
+```
 
 ### 切点声明类型
 
@@ -2583,23 +3298,22 @@ Koatty基于IOC容器实现了一套切面编程机制，利用装饰器以及�
 * 内置方法声明
   通过__before、__after 内置隐藏方法声明的切点
 
-两种声明方式的区别:
+两种声明方式的区别：
 
 | 声明方式     | 依赖Aspect切面类 | 能否使用类作用域 | 入参依赖切点方法 | 优先级 | 使用限制                     |
 | ------------ | ---------------- | ---------------- | ---------------- | ------ | ---------------------------- |
 | 装饰器声明   | 依赖             | 不能             | 依赖             | 低     | 可用于所有类型的bean         |
 | 内置方法声明 | 不依赖           | 能               | 不依赖           | 高     | 只能用于CONTROLLER类型的bean |
 
-> 依赖Aspect切面类： 需要创建对应的Aspect切面类才能使用
+> 依赖Aspect切面类：需要创建对应的Aspect切面类才能使用
 
-> 能否使用类作用域： 能不能使用切点所在类的this指针
+> 能否使用类作用域：不能使用切点所在类的this指针
 
-> 入参依赖切点方法： 装饰器声明切点所在方法的入参同切面共享，内置方法声明的切点因为可以使用this，理论上能获取切点所在类的任何属性，更加灵活
+> 入参依赖切点方法：装饰器声明切点所在方法的入参同切面共享，内置方法声明的切点因为可以使用this，理论上能获取切点所在类的任何属性，更加灵活
 
 <mark>注意: 如果类使用了装饰器@BeforeEach，且这个类还包含\_\_before方法（不管是自身拥有还是继承自父类），那么\_\_before方法优先级高于装饰器，该类的装饰器@BeforeEach无效（@AfterEach和\_\_after也是一样） </mark>
 
-例如: 
-
+例如:
 
 ```js
 @Controller('/')
@@ -2616,12 +3330,89 @@ export class TestController {
       console.log(this.ctx)
   }
 
-  @Before("TestAspect") //依赖TestAspect切面类, 能够获取path参数
+  @Before("TestAspect") // 依赖TestAspect切面类，能够获取path参数
   async test(path: string){
 
   }
 }
+```
 
+### 创建切面类
+
+使用`koatty_cli`进行创建：
+
+```bash
+kt aspect test
+```
+
+自动生成的模板代码:
+
+```js
+import { Aspect } from "koatty";
+import { App } from '../App';
+
+@Aspect()
+export class TestAspect {
+    app: App;
+
+    run() {
+        console.log('TestAspect');
+    }
+}
+```
+
+### AOP 拦截类型
+
+#### 方法拦截
+
+```typescript
+@Aspect()
+export class LoggingAspect implements IAspect {
+  async run(args: any[], target?: any, options?: any): Promise<any> {
+    console.log(`🔍 调用 ${options?.targetMethod}`, args);
+    return Promise.resolve();
+  }
+}
+
+@Component()
+class OrderService {
+  @Before(LoggingAspect, { level: 'info' })
+  async createOrder(orderData: any) {
+    return { orderId: Date.now(), ...orderData };
+  }
+}
+```
+
+#### Around 拦截
+
+```typescript
+@Aspect()
+class TransactionAspect {
+  async run(args: any[], proceed: Function, options?: any): Promise<any> {
+    console.log(`🔄 开始事务: ${options?.targetMethod}`);
+
+    try {
+      const result = await proceed(args);
+      console.log(`✅ 事务提交: ${options?.targetMethod}`);
+      return {
+        ...result,
+        transactionStatus: 'committed',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.log(`❌ 事务回滚: ${options?.targetMethod}`, error);
+      throw error;
+    }
+  }
+}
+
+@Service()
+class UserService {
+  @Around(TransactionAspect, { timeout: 5000 })
+  async createUser(userData: any) {
+    return { id: Date.now(), ...userData };
+  }
+}
 ```
 
 ### 创建切面类
@@ -2715,6 +3506,322 @@ export class TestAspect {
 | `@RequestParam()` | `name` 参数名                                                                          | 获取Get或Post参数，Post优先                                                                             | 仅用于控制器方法参数              |
 | `@Valid()`        | `rule` 验证规则,支持内置规则或自定义函数 <br> `message` 规则匹配不通过时提示的错误信息 | 用于参数格式验证                                                                                        | 仅用于控制器类                    |
 | `@Inject()`       | `paramName` 构造方法入参名(形参)  <br> `cType` 注入bean的类型                          | 该装饰器使用类构造方法入参来注入依赖, 如果和 `@Autowired()` 同时使用, 可能会覆盖autowired注入的相同属性 | 仅用于构造方法(constructor)的入参 |
+--
+
+### 自定义装饰器
+
+Koatty 4.0 提供了强大的自定义装饰器功能，支持方法、属性、类等多种装饰器。
+
+#### 1. 方法装饰器 - 增强方法行为
+
+```typescript
+import { decoratorManager } from 'koatty_container';
+
+// 1️⃣ 定义装饰器逻辑
+const timingWrapper = (originalMethod: Function, config: any, methodName: string) => {
+  return function (this: any, ...args: any[]) {
+    const start = Date.now();
+    console.log(`⏱️ 开始执行 ${methodName}`);
+
+    const result = originalMethod.apply(this, args);
+
+    const duration = Date.now() - start;
+    console.log(`✅ ${methodName} 执行完成，耗时 ${duration}ms`);
+
+    return result;
+  };
+};
+
+// 2️⃣ 注册装饰器
+decoratorManager.method.registerWrapper('timing', timingWrapper);
+
+// 3️⃣ 创建装饰器函数
+function Timing(enabled: boolean = true) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    return decoratorManager.method.registerDecorator(target, propertyKey, {
+      type: 'timing',
+      config: { enabled },
+      applied: false,
+      priority: 5 // 优先级控制
+    }, descriptor);
+  };
+}
+
+// 4️⃣ 使用自定义装饰器
+class UserService {
+  @Timing()
+  async createUser(userData: any) {
+    // 模拟数据库操作
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return { id: Date.now(), ...userData };
+  }
+
+  @Timing(false) // 禁用计时
+  async getUser(id: string) {
+    return { id, name: "John Doe" };
+  }
+}
+```
+
+#### 2. 缓存装饰器 - 智能结果缓存
+
+```typescript
+// 高级缓存装饰器示例
+const cacheWrapper = (originalMethod: Function, config: any, methodName: string) => {
+  const cache = new Map();
+
+  return function (this: any, ...args: any[]) {
+    const cacheKey = config.keyGenerator ?
+      config.keyGenerator(args) :
+      JSON.stringify(args);
+
+    // 检查缓存
+    if (cache.has(cacheKey)) {
+      console.log(`🎯 缓存命中: ${methodName}`);
+      return cache.get(cacheKey);
+    }
+
+    // 执行原方法
+    const result = originalMethod.apply(this, args);
+
+    // 处理异步结果
+    if (result instanceof Promise) {
+      return result.then(asyncResult => {
+        cache.set(cacheKey, asyncResult);
+        console.log(`💾 缓存存储: ${methodName}`);
+
+        // TTL 支持
+        if (config.ttl) {
+          setTimeout(() => cache.delete(cacheKey), config.ttl * 1000);
+        }
+
+        return asyncResult;
+      });
+    }
+
+    // 缓存同步结果
+    cache.set(cacheKey, result);
+    return result;
+  };
+};
+
+decoratorManager.method.registerWrapper('cache', cacheWrapper);
+
+function Cache(ttl?: number, keyGenerator?: (args: any[]) => string) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    return decoratorManager.method.registerDecorator(target, propertyKey, {
+      type: 'cache',
+      config: { ttl, keyGenerator },
+      applied: false,
+      priority: 10 // 高优先级，优先执行
+    }, descriptor);
+  };
+}
+
+// 使用缓存装饰器
+class DataService {
+  @Cache(300, (args) => `user:${args[0]}`) // 5分钟 TTL，自定义键
+  async getUserProfile(userId: string) {
+    console.log(`📡 从数据库加载用户: ${userId}`);
+    // 模拟数据库查询
+    await new Promise(resolve => setTimeout(resolve, 200));
+    return { id: userId, name: "John", email: "john@example.com" };
+  }
+}
+```
+
+#### 3. 属性装饰器 - 属性行为增强
+
+```typescript
+// 属性验证装饰器
+const validateWrapper = (originalDescriptor: PropertyDescriptor | undefined, config: any, propertyName: string) => {
+  return {
+    get: function () {
+      const privateKey = `_${propertyName}`;
+      if (!(privateKey in this)) {
+        // 设置默认值
+        (this as any)[privateKey] = config.defaultValue;
+      }
+      return (this as any)[privateKey];
+    },
+
+    set: function (value: any) {
+      // 类型验证
+      if (config.type && typeof value !== config.type) {
+        throw new Error(`属性 ${propertyName} 必须为 ${config.type} 类型`);
+      }
+
+      // 自定义验证器
+      if (config.validators) {
+        for (const validator of config.validators) {
+          if (!validator.fn(value)) {
+            throw new Error(`属性 ${propertyName} 验证失败: ${validator.message}`);
+          }
+        }
+      }
+
+      console.log(`✅ 属性 ${propertyName} 设置为:`, value);
+      (this as any)[`_${propertyName}`] = value;
+    },
+
+    enumerable: true,
+    configurable: true
+  };
+};
+
+decoratorManager.property.registerWrapper('validate', validateWrapper);
+
+function Validate(
+  type?: string,
+  validators?: Array<{ fn: (value: any) => boolean; message: string }>,
+  defaultValue?: any
+) {
+  return function (target: any, propertyKey: string) {
+    return decoratorManager.property.registerDecorator(target, propertyKey, {
+      wrapperTypes: ['validate'],
+      config: { type, validators, defaultValue }
+    });
+  };
+}
+
+// 使用属性装饰器
+class User {
+  @Validate('string', [
+    { fn: (v: string) => v.length > 0, message: '姓名不能为空' },
+    { fn: (v: string) => v.length < 50, message: '姓名长度必须小于 50' }
+  ], '匿名')
+  name: string;
+
+  @Validate('string', [
+    { fn: (v) => /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v), message: '邮箱格式不正确' }
+  ])
+  email: string;
+
+  @Validate('number', [
+    { fn: (v: number) => v >= 18, message: '年龄必须至少 18 岁' }
+  ], 18)
+  age: number;
+}
+
+// 使用示例
+const user = new User();
+console.log(user.name); // "匿名" (默认值)
+user.age = 25; // ✅ 验证通过
+// user.age = 15;              // ❌ 抛出错误：年龄必须至少 18 岁
+```
+
+#### 4. 类装饰器 - 类级别增强
+
+```typescript
+// 依赖注入装饰器
+const injectWrapper = (originalClass: Function, config: any) => {
+  return class extends (originalClass as any) {
+    constructor(...args: any[]) {
+      super(...args);
+
+      // 自动注入依赖
+      for (const [key, dependency] of Object.entries(config.dependencies)) {
+        (this as any)[key] = dependency;
+      }
+
+      console.log(`🔌 为 ${originalClass.name} 注入依赖:`, Object.keys(config.dependencies));
+    }
+  };
+};
+
+decoratorManager.class.registerWrapper('inject', injectWrapper);
+
+function Injectable(dependencies: Record<string, any>) {
+  return function (target: Function) {
+    return decoratorManager.class.registerDecorator(target, {
+      type: 'inject',
+      config: { dependencies },
+      applied: false,
+      priority: 1
+    });
+  };
+}
+
+// 使用类装饰器
+@Injectable({
+  logger: { log: (msg: string) => console.log(`[LOG] ${msg}`) },
+  config: { apiUrl: 'https://api.example.com', timeout: 5000 }
+})
+class ApiService {
+  private logger: any;
+  private config: any;
+
+  async fetchData(endpoint: string) {
+    this.logger.log(`请求: ${this.config.apiUrl}${endpoint}`);
+    // API 调用逻辑
+    return { data: 'success' };
+  }
+}
+```
+
+### 高级特性
+
+#### 1. 装饰器组合和优先级
+
+```typescript
+class OrderService {
+  @Timing()           // 优先级: 5
+  @Cache(600)         // 优先级: 10 (先执行)
+  @RateLimit(100)     // 优先级: 15 (最早执行)
+  async processOrder(orderData: any) {
+    // 执行顺序: RateLimit -> Cache -> Timing -> 原方法
+    return { orderId: Date.now(), ...orderData };
+  }
+}
+```
+
+#### 2. 条件装饰器
+
+```typescript
+function ConditionalCache(condition: () => boolean, ttl: number = 300) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    if (!condition()) {
+      return descriptor; // 条件不满足，不应用装饰器
+    }
+
+    return decoratorManager.method.registerDecorator(target, propertyKey, {
+      type: 'cache',
+      config: { ttl },
+      applied: false,
+      priority: 8
+    }, descriptor);
+  };
+}
+
+class ProductService {
+  @ConditionalCache(() => process.env.NODE_ENV === 'production', 600)
+  async getProductList() {
+    // 仅在生产环境启用缓存
+    return await this.fetchProducts();
+  }
+}
+```
+
+#### 3. 装饰器统计和监控
+
+```typescript
+// 获取装饰器使用统计
+const stats = decoratorManager.getComprehensiveStats();
+
+console.log('📊 装饰器统计:');
+console.log(`  方法装饰器: ${stats.method.decoratedMethods}`);
+console.log(`  类装饰器: ${stats.class.decoratedClasses}`);
+console.log(`  属性装饰器: ${stats.property.decoratedProperties}`);
+console.log(`  缓存命中率: ${stats.method.cacheStats.hitRate}%`);
+console.log(`  已注册装饰器类型: ${stats.method.registeredTypes.join(', ')}`);
+
+// 性能监控
+const performance = decoratorManager.getPerformanceMetrics();
+console.log('⚡ 性能指标:');
+console.log(`  平均执行时间: ${performance.averageExecutionTime}ms`);
+console.log(`  内存使用: ${performance.memoryUsage}MB`);
+```
+
 
 # 编程规范和约定
 
