@@ -2544,6 +2544,72 @@ async index(type: string) {
 ...
 ```
 
+## 日志处理
+
+Koatty 使用 [koatty_logger](https://github.com/thinkkoa/koatty_logger) 作为日志组件，支持在 Controller、Service 等类中通过 `@Log()` 属性装饰器注入日志实例，无需手动 `new Logger()`。
+
+### 使用前说明
+
+应用若已使用 koatty_container，框架会在初始化 `PropertyDecoratorManager` 时自动注册 `"Log"` 装饰器，无需额外配置。若未使用容器，需在应用入口手动调用一次：
+
+```typescript
+import { registerLogDecorator } from 'koatty_logger';
+import { decoratorManager } from 'koatty_container';
+
+registerLogDecorator(decoratorManager.property);
+```
+
+### 注入全局 DefaultLogger
+
+在 Controller 或 Service 中通过 `@Log()` 注入全局默认日志实例：
+
+```typescript
+import { Controller, GetMapping, QueryParam } from 'koatty_router';
+import { Log } from 'koatty_logger';
+
+@Controller('/api/users')
+export class UserController {
+  app: App;
+  ctx: any;
+
+  @Log()
+  logger: any;
+
+  @GetMapping('/')
+  async getUsers(
+    @QueryParam('page') page: number = 1,
+    @QueryParam('limit') limit: number = 10
+  ): Promise<any> {
+    this.logger.info(`获取用户列表: page=${page}, limit=${limit}`);
+    const result = await this.userService.findAll(page, limit);
+    return { code: 200, message: '获取成功', data: result };
+  }
+}
+```
+
+### 注入自定义 Logger 实例
+
+需要独立配置（如单独日志级别、文件路径）时，可传入 `LoggerOpt`，框架会按「类 + 属性」缓存同一实例：
+
+```typescript
+import { Log } from 'koatty_logger';
+
+@Service()
+export class MyService {
+  @Log() logger: any;  // 全局 DefaultLogger
+
+  @Log({ logLevel: 'debug', logFilePath: './logs/service.log' })
+  debugLogger: any;  // 独立 Logger 实例
+}
+```
+
+| 用法 | 说明 |
+|------|------|
+| `@Log()` | 属性赋值为全局 `DefaultLogger` 单例 |
+| `@Log(options)` | 属性赋值为 `new Logger(options)` 的实例，同一类+属性共享同一实例 |
+
+**说明**：未使用 koatty_container 时，`@Log()` 会静默不生效，不会影响现有代码。
+
 ## 缓存
 
 Koatty封装了一个缓存库 [koatty_cacheable](https://github.com/koatty/koatty_cacheable)，支持内存以及redis存储。 `koatty_cacheable` 提供了两个装饰器 CacheAble, CacheEvict。
@@ -3748,6 +3814,8 @@ Koatty 框架提供了丰富的装饰器来简化开发。装饰器按照作用�
 | `@Autowired()` | `paramName?: ClassOrString` 依赖类或标识<br>`cType?: string` 组件类型(默认"COMPONENT")<br>`constructArgs?: any[]` 构造参数<br>`isDelay?: boolean` 是否延迟加载(默认false) | 从IOC容器自动注入依赖。不能注入 CONTROLLER 类型 | 属性装饰器 |
 | `@Config()` | `key?: string` 配置项的key<br>`type?: string` 配置类型(默认"config") | 注入配置值。类型对应配置文件名，如 "db" 对应 db.ts | 属性装饰器 |
 | `@Values()` | `value: unknown \| Function` 属性值或返回值的函数<br>`defaultValue?: unknown` 默认值 | 动态设置属性值。会进行类型检查 | 属性装饰器 |
+| `@Log()` | 无 | 注入全局 DefaultLogger 单例。需配合 koatty_container 使用 | 属性装饰器 |
+| `@Log(options)` | `options?: LoggerOpt` 可选配置（logLevel、logFilePath、sensFields、batchConfig 等） | 注入 `new Logger(options)` 的实例，按类+属性缓存 | 属性装饰器 |
 | `@IsDefined()` / `@Expose()` | 无 | 标记属性为已定义，用于参数验证时导出属性 | 验证装饰器 |
 
 

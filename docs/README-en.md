@@ -2184,6 +2184,72 @@ async index(type: string) {
 }
 ```
 
+## Log Handling
+
+Koatty uses [koatty_logger](https://github.com/thinkkoa/koatty_logger) for logging. You can inject a logger instance into Controller, Service, and other classes via the `@Log()` property decorator, without manually calling `new Logger()`.
+
+### Setup
+
+If your application already uses koatty_container, the framework registers the `"Log"` decorator when initializing `PropertyDecoratorManager`; no extra setup is required. If you do not use the container, call this once at application entry:
+
+```typescript
+import { registerLogDecorator } from 'koatty_logger';
+import { decoratorManager } from 'koatty_container';
+
+registerLogDecorator(decoratorManager.property);
+```
+
+### Inject Global DefaultLogger
+
+Use `@Log()` to inject the global default logger in a Controller or Service:
+
+```typescript
+import { Controller, GetMapping, QueryParam } from 'koatty_router';
+import { Log } from 'koatty_logger';
+
+@Controller('/api/users')
+export class UserController {
+  app: App;
+  ctx: any;
+
+  @Log()
+  logger: any;
+
+  @GetMapping('/')
+  async getUsers(
+    @QueryParam('page') page: number = 1,
+    @QueryParam('limit') limit: number = 10
+  ): Promise<any> {
+    this.logger.info(`Get user list: page=${page}, limit=${limit}`);
+    const result = await this.userService.findAll(page, limit);
+    return { code: 200, message: 'OK', data: result };
+  }
+}
+```
+
+### Inject Custom Logger Instance
+
+For a dedicated logger (e.g. different level or file path), pass `LoggerOpt`; the framework caches one instance per class + property:
+
+```typescript
+import { Log } from 'koatty_logger';
+
+@Service()
+export class MyService {
+  @Log() logger: any;  // Global DefaultLogger
+
+  @Log({ logLevel: 'debug', logFilePath: './logs/service.log' })
+  debugLogger: any;  // Dedicated Logger instance
+}
+```
+
+| Usage | Description |
+|-------|-------------|
+| `@Log()` | Assigns the global `DefaultLogger` singleton to the property |
+| `@Log(options)` | Assigns a `new Logger(options)` instance to the property; same class+property share the same instance |
+
+**Note:** When koatty_container is not used, `@Log()` has no effect and does not affect existing code.
+
 ## Caching
 
 Koatty encapsulates a caching library [koatty_cacheable](https://github.com/koatty/koatty_cacheable), which supports memory and Redis storage. `koatty_cacheable` provides two decorators `CacheAble` and `CacheEvict`.
@@ -3268,6 +3334,8 @@ Koatty framework provides rich decorators to simplify development. Decorators ar
 | `@Autowired()` | `paramName?: ClassOrString` - Dependency class or identifier<br>`cType?: string` - Component type (default "COMPONENT")<br>`constructArgs?: any[]` - Constructor arguments<br>`isDelay?: boolean` - Whether to delay load (default false) | Auto-inject dependency from IOC container. Cannot inject CONTROLLER type | Property decorator |
 | `@Config()` | `key?: string` - Config key<br>`type?: string` - Config type (default "config") | Inject config value. Type corresponds to config file name, e.g., "db" for db.ts | Property decorator |
 | `@Values()` | `value: unknown \| Function` - Property value or function returning value<br>`defaultValue?: unknown` - Default value | Dynamically set property value. Performs type checking | Property decorator |
+| `@Log()` | None | Inject global DefaultLogger singleton. Requires koatty_container | Property decorator |
+| `@Log(options)` | `options?: LoggerOpt` - Optional config (logLevel, logFilePath, sensFields, batchConfig, etc.) | Inject a `new Logger(options)` instance, cached per class+property | Property decorator |
 | `@IsDefined()` / `@Expose()` | None | Mark property as defined, for exporting in validation | Validation decorator |
 
 
