@@ -2083,21 +2083,6 @@ throw new BusinessException1("error");
 throw new BusinessException2("error", 1000);
 ```
 
-### Global Exception Configuration
-
-```typescript
-import { setExceptionConfig } from 'koatty_exception';
-
-// Configure exception handling behavior
-setExceptionConfig({
-  enableStackTrace: process.env.NODE_ENV !== 'production',
-  enableLogging: true,
-  logFormat: 'json',  // 'json' or 'text'
-  defaultStatusCode: 500,
-  defaultErrorCode: CommonErrorCode.INTERNAL_SERVER_ERROR
-});
-```
-
 ### @Catch() Method Decorator
 
 Starting from Koatty 4.0, `koatty_exception` provides the `@Catch()` method decorator for actively catching errors at the method level and converting them to Exception.

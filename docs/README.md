@@ -2440,21 +2440,6 @@ throw new BussinessException1("error");
 throw new BussinessException2("error", 1000);
 ```
 
-### 全局异常配置
-
-```typescript
-import { setExceptionConfig } from 'koatty_exception';
-
-// 配置异常处理行为
-setExceptionConfig({
-  enableStackTrace: process.env.NODE_ENV !== 'production',
-  enableLogging: true,
-  logFormat: 'json',  // 'json' 或 'text'
-  defaultStatusCode: 500,
-  defaultErrorCode: CommonErrorCode.INTERNAL_SERVER_ERROR
-});
-```
-
 ### @Catch() 方法装饰器
 
 从 Koatty 4.0 开始，`koatty_exception` 提供了 `@Catch()` 方法装饰器，用于在方法级别主动捕获错误并转换为 Exception。
