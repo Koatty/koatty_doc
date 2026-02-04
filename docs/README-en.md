@@ -2127,7 +2127,7 @@ export class MultiProtocolException extends Exception {
 
 ## Log Handling
 
-Koatty uses [koatty_logger](https://github.com/thinkkoa/koatty_logger) for logging. You can inject a logger instance into Controller, Service, and other classes via the `@Log()` property decorator, without manually calling `new Logger()`.
+Koatty uses [koatty_logger](https://github.com/koatty/koatty_logger) for logging. You can inject a logger instance into Controller, Service, and other classes via the `@Log()` property decorator, without manually calling `new Logger()`.
 
 ### Setup
 

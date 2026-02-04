@@ -2504,7 +2504,7 @@ async index(type: string) {
 
 ## 日志处理
 
-Koatty 使用 [koatty_logger](https://github.com/thinkkoa/koatty_logger) 作为日志组件，支持在 Controller、Service 等类中通过 `@Log()` 属性装饰器注入日志实例，无需手动 `new Logger()`。
+Koatty 使用 [koatty_logger](https://github.com/koatty/koatty_logger) 作为日志组件，支持在 Controller、Service 等类中通过 `@Log()` 属性装饰器注入日志实例，无需手动 `new Logger()`。
 
 ### 使用前说明
 
