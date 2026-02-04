@@ -1932,17 +1932,6 @@ export class ObjectDto {
 
 Koatty framework encapsulates the `koatty_exception` component for handling errors that need to be thrown in the project, supporting customization of exception classes to handle different business exceptions.
 
-### Core Features
-
-- 🎯 **Unified Exception Handling** - Provides standardized exception handling mechanism
-- 🔗 **Chained Exception Calls** - Support for method chaining, more elegant code
-- 🌐 **Multi-Protocol Support** - Supports HTTP, gRPC, WebSocket multiple protocols
-- 📊 **Observability** - Integrated with OpenTelemetry tracing
-- 🔧 **Highly Configurable** - Supports custom log formats, error response formats, etc.
-- 📝 **TypeScript Support** - Complete type definitions and type safety
-- 🚀 **Zero Dependency Core** - Core functionality has no external dependencies
-- 📦 **Decorator Pattern** - Uses `@ExceptionHandler` decorator to register exception handlers
-
 ### Exception Class Basic Usage
 
 ```typescript
@@ -2000,75 +1989,6 @@ export class BusinessException2 extends Exception {
   // Handle exceptions uniformly in the handler
   async handler(ctx: KoattyContext): Promise<any> {
     return ctx.res.end({code: this.code, message: this.message});
-  }
-}
-```
-
-#### Advanced Custom Exception Handler
-
-```typescript
-import { Exception, ExceptionHandler } from 'koatty_exception';
-import { KoattyContext } from 'koatty_core';
-
-@ExceptionHandler()
-export class ValidationException extends Exception {
-  constructor(message: string, field?: string) {
-    super(message, CommonErrorCode.VALIDATION_ERROR, 400);
-
-    if (field) {
-      this.setContext({ field });
-    }
-  }
-
-  async handler(ctx: KoattyContext): Promise<any> {
-    // Custom handling logic
-    const response = {
-      error: 'VALIDATION_ERROR',
-      message: this.message,
-      field: this.context?.field,
-      timestamp: new Date().toISOString()
-    };
-
-    ctx.status = this.status;
-    ctx.type = 'application/json';
-    return ctx.res.end(JSON.stringify(response));
-  }
-}
-
-// Use custom exception
-throw new ValidationException('Email format is incorrect', 'email');
-```
-
-#### Multi-Protocol Exception Handling
-
-```typescript
-@ExceptionHandler()
-export class MultiProtocolException extends Exception {
-  async handler(ctx: KoattyContext): Promise<any> {
-    // Handle differently based on protocol type
-    if (ctx.protocol === 'grpc') {
-      // gRPC protocol handling
-      return {
-        code: this.code,
-        message: this.message
-      };
-    } else if (ctx.protocol === 'websocket') {
-      // WebSocket protocol handling
-      ctx.websocket.send(JSON.stringify({
-        error: this.code,
-        message: this.message
-      }));
-      return;
-    } else {
-      // HTTP protocol handling (default）
-      ctx.status = this.status || 500;
-      ctx.type = 'application/json';
-      return ctx.res.end(JSON.stringify({
-        code: this.code,
-        message: this.message,
-        context: this.context
-      }));
-    }
   }
 }
 ```
@@ -2168,18 +2088,39 @@ export class BusinessException extends Exception {
 }
 ```
 
-Global exception handling is registered only once, and multiple registrations will overwrite each other. After registering global exception handling, unless a different type of exception is explicitly thrown, all exceptions will be intercepted by the global exception handling class.
+> Global exception handling is registered only once, and multiple registrations will overwrite each other. After registering global exception handling, unless a different type of exception is explicitly thrown, all exceptions will be intercepted by the global exception handling class.
+
+
+#### Multi-Protocol Exception Handling
 
 ```typescript
-async index(type: string) {
-  if (type == '1') {
-    // Specify BusinessException2 to handle exceptions
-    // res: {"code":1000,"message":"error"}
-    throw new BusinessException2("error", 1000);
-  } else {
-    // Not explicitly specified, handled by global exception handling
-    // res: error
-    throw new Error("error");
+@ExceptionHandler()
+export class MultiProtocolException extends Exception {
+  async handler(ctx: KoattyContext): Promise<any> {
+    // Handle differently based on protocol type
+    if (ctx.protocol === 'grpc') {
+      // gRPC protocol handling
+      return {
+        code: this.code,
+        message: this.message
+      };
+    } else if (ctx.protocol === 'websocket') {
+      // WebSocket protocol handling
+      ctx.websocket.send(JSON.stringify({
+        error: this.code,
+        message: this.message
+      }));
+      return;
+    } else {
+      // HTTP protocol handling (default）
+      ctx.status = this.status || 500;
+      ctx.type = 'application/json';
+      return ctx.res.end(JSON.stringify({
+        code: this.code,
+        message: this.message,
+        context: this.context
+      }));
+    }
   }
 }
 ```

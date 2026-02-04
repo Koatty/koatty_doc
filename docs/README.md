@@ -2289,13 +2289,6 @@ export class ObjectDto {
 
 Koatty框架封装了koatty_exception组件，用于处理项目中需要抛出错误的场景，支持用户定制化Exception类来处理不同的业务异常。
 
-### 核心特性
-
-- 统一异常处理** - 提供标准化的异常处理机制
-- 链式调用** - 支持方法链式调用，代码更优雅
-- 可观测性** - 集成 OpenTelemetry 链路追踪
-- 装饰器模式** - 使用 `@ExceptionHandler` 装饰器注册异常处理器
-
 ### Exception 类基础用法
 
 ```typescript
@@ -2359,76 +2352,6 @@ export class BussinessException2 extends Exception {
 }
 
 ```
-
-#### 高级自定义异常处理器
-
-```typescript
-import { Exception, ExceptionHandler } from 'koatty_exception';
-import { KoattyContext } from 'koatty_core';
-
-@ExceptionHandler()
-export class ValidationException extends Exception {
-  constructor(message: string, field?: string) {
-    super(message, CommonErrorCode.VALIDATION_ERROR, 400);
-
-    if (field) {
-      this.setContext({ field });
-    }
-  }
-
-  async handler(ctx: KoattyContext): Promise<any> {
-    // 自定义处理逻辑
-    const response = {
-      error: 'VALIDATION_ERROR',
-      message: this.message,
-      field: this.context?.field,
-      timestamp: new Date().toISOString()
-    };
-
-    ctx.status = this.status;
-    ctx.type = 'application/json';
-    return ctx.res.end(JSON.stringify(response));
-  }
-}
-
-// 使用自定义异常
-throw new ValidationException('邮箱格式不正确', 'email');
-```
-
-#### 多协议异常处理
-
-```typescript
-@ExceptionHandler()
-export class MultiProtocolException extends Exception {
-  async handler(ctx: KoattyContext): Promise<any> {
-    // 根据协议类型进行不同的处理
-    if (ctx.protocol === 'grpc') {
-      // gRPC 协议处理
-      return {
-        code: this.code,
-        message: this.message
-      };
-    } else if (ctx.protocol === 'websocket') {
-      // WebSocket 协议处理
-      ctx.websocket.send(JSON.stringify({
-        error: this.code,
-        message: this.message
-      }));
-      return;
-    } else {
-      // HTTP 协议处理（默认）
-      ctx.status = this.status || 500;
-      ctx.type = 'application/json';
-      return ctx.res.end(JSON.stringify({
-        code: this.code,
-        message: this.message,
-        context: this.context
-      }));
-    }
-  }
-}
-```
-
 在应用代码中，我们可以根据业务逻辑，抛出不同的异常：
 
 ```js
@@ -2526,7 +2449,42 @@ export class BussinessException extends Exception {
 
 ```
 
-全局异常处理仅注册一次，多次注册自动覆盖。注册全局异常处理之后，除非主动抛出不同类型的异常，否则所有的异常均交给全局异常处理类拦截。
+> 全局异常处理仅注册一次，多次注册自动覆盖。注册全局异常处理之后，除非主动抛出不同类型的异常，否则所有的异常均交给全局异常处理类拦截。
+
+
+#### 多协议异常处理
+
+```typescript
+@ExceptionHandler()
+export class MultiProtocolException extends Exception {
+  async handler(ctx: KoattyContext): Promise<any> {
+    // 根据协议类型进行不同的处理
+    if (ctx.protocol === 'grpc') {
+      // gRPC 协议处理
+      return {
+        code: this.code,
+        message: this.message
+      };
+    } else if (ctx.protocol === 'websocket') {
+      // WebSocket 协议处理
+      ctx.websocket.send(JSON.stringify({
+        error: this.code,
+        message: this.message
+      }));
+      return;
+    } else {
+      // HTTP 协议处理（默认）
+      ctx.status = this.status || 500;
+      ctx.type = 'application/json';
+      return ctx.res.end(JSON.stringify({
+        code: this.code,
+        message: this.message,
+        context: this.context
+      }));
+    }
+  }
+}
+```
 
 ```js
 ...
