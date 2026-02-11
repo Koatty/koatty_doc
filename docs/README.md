@@ -3623,7 +3623,7 @@ await initializeApp();
 
 > 入参依赖切点方法：装饰器声明切点所在方法的入参同切面共享，内置方法声明的切点因为可以使用this，理论上能获取切点所在类的任何属性，更加灵活
 
-> 获取请求上下文：装饰器声明的切面通过 `options.target` 获取调用方实例（如 Controller），进而通过 `options.target.ctx` 获取 per-request 的请求上下文；内置方法声明直接通过 `this.ctx` 获取
+> 获取请求上下文：装饰器声明的切面通过 `options.target` 获取 AOP 目标实例，若目标为 Controller 则可通过 `options.target.ctx` 获取 per-request 的请求上下文；内置方法声明直接通过 `this.ctx` 获取。**注意：只有 Controller 实例拥有 `ctx` 属性，Service、Component 等非 Controller 类的 `options.target.ctx` 不存在。**
 
 <mark>注意: 如果类使用了装饰器@BeforeEach，且这个类还包含\_\_before方法（不管是自身拥有还是继承自父类），那么\_\_before方法优先级高于装饰器，该类的装饰器@BeforeEach无效（@AfterEach和\_\_after也是一样） </mark>
 
@@ -3690,12 +3690,14 @@ export class TestAspect {
 | 字段 | 类型 | 说明 |
 | ---- | ---- | ---- |
 | `options.targetMethod` | `string` | 被拦截的方法名 |
-| `options.target` | `any` | 调用方实例（如 Controller 实例），可通过 `options.target.ctx` 获取 per-request 的请求上下文 |
+| `options.target` | `any` | 被拦截方法所属的实例（即 AOP 目标实例）。仅当目标为 Controller 时拥有 `ctx` 属性，可通过 `options.target.ctx` 获取 per-request 的请求上下文 |
 | `options.*` | `any` | 装饰器声明时传入的自定义配置（如 `@Before(TestAspect, { level: 'info' })` 中的 `level`） |
 
 #### 在切面中获取请求上下文
 
-Aspect 切面类是**单例**，不持有 per-request 的 `ctx`。框架通过 `options.target` 将调用方实例（如 Controller）传递给切面，切面可以通过它获取当前请求的上下文及请求参数：
+Aspect 切面类是**单例**，不持有 per-request 的 `ctx`。框架通过 `options.target` 将 AOP 目标实例传递给切面，切面可以通过它获取当前请求的上下文及请求参数：
+
+> **注意**: 只有 Controller 实例拥有 `ctx` 属性。如果切面应用于 Service、Component 等非 Controller 类，`options.target.ctx` 将不存在。因此在切面中访问 `ctx` 前务必进行判空检查。
 
 ```typescript
 import { Aspect, IAspect } from "koatty";
@@ -3852,7 +3854,7 @@ Koatty 框架提供了丰富的装饰器来简化开发。装饰器按照作用�
 
 | 装饰器名称 | 参数 | 说明 | 备注 |
 | ---------- | ---- | ---- | ---- |
-| `@Aspect()` | `identifier?: string` IOC容器标识 | 声明切面类。类名必须以"Aspect"结尾，必须实现 `run(args, proceed?, options?)` 方法。`options.target` 为调用方实例，可通过 `options.target.ctx` 获取请求上下文 | 仅用于切面类 |
+| `@Aspect()` | `identifier?: string` IOC容器标识 | 声明切面类。类名必须以"Aspect"结尾，必须实现 `run(args, proceed?, options?)` 方法。`options.target` 为 AOP 目标实例，若目标为 Controller 可通过 `options.target.ctx` 获取请求上下文（Service/Component 等无 `ctx`） | 仅用于切面类 |
 | `@BeforeEach()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在类的每个方法执行前执行切面(排除 constructor/init/__before/__after) | 类装饰器 |
 | `@AfterEach()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在类的每个方法执行后执行切面 | 类装饰器 |
 | `@AroundEach()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 包装类的每个方法执行 | 类装饰器 |

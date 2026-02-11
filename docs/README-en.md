@@ -3202,7 +3202,7 @@ Use `__before`, `__after` built-in hidden methods to declare pointcuts.
 > Dependency on Aspect Class: Requires the creation of a corresponding Aspect aspect class to use.
 > Can Use Class Scope: Can or cannot use the `this` pointer of the class where the pointcut is located.
 > Parameter Dependency: Decorator declaration pointcuts share parameters with the method; built-in method declaration pointcuts can use `this` to access any property of the class, more flexible.
-> Access Request Context: Decorator-declared aspects access the caller instance (e.g., Controller) via `options.target`, then get the per-request context via `options.target.ctx`; built-in methods access it directly via `this.ctx`.
+> Access Request Context: Decorator-declared aspects access the AOP target instance via `options.target`. If the target is a Controller, the per-request context is available via `options.target.ctx`; built-in methods access it directly via `this.ctx`. **Note: Only Controller instances have a `ctx` property. For Service, Component, and other non-Controller classes, `options.target.ctx` does not exist.**
 
 **Note:** If a class uses the decorator `@BeforeEach` and this class also contains the `__before` method (whether it is its own or inherited from the parent class), then the `__before` method has higher priority than the decorator, and the class's decorator `@BeforeEach` is invalid (`@AfterEach` and `__after` are the same).
 
@@ -3273,12 +3273,14 @@ The `options` object contains:
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | `options.targetMethod` | `string` | Name of the intercepted method |
-| `options.target` | `any` | Caller instance (e.g., Controller instance). Access per-request context via `options.target.ctx` |
+| `options.target` | `any` | The AOP target instance (i.e., the instance whose method is being intercepted). Only Controller instances have a `ctx` property — access per-request context via `options.target.ctx` |
 | `options.*` | `any` | Custom configuration passed in the decorator declaration (e.g., `level` in `@Before(TestAspect, { level: 'info' })`) |
 
 #### Accessing Request Context in Aspects
 
-Aspect classes are **singletons** and do not hold a per-request `ctx`. The framework passes the caller instance (e.g., Controller) to the aspect via `options.target`, allowing the aspect to access the current request context and request parameters:
+Aspect classes are **singletons** and do not hold a per-request `ctx`. The framework passes the AOP target instance to the aspect via `options.target`, allowing the aspect to access the current request context and request parameters:
+
+> **Important**: Only Controller instances have a `ctx` property. If the aspect is applied to a Service, Component, or other non-Controller class, `options.target.ctx` will not exist. Always perform a null check before accessing `ctx` in your aspect.
 
 ```typescript
 import { Aspect, IAspect } from "koatty";
@@ -3345,7 +3347,7 @@ Koatty framework provides rich decorators to simplify development. Decorators ar
 
 | Decorator Name | Parameters | Description | Remarks |
 | -------------- | ---------- | ----------- | ------- |
-| `@Aspect()` | `identifier?: string` - IOC identifier | Declare aspect class. Class name must end with "Aspect", must implement `run(args, proceed?, options?)` method. Access caller instance via `options.target` and request context via `options.target.ctx` | Only for aspect classes |
+| `@Aspect()` | `identifier?: string` - IOC identifier | Declare aspect class. Class name must end with "Aspect", must implement `run(args, proceed?, options?)` method. `options.target` is the AOP target instance; if the target is a Controller, access request context via `options.target.ctx` (Service/Component have no `ctx`) | Only for aspect classes |
 | `@BeforeEach()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect before each method in class (excluding constructor/init/__before/__after) | Class decorator |
 | `@AfterEach()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect after each method in class | Class decorator |
 | `@AroundEach()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Wrap execution of each method in class | Class decorator |
