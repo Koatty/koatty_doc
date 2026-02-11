@@ -346,8 +346,45 @@ export class RequestService {
 ```
 
 > Note the difference between `app.context` and `context.app`:
-> `app.context` is a prototype for the context object created for each request. Each time a request is received, Koa creates a new context object and assigns it to the current `ctx` variable. Although each request's context is based on `app.context`, this does not mean `app.context` will be overwritten. `app.context` is actually a template for generating new context instances.
-> The context contains a reference to `app`, but the relationship is unidirectional (context accesses `app` through properties, but not vice versa).
+> `app.context` is a prototype for the context object created for each request. Each time a request is received, Koa creates a new context object and assigns it to the current `ctx` variable. Although each request's context is based on `app.
+
+#### Ctx Request Parameter Methods
+
+The Ctx object provides a set of convenient methods for accessing request parameters. These methods correspond to parameter decorators (`@Header`, `@Get`, `@PathVariable`, etc.) and are designed for use in non-decorator scenarios (e.g., middleware, AOP aspects, services).
+
+All methods use the `request` prefix to avoid conflicts with native Koa properties (`ctx.header`, `ctx.query`, `ctx.body`, etc.):
+
+| ctx Method | Corresponding Decorator | Description |
+| ---------- | ----------------------- | ----------- |
+| `ctx.requestHeader(name?)` | `@Header()` | Get request headers. Pass name to get a specific header, omit to get all |
+| `ctx.requestQuery(name?)` | `@Get()` | Get query parameters. Pass name to get a specific param, omit to get all |
+| `ctx.requestPathVariable(name?)` | `@PathVariable()` | Get path variables. Pass name to get a specific variable, omit to get all |
+| `ctx.requestParam()` | `@RequestParam()` | Get merged object of query and path parameters |
+| `ctx.requestBody()` | `@RequestBody()` | Get full request body (including body and file), returns Promise |
+| `ctx.requestFile(name?)` | `@File()` | Get uploaded files. Pass name to get a specific file, omit to get all, returns Promise |
+
+Usage example:
+
+```typescript
+// Using in middleware
+@Middleware()
+export class AuthMiddleware {
+  run(options: any, app: Koatty) {
+    return async (ctx: KoattyContext, next: KoattyNext) => {
+      // Get Authorization header
+      const token = ctx.requestHeader('Authorization');
+      // Get query parameter
+      const page = ctx.requestQuery('page');
+      // Get path variable
+      const id = ctx.requestPathVariable('id');
+      // Get request body
+      const body = await ctx.requestBody();
+
+      return next();
+    };
+  }
+}
+```
 
 ## Configuration
 
@@ -3157,14 +3194,15 @@ Use `__before`, `__after` built-in hidden methods to declare pointcuts.
 
 ### Differences Between Declaration Methods
 
-| Declaration Method | Dependency on Aspect Class | Can Use Class Scope | Parameter Dependency | Priority | Usage Restrictions |
-|--------------------|---------------------------|---------------------|---------------------|----------|-------------------|
-| Decorator Declaration | Depends | No | Yes | Low | Can be used for all types of beans |
-| Built-in Method Declaration | Does not depend | Yes | No | High | Only usable for CONTROLLER type beans |
+| Declaration Method | Dependency on Aspect Class | Can Use Class Scope | Parameter Dependency | Can Access Request Context | Priority | Usage Restrictions |
+|--------------------|---------------------------|---------------------|---------------------|---------------------------|----------|-------------------|
+| Decorator Declaration | Depends | No | Yes | Yes (via `options.target`) | Low | Can be used for all types of beans |
+| Built-in Method Declaration | Does not depend | Yes | No | Yes (via `this.ctx`) | High | Only usable for CONTROLLER type beans |
 
 > Dependency on Aspect Class: Requires the creation of a corresponding Aspect aspect class to use.
 > Can Use Class Scope: Can or cannot use the `this` pointer of the class where the pointcut is located.
 > Parameter Dependency: Decorator declaration pointcuts share parameters with the method; built-in method declaration pointcuts can use `this` to access any property of the class, more flexible.
+> Access Request Context: Decorator-declared aspects access the caller instance (e.g., Controller) via `options.target`, then get the per-request context via `options.target.ctx`; built-in methods access it directly via `this.ctx`.
 
 **Note:** If a class uses the decorator `@BeforeEach` and this class also contains the `__before` method (whether it is its own or inherited from the parent class), then the `__before` method has higher priority than the decorator, and the class's decorator `@BeforeEach` is invalid (`@AfterEach` and `__after` are the same).
 
@@ -3212,8 +3250,59 @@ import { App } from '../App';
 export class TestAspect {
   app: App;
 
-  run() {
+  run(args: any[], proceed?: Function, options?: any) {
+    // options.target: caller instance (e.g. Controller), access per-request ctx via options.target.ctx
+    // options.targetMethod: the intercepted method name
     console.log('TestAspect');
+  }
+}
+```
+
+#### Aspect `run` Method Parameters
+
+The `run` method of an aspect class receives the following parameters:
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `args` | `any[]` | Argument list of the intercepted method |
+| `proceed` | `Function \| undefined` | Execution function for the original method (only passed for `@Around`, `undefined` for `@Before`/`@After`) |
+| `options` | `any` | Enhanced options object containing the following fields |
+
+The `options` object contains:
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `options.targetMethod` | `string` | Name of the intercepted method |
+| `options.target` | `any` | Caller instance (e.g., Controller instance). Access per-request context via `options.target.ctx` |
+| `options.*` | `any` | Custom configuration passed in the decorator declaration (e.g., `level` in `@Before(TestAspect, { level: 'info' })`) |
+
+#### Accessing Request Context in Aspects
+
+Aspect classes are **singletons** and do not hold a per-request `ctx`. The framework passes the caller instance (e.g., Controller) to the aspect via `options.target`, allowing the aspect to access the current request context and request parameters:
+
+```typescript
+import { Aspect, IAspect } from "koatty";
+import { App } from '../App';
+
+@Aspect()
+export class AuthAspect implements IAspect {
+  app: App;
+
+  async run(args: any[], proceed?: Function, options?: any): Promise<any> {
+    // Access caller instance (Controller) via options.target, then get per-request ctx
+    const ctx = options?.target?.ctx;
+    if (!ctx) return;
+
+    // Use ctx request parameter methods
+    const token = ctx.requestHeader('Authorization')?.replace(/^Bearer\s+/i, '');
+    if (!token) {
+      ctx.throw(401, 'Unauthorized: missing token');
+    }
+
+    // Access other request parameters
+    const userId = ctx.requestPathVariable('id');
+    const page = ctx.requestQuery('page');
+    const body = await ctx.requestBody();
   }
 }
 ```
@@ -3256,7 +3345,7 @@ Koatty framework provides rich decorators to simplify development. Decorators ar
 
 | Decorator Name | Parameters | Description | Remarks |
 | -------------- | ---------- | ----------- | ------- |
-| `@Aspect()` | `identifier?: string` - IOC identifier | Declare aspect class. Class name must end with "Aspect", must implement `run` method | Only for aspect classes |
+| `@Aspect()` | `identifier?: string` - IOC identifier | Declare aspect class. Class name must end with "Aspect", must implement `run(args, proceed?, options?)` method. Access caller instance via `options.target` and request context via `options.target.ctx` | Only for aspect classes |
 | `@BeforeEach()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect before each method in class (excluding constructor/init/__before/__after) | Class decorator |
 | `@AfterEach()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect after each method in class | Class decorator |
 | `@AroundEach()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Wrap execution of each method in class | Class decorator |
@@ -3294,9 +3383,9 @@ For single method aspect declaration. Unlike class-level `@BeforeEach`/`@AfterEa
 
 | Decorator Name | Parameters | Description | Remarks |
 | -------------- | ---------- | ----------- | ------- |
-| `@Before()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect's `run` method before method execution | Method decorator |
-| `@After()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect's `run` method after method execution | Method decorator |
-| `@Around()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Wrap method execution, aspect's `run` receives `proceed` function | Method decorator |
+| `@Before()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect's `run` method before method execution. Aspect accesses caller instance via `options.target` | Method decorator |
+| `@After()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Execute aspect's `run` method after method execution. Aspect accesses caller instance via `options.target` | Method decorator |
+| `@Around()` | `aopName: ClassOrString` - Aspect class name or class<br>`options?: any` - Optional config | Wrap method execution, aspect's `run` receives `proceed` function. Aspect accesses caller instance via `options.target` | Method decorator |
 
 **AOP Decorator Comparison:**
 

@@ -348,9 +348,45 @@ export class RequestService {
 ```
 
 > 注意 app.context 和 context.app 的区别:
-> app.context 是一个用于每次请求的上下文对象的原型。每次接收到请求时，Koa 会为该请求创建一个新的 context 对象，并将其赋给当前请求的 ctx 变量。尽管每个请求的 context 是基于 app.context 创建的，但这并不意味着 app.context 会被覆盖。app.context 实际上是一个模板，用于生成新的上下文实例。
-> context 中包含对 app 的引用, 尽管持有对 app 的引用，但它和 app 之间的关系是单向的（context 通过属性访问 app，而不反过来）
+> app.context 是一个用于每次请求的上下文对象的原型。每次接收到请求时，Koa 会为该请求创建一个新的 context 对象，并将其赋给当前请求的 ctx 变量。
 
+#### Ctx 请求参数方法
+
+Ctx 对象提供了一系列便捷方法来获取请求参数，这些方法与参数装饰器（`@Header`、`@Get`、`@PathVariable` 等）功能一致，方便在非装饰器场景（如中间件、AOP 切面、Service）中直接使用。
+
+所有方法均使用 `request` 前缀，避免与 Koa 原生属性（`ctx.header`、`ctx.query`、`ctx.body` 等）冲突：
+
+| ctx 方法 | 对应装饰器 | 说明 |
+| -------- | ---------- | ---- |
+| `ctx.requestHeader(name?)` | `@Header()` | 获取请求头。传 name 返回指定头，不传返回全部 |
+| `ctx.requestQuery(name?)` | `@Get()` | 获取 query 参数。传 name 返回指定参数，不传返回全部 |
+| `ctx.requestPathVariable(name?)` | `@PathVariable()` | 获取路径参数。传 name 返回指定参数，不传返回全部 |
+| `ctx.requestParam()` | `@RequestParam()` | 获取 query 和 path 参数的合并对象 |
+| `ctx.requestBody()` | `@RequestBody()` | 获取完整请求体（含 body 和 file），返回 Promise |
+| `ctx.requestFile(name?)` | `@File()` | 获取上传文件。传 name 返回指定文件，不传返回全部，返回 Promise |
+
+使用示例：
+
+```typescript
+// 在中间件中使用
+@Middleware()
+export class AuthMiddleware {
+  run(options: any, app: Koatty) {
+    return async (ctx: KoattyContext, next: KoattyNext) => {
+      // 获取 Authorization 请求头
+      const token = ctx.requestHeader('Authorization');
+      // 获取 query 参数
+      const page = ctx.requestQuery('page');
+      // 获取路径参数
+      const id = ctx.requestPathVariable('id');
+      // 获取请求体
+      const body = await ctx.requestBody();
+
+      return next();
+    };
+  }
+}
+```
 
 ## 配置
 
@@ -3576,16 +3612,18 @@ await initializeApp();
 
 两种声明方式的区别：
 
-| 声明方式     | 依赖Aspect切面类 | 能否使用类作用域 | 入参依赖切点方法 | 优先级 | 使用限制                     |
-| ------------ | ---------------- | ---------------- | ---------------- | ------ | ---------------------------- |
-| 装饰器声明   | 依赖             | 不能             | 依赖             | 低     | 可用于所有类型的bean         |
-| 内置方法声明 | 不依赖           | 能               | 不依赖           | 高     | 只能用于CONTROLLER类型的bean |
+| 声明方式     | 依赖Aspect切面类 | 能否使用类作用域 | 入参依赖切点方法 | 能否获取请求上下文 | 优先级 | 使用限制                     |
+| ------------ | ---------------- | ---------------- | ---------------- | ------------------ | ------ | ---------------------------- |
+| 装饰器声明   | 依赖             | 不能             | 依赖             | 能（通过 `options.target`） | 低     | 可用于所有类型的bean         |
+| 内置方法声明 | 不依赖           | 能               | 不依赖           | 能（通过 `this.ctx`）    | 高     | 只能用于CONTROLLER类型的bean |
 
 > 依赖Aspect切面类：需要创建对应的Aspect切面类才能使用
 
 > 能否使用类作用域：不能使用切点所在类的this指针
 
 > 入参依赖切点方法：装饰器声明切点所在方法的入参同切面共享，内置方法声明的切点因为可以使用this，理论上能获取切点所在类的任何属性，更加灵活
+
+> 获取请求上下文：装饰器声明的切面通过 `options.target` 获取调用方实例（如 Controller），进而通过 `options.target.ctx` 获取 per-request 的请求上下文；内置方法声明直接通过 `this.ctx` 获取
 
 <mark>注意: 如果类使用了装饰器@BeforeEach，且这个类还包含\_\_before方法（不管是自身拥有还是继承自父类），那么\_\_before方法优先级高于装饰器，该类的装饰器@BeforeEach无效（@AfterEach和\_\_after也是一样） </mark>
 
@@ -3631,27 +3669,82 @@ import { App } from '../App';
 export class TestAspect {
     app: App;
 
-    run() {
+    run(args: any[], proceed?: Function, options?: any) {
         console.log('TestAspect');
     }
 }
 ```
 
+#### 切面类 run 方法参数
+
+切面类的 `run` 方法接收以下参数：
+
+| 参数 | 类型 | 说明 |
+| ---- | ---- | ---- |
+| `args` | `any[]` | 被拦截方法的参数列表 |
+| `proceed` | `Function \| undefined` | 原始方法的执行函数（仅 `@Around` 类型传入，`@Before`/`@After` 为 `undefined`） |
+| `options` | `any` | 增强选项对象，包含以下字段 |
+
+`options` 对象包含：
+
+| 字段 | 类型 | 说明 |
+| ---- | ---- | ---- |
+| `options.targetMethod` | `string` | 被拦截的方法名 |
+| `options.target` | `any` | 调用方实例（如 Controller 实例），可通过 `options.target.ctx` 获取 per-request 的请求上下文 |
+| `options.*` | `any` | 装饰器声明时传入的自定义配置（如 `@Before(TestAspect, { level: 'info' })` 中的 `level`） |
+
+#### 在切面中获取请求上下文
+
+Aspect 切面类是**单例**，不持有 per-request 的 `ctx`。框架通过 `options.target` 将调用方实例（如 Controller）传递给切面，切面可以通过它获取当前请求的上下文及请求参数：
+
+```typescript
+import { Aspect, IAspect } from "koatty";
+import { App } from '../App';
+
+@Aspect()
+export class AuthAspect implements IAspect {
+  app: App;
+
+  async run(args: any[], proceed?: Function, options?: any): Promise<any> {
+    // 通过 options.target 获取调用方实例（Controller），进而获取 per-request ctx
+    const ctx = options?.target?.ctx;
+    if (!ctx) return;
+
+    // 使用 ctx 的请求参数方法
+    const token = ctx.requestHeader('Authorization')?.replace(/^Bearer\s+/i, '');
+    if (!token) {
+      ctx.throw(401, 'Unauthorized: missing token');
+    }
+
+    // 还可以获取其他请求参数
+    const userId = ctx.requestPathVariable('id');
+    const page = ctx.requestQuery('page');
+    const body = await ctx.requestBody();
+  }
+}
+```
+
 ### AOP 拦截类型
 
-#### 方法拦截
+#### Before 拦截
 
 ```typescript
 @Aspect()
 export class LoggingAspect implements IAspect {
-  async run(args: any[], target?: any, options?: any): Promise<any> {
-    console.log(`🔍 调用 ${options?.targetMethod}`, args);
-    return Promise.resolve();
+  app: App;
+
+  async run(args: any[], proceed?: Function, options?: any): Promise<any> {
+    // options.targetMethod: 被拦截的方法名
+    // options.target: 调用方实例，可通过 options.target.ctx 获取请求上下文
+    const ctx = options?.target?.ctx;
+    const method = ctx?.method || 'unknown';
+    const url = ctx?.url || '';
+    console.log(`[${method}] ${url} -> ${options?.targetMethod}`, args);
   }
 }
 
-@Component()
-class OrderService {
+@Controller('/')
+class OrderController {
   @Before(LoggingAspect, { level: 'info' })
   async createOrder(orderData: any) {
     return { orderId: Date.now(), ...orderData };
@@ -3663,27 +3756,31 @@ class OrderService {
 
 ```typescript
 @Aspect()
-class TransactionAspect {
-  async run(args: any[], proceed: Function, options?: any): Promise<any> {
-    console.log(`🔄 开始事务: ${options?.targetMethod}`);
+class TransactionAspect implements IAspect {
+  app: App;
+
+  async run(args: any[], proceed?: Function, options?: any): Promise<any> {
+    const ctx = options?.target?.ctx;
+    const traceId = ctx?.requestHeader('X-Trace-Id') || Date.now();
+    console.log(`[${traceId}] 开始事务: ${options?.targetMethod}`);
 
     try {
       const result = await proceed(args);
-      console.log(`✅ 事务提交: ${options?.targetMethod}`);
+      console.log(`[${traceId}] 事务提交: ${options?.targetMethod}`);
       return {
         ...result,
         transactionStatus: 'committed',
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.log(`❌ 事务回滚: ${options?.targetMethod}`, error);
+      console.log(`[${traceId}] 事务回滚: ${options?.targetMethod}`, error);
       throw error;
     }
   }
 }
 
-@Service()
-class UserService {
+@Controller('/')
+class UserController {
   @Around(TransactionAspect, { timeout: 5000 })
   async createUser(userData: any) {
     return { id: Date.now(), ...userData };
@@ -3709,7 +3806,9 @@ import { App } from '../App';
 export class TestAspect {
     app: App;
 
-    run() {
+    run(args: any[], proceed?: Function, options?: any) {
+        // options.target: 调用方实例（如 Controller），可通过 options.target.ctx 获取请求上下文
+        // options.targetMethod: 被拦截的方法名
         console.log('TestAspect');
     }
 }
@@ -3753,7 +3852,7 @@ Koatty 框架提供了丰富的装饰器来简化开发。装饰器按照作用�
 
 | 装饰器名称 | 参数 | 说明 | 备注 |
 | ---------- | ---- | ---- | ---- |
-| `@Aspect()` | `identifier?: string` IOC容器标识 | 声明切面类。类名必须以"Aspect"结尾，必须实现 `run` 方法 | 仅用于切面类 |
+| `@Aspect()` | `identifier?: string` IOC容器标识 | 声明切面类。类名必须以"Aspect"结尾，必须实现 `run(args, proceed?, options?)` 方法。`options.target` 为调用方实例，可通过 `options.target.ctx` 获取请求上下文 | 仅用于切面类 |
 | `@BeforeEach()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在类的每个方法执行前执行切面(排除 constructor/init/__before/__after) | 类装饰器 |
 | `@AfterEach()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在类的每个方法执行后执行切面 | 类装饰器 |
 | `@AroundEach()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 包装类的每个方法执行 | 类装饰器 |
@@ -3791,9 +3890,9 @@ Koatty 框架提供了丰富的装饰器来简化开发。装饰器按照作用�
 
 | 装饰器名称 | 参数 | 说明 | 备注 |
 | ---------- | ---- | ---- | ---- |
-| `@Before()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在方法执行前执行切面的 `run` 方法 | 方法装饰器 |
-| `@After()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在方法执行后执行切面的 `run` 方法 | 方法装饰器 |
-| `@Around()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 包装方法执行，切面的 `run` 方法接收 `proceed` 函数 | 方法装饰器 |
+| `@Before()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在方法执行前执行切面的 `run` 方法。切面通过 `options.target` 获取调用方实例 | 方法装饰器 |
+| `@After()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 在方法执行后执行切面的 `run` 方法。切面通过 `options.target` 获取调用方实例 | 方法装饰器 |
+| `@Around()` | `aopName: ClassOrString` 切面类名或类<br>`options?: any` 可选配置 | 包装方法执行，切面的 `run` 方法接收 `proceed` 函数。切面通过 `options.target` 获取调用方实例 | 方法装饰器 |
 
 **AOP 装饰器对比：**
 
