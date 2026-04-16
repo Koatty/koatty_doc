@@ -1,0 +1,23 @@
+{
+  "name": "koatty-doc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Koatty Framework Documentation Site",
+  "scripts": {
+    "build": "echo 'Documentation site - no build required'",
+    "clean": "echo 'Nothing to clean'"
+  },
+  "keywords": [
+    "koatty",
+    "documentation"
+  ],
+  "author": {
+    "name": "richenlin",
+    "email": "richenlin@gmail.com"
+  },
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koatty/koatty.git"
+  }
+}
