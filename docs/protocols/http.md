@@ -340,6 +340,6 @@ export default {
 
 ## Next Steps
 
-- [WebSocket Configuration](./websocket.md) - Set up WebSocket
-- [gRPC Configuration](./grpc.md) - Configure gRPC services
+- [WebSocket Configuration](../README-en.md) - Set up WebSocket (framework guide)
+- [gRPC Configuration](../README-en.md) - Configure gRPC services (framework guide)
 - [Tracing](../extensions/trace.md) - Add OpenTelemetry tracing

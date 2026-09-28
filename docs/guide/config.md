@@ -320,5 +320,5 @@ KOATTY_ENV=production pnpm start
 ## Next Steps
 
 - [Lifecycle Hooks](./lifecycle.md) - Hook into application lifecycle
-- [Middleware](./middleware.md) - Create custom middleware
+- [Middleware](../README-en.md) - Create custom middleware (framework guide)
 - [Multi-Protocol Setup](../protocols/http.md) - Configure HTTP/2 and HTTP/3

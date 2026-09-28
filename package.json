@@ -6,7 +6,7 @@
   "scripts": {
     "build": "echo 'Documentation site - no build required'",
     "clean": "echo 'Nothing to clean'",
-    "test": "jest --passWithNoTests"
+    "test": "node scripts/check-docs.js"
   },
   "keywords": [
     "koatty",

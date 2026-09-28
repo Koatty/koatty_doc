@@ -330,6 +330,6 @@ export class LifecycleMonitor {
 
 ## Next Steps
 
-- [Middleware Guide](./middleware.md) - Create custom middleware
+- [Middleware Guide](../README-en.md) - Create custom middleware (framework guide)
 - [Configuration](./config.md) - Configure your application
 - [Multi-Protocol](../protocols/http.md) - Set up HTTP/2 and HTTP/3
