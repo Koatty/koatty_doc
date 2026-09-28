@@ -1,0 +1,20 @@
+# Koatty
+
+> TypeScript framework with dependency injection, AOP and HTTP, WebSocket, gRPC and GraphQL support.
+
+## Framework documentation
+
+- [Overview](README.md): Framework introduction and documentation index.
+- [Guides](guide/): Application structure, configuration and existing decorators.
+- [Protocols](protocols/): Protocol-specific controller and server guidance.
+- [Migration](migration/): Compatibility and migration notes.
+
+## Application tooling
+
+Use the project's installed koatty_cli 5.x binary (`koatty manifest`, `koatty mcp`).
+A manifest is static: check collectionMode and unresolved before treating information as complete.
+DTO/config schemas are JSON Schema; config.schemaSource distinguishes declared and inferred constraints.
+MCP writes require a plan issued in the same session and an explicit dryRun:false after client approval.
+koatty_test executes project code and is not read-only or guaranteed idempotent.
+Use existing Controller/Mapping, Autowired, Before/After/Around and Validated decorators.
+Do not introduce Guard/Interceptor decorator aliases to describe existing middleware or aspects.
