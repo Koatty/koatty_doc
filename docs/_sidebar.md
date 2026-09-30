@@ -12,6 +12,7 @@
   - [HTTP/2 & HTTP/3](protocols/http.md)
 
 - **AI 运行时(AI Runtime)**
+  - [Agent Skill 安装与使用](extensions/skill.md)
   - [MCP Server (koatty_mcp)](extensions/mcp.md)
   - [LLM Client (koatty_llm)](extensions/llm.md)
   - [AI Guard (koatty_guard)](extensions/guard.md)

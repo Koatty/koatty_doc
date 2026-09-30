@@ -4407,6 +4407,27 @@ koatty_mcp ──验证──▶ koatty_guard ──▶ Service(既有业务代�
         └──────── koatty-trace 记录 genai.* span ────────
 ```
 
+## Agent Skill:让 AI 代理掌握 Koatty 工程
+
+官方维护一份随 `koatty_cli` 同版本分发的 **Agent Skill**(`koatty`),让
+Claude Code、Cursor 等 AI 编码代理在 Koatty 项目里直接按框架约定工作:
+
+```bash
+# 新项目自动携带 .agents/skills/koatty/
+koatty new my-app
+
+# 既有项目:从已安装的 npm 包复制
+mkdir -p .agents/skills
+cp -R node_modules/koatty_cli/skills/koatty .agents/skills/koatty
+```
+
+Skill 内含 `SKILL.md` 入口与四份参考(开发、框架、MCP/Agent、验证),强制代理
+先做 **feature detection**(`capabilities --json` / `doctor --json`)、读静态
+`manifest --validate`、按需加载参考,并守住框架不变量(业务进 Service、
+`app.container`、DTO 命名对齐 Loader、不发明不存在的装饰器)。
+安装方式与完整说明见 [Agent Skill 页](extensions/skill.md);
+开发 MCP(`koatty mcp`)的 `koatty_docs` 工具可在线检索版本化 Skill。
+
 ## koatty_mcp:把服务暴露为 MCP 工具
 
 输入契约直接复用校验 HTTP body 的同一个 DTO——**AI 入参与 HTTP 入参共享

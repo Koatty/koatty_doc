@@ -13,6 +13,7 @@
 - [MCP Server](extensions/mcp.md): koatty_mcp exposes @Validated Service methods as MCP tools/resources/prompts; destructive tools require human approval (durable single-use tickets bound to the caller fingerprint); scope checks on every transport.
 - [LLM Client](extensions/llm.md): koatty_llm routes logical model names across providers with failover, breaker, atomic token budgets, exact-match caching, structured output via koatty_validation DTOs, and an in-process tool loop.
 - [AI Guard](extensions/guard.md): koatty_guard runs masking -> content inspection -> rate limit -> approval -> audit in a single @Around aspect; masking uses exact normalized key names; audit does not record prompt/output content by default.
+- [Agent Skill](extensions/skill.md): install the maintained `koatty` agent skill (.agents/skills/koatty/, bundled with koatty_cli and shipped into every `koatty new` project) so coding agents feature-detect the CLI, read the static manifest, follow the plan/apply/verify workflow and preserve framework invariants.
 - [v4 to v5 Migration](migration/v4-to-v5.md): experimental API removals (UseGuard/UseInterceptor/runSync), HTTP/3 moved to koatty_http3, DTO instance transformation, tightened security defaults, peer alignment to ^5.
 
 ## Application tooling

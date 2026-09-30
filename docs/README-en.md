@@ -28,6 +28,7 @@ Koa + TypeScript + IOC = Koatty. **Koatty** is a progressive Node.js framework f
 - ✅ **koatty_guard@1.0.0** - AI guardrails: masking → content inspection → rate limit → approval → audit in a single aspect; approval tickets are durable, single-use and bound to the caller fingerprint
 - ✅ **GenAI observability** - koatty-trace 2.5 records `genai.*` span attributes; prompt/output content is not recorded by default
 - ✅ **Security Profile** - `KOATTY_ENV || NODE_ENV` selects strict/standard/development with fail-closed defaults (DTO whitelist, WS origin, /metrics loopback trust, ops token, TLS ≥1.2)
+- ✅ **Official Agent Skill** - the maintained `koatty` skill ships with `koatty_cli` and lands in every `koatty new` project (`.agents/skills/koatty/`), teaching coding agents the framework invariants and the plan/apply/verify workflow
 
 ### Architecture
 ### Architecture Upgrades
