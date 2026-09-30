@@ -8,6 +8,8 @@ Koa + TypeScript + IOC = Koatty. **Koatty** 是一个渐进式 Node.js 框架，
 
 ## 为什么选择 Koatty? 💡
 
+- 🤖 **AI 友好(5.0 重点)**: 一行装饰器把 Service 暴露为 MCP 工具；统一的多供应商 LLM 客户端；
+  内置安全护栏与 GenAI 可观测——AI 时代的服务端框架
 - 🚄 **高性能**: 基于 Koa 构建，优化的架构设计
 - 🧩 **功能完善**: 支持 gRPC、HTTP、WebSocket、GraphQL、定时任务等
 - 🧠 **TypeScript 优先**: 原生 TypeScript 支持，优雅的面向对象设计
@@ -18,6 +20,21 @@ Koa + TypeScript + IOC = Koatty. **Koatty** 是一个渐进式 Node.js 框架，
 - 🌐 **协议无关**: 一次编写，可部署为 HTTP/gRPC/WebSocket/GraphQL 服务
 
 ## ✨ 最新特性
+
+### 🤖 AI 就绪(5.0 重点)
+
+- ✅ **koatty_mcp@1.0.0** - MCP Server 宿主:`@Tool` / `@Resource` / `@Prompt` 装饰器把 Service 方法
+  声明式暴露为 MCP 工具，复用 `@Validated` DTO 白名单与 IoC 请求作用域；destructive 工具默认人工审批(fail closed)
+- ✅ **koatty_llm@1.0.0** - 统一 LLM 客户端:逻辑模型路由 + failover、熔断、原子 token 预算、精确缓存、
+  结构化输出(DTO 校验)、进程内工具循环
+- ✅ **koatty_guard@1.0.0** - AI 安全护栏:脱敏 → 内容检查 → 限流 → 审批 → 审计 单切面管线;
+  审批票据持久化、一次性、绑定调用方指纹;审计默认不记录提示词原文
+- ✅ **GenAI 可观测** - `koatty-trace` 2.5 记录 `genai.*` span 属性(供应商/模型/token/成本)，
+  默认不记录提示词与输出原文
+- ✅ **安全画像(Security Profile)** - `KOATTY_ENV || NODE_ENV` 决定 strict/standard/development，
+  请求体 400/413/415、DTO 白名单、WebSocket Origin、`/metrics` 信任、ops token、TLS ≥1.2 全部 fail-closed
+- 📖 详见 [AI 运行时](#ai-运行时) 章节，或扩展页
+  [koatty_mcp](extensions/mcp.md) / [koatty_llm](extensions/llm.md) / [koatty_guard](extensions/guard.md)
 
 ### 架构升级
 
@@ -4372,6 +4389,116 @@ console.log(`  平均执行时间: ${performance.averageExecutionTime}ms`);
 console.log(`  内存使用: ${performance.memoryUsage}MB`);
 ```
 
+
+# AI 运行时
+
+Koatty 5.0 的核心主题是 **AI 友好**:让既有 Koatty 应用可以低成本地
+**被 AI 调用**(MCP)、**调用 AI**(LLM),并且在 AI 链路上保持
+**安全与可观测**(Guard + GenAI trace)。四个能力共用同一套 IoC、DTO 校验、
+请求作用域与 AOP 管线,不引入第二套编程模型。
+
+```
+AI 客户端(Claude/Cursor/自建 Agent)
+        │  MCP 协议
+        ▼
+koatty_mcp ──验证──▶ koatty_guard ──▶ Service(既有业务代码)
+        ▲                                   │
+        │           koatty_llm ◀────────────┘
+        └──────── koatty-trace 记录 genai.* span ────────
+```
+
+## koatty_mcp:把服务暴露为 MCP 工具
+
+输入契约直接复用校验 HTTP body 的同一个 DTO——**AI 入参与 HTTP 入参共享
+同一份校验规则**,不需要为 AI 另写一套参数定义:
+
+```ts
+import { Tool, Resource, Prompt } from 'koatty_mcp';
+
+@Service()
+export class OrderTools {
+  @Autowired() private orders: OrderService;
+
+  @Tool({ name: 'order_query', annotations: { readOnlyHint: true } })
+  @Validated({ async: false, types: [QueryOrderDto] })
+  async query(input: QueryOrderDto) {
+    return this.orders.findByNo(input.orderNo);
+  }
+
+  @Tool({
+    name: 'order_refund',
+    annotations: { destructiveHint: true },
+    requireApproval: true,       // 人工审批,fail closed
+    scopes: ['order:refund'],
+  })
+  @Validated({ async: false, types: [RefundDto] })
+  async refund(input: RefundDto) { /* ... */ }
+}
+```
+
+安全语义:
+
+- 调用参数经 DTO 白名单校验,未知字段剥离;**未声明 DTO 的工具收到非空参数
+  直接返回 `-32602`**;
+- `destructiveHint` 工具在 strict 画像下默认要求人工审批;审批票据持久化、
+  一次性,并与调用方指纹(tool/caller/session/args)绑定,重启后
+  `resume(id, context)` 指纹不一致即拒绝;
+- 每次 scope 校验在传输层执行;认证失败不泄露资源存在性。
+
+完整说明见 [koatty_mcp 扩展页](extensions/mcp.md)。
+
+## koatty_llm:统一 LLM 调用
+
+一个接口对接所有供应商,生产级管线开箱即用:
+
+```ts
+const llm = createLlmClient({
+  providers: [createOpenAiCompatibleProvider({ name: 'openai', /* ... */ })],
+  routes: { default: { model: 'default', provider: 'openai', providerModel: 'gpt-4o-mini' } },
+  reliability: { attempts: 2, timeoutMs: 60_000, breakerThreshold: 5 },
+  budget: { maxTokens: 200_000, store: redisStore },   // 原子 incrBy,多实例共享
+});
+
+// 流式(signal 透传,chunk 间复查中断)
+for await (const chunk of llm.stream({ model: 'default', messages, signal: ctx.signal })) { /* ... */ }
+```
+
+内置:仅对 429/5xx 的退避重试与熔断、超预算即中止(不静默截断)、
+`schema` + `dto` 结构化输出(校验失败带纠错重问)、`withTools` 工具循环
+(白名单前置 + `maxRounds` 硬上限)、非流式精确缓存。错误按
+`LlmAbortError` / `LlmTimeoutError` / `LlmBudgetError` 等子类区分可重试性。
+完整说明见 [koatty_llm 扩展页](extensions/llm.md)。
+
+## koatty_guard:AI 链路护栏
+
+单个 `@Around` 切面串联整条管线,**不新增 Guard 装饰器栈**:
+
+```
+脱敏 → 内容检查(提示注入启发式) → 限流 → 人工审批 → 审计
+```
+
+- 脱敏按**规范化后的精确键名**(`password`/`api_key`/`accessToken`/`sessionId`…),
+  不再误伤 `total_tokens`、`nextPageToken` 这类业务字段;文本规则捕获
+  Bearer token、带凭据 URL、PEM 私钥;
+- 审计默认不记录提示词与模型输出原文;Buffer/Map/Set 只记录类型与大小;
+  每次调用恰好一条稳定终态审计记录;
+- 与 `koatty_mcp` 共享审批存储,与 `koatty_llm` 的出入参脱敏在业务层显式组合。
+完整说明见 [koatty_guard 扩展页](extensions/guard.md)。
+
+## GenAI 可观测(koatty-trace 2.5)
+
+`createGenAiRecorder()` 按语义约定记录 `genai.*` 属性(供应商、模型、
+token 用量、耗时、结束原因、成本),工具调用产生独立 span;
+**默认不记录提示词与模型输出原文**,`captureContent: true` 显式开启后
+必须显式注入 masker(可用 `koatty_guard` 的脱敏服务),trace 不隐式依赖 Guard。
+
+## AI 就绪的工程底座
+
+- `koatty_cli 5.x` 提供 `koatty manifest`(静态收集路由/DTO/config schema,
+  供 AI 工具离线理解项目)与 `koatty mcp`(MCP 形态的工程查询入口);
+- 框架文档站提供 [llms.txt](llms.txt)(AI 消费索引);
+- `koatty_validation` 是全链路唯一的校验真相源:HTTP body、MCP 入参、
+  LLM 结构化输出共用同一批 DTO。
 
 # 编程规范和约定
 

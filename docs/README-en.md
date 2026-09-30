@@ -9,6 +9,7 @@ Koa + TypeScript + IOC = Koatty. **Koatty** is a progressive Node.js framework f
 
 ## Why Koatty? 💡
 
+- 🤖 **AI-friendly (5.0 headline)**: expose any Service as MCP tools with one decorator, a unified multi-provider LLM client, built-in guardrails and GenAI observability
 - 🚄 **High Performance**: Built on top of Koa with optimized architecture
 - 🧩 **Full-Featured**: Supports gRPC, HTTP, WebSocket, GraphQL, scheduled tasks, and more
 - 🧠 **TypeScript First**: Native TypeScript support with elegant OOP design
@@ -20,6 +21,15 @@ Koa + TypeScript + IOC = Koatty. **Koatty** is a progressive Node.js framework f
 
 ## ✨ Latest Features
 
+### 🤖 AI-ready (5.0 headline)
+
+- ✅ **koatty_mcp@1.0.0** - MCP Server host: `@Tool` / `@Resource` / `@Prompt` decorators expose Service methods over the Model Context Protocol, reusing `@Validated` DTO whitelists and the IoC request scope; destructive tools require human approval (fail closed)
+- ✅ **koatty_llm@1.0.0** - unified LLM client: logical model routing with failover, circuit breaker, atomic token budgets, exact caching, structured output validated by DTOs, in-process tool loop
+- ✅ **koatty_guard@1.0.0** - AI guardrails: masking → content inspection → rate limit → approval → audit in a single aspect; approval tickets are durable, single-use and bound to the caller fingerprint
+- ✅ **GenAI observability** - koatty-trace 2.5 records `genai.*` span attributes; prompt/output content is not recorded by default
+- ✅ **Security Profile** - `KOATTY_ENV || NODE_ENV` selects strict/standard/development with fail-closed defaults (DTO whitelist, WS origin, /metrics loopback trust, ops token, TLS ≥1.2)
+
+### Architecture
 ### Architecture Upgrades
 
 - ✅ **Multi-Protocol Architecture** - Run HTTP, HTTPS, HTTP/2, HTTP/3, gRPC, WebSocket, and GraphQL simultaneously with independent server instances for each protocol
